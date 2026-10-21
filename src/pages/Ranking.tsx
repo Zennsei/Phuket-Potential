@@ -66,7 +66,6 @@ export default function Ranking({ scored, weights }: PageProps) {
   return (
     <div className="page">
       <header style={{ display: "grid", gap: 8 }}>
-        <div className="eyebrow">{t("จัดอันดับ 17 ตำบล", "Ranking of 17 sub-districts")}</div>
         <h1>{t("ตำบลไหนมีศักยภาพสูงสุด", "Which sub-districts rank highest")}</h1>
         <p className="lede">
           {t("อันดับเปลี่ยนตามหลักเกณฑ์ที่ตั้งไว้ในหน้าแผนที่ ปรับน้ำหนักปัจจัยแล้วกลับมาดูหน้านี้ได้",
@@ -96,7 +95,7 @@ export default function Ranking({ scored, weights }: PageProps) {
             placeholder={t("ค้นหาตำบลหรืออำเภอ", "Search sub-district or district")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface)", minWidth: 0, flex: "1 1 220px", maxWidth: 360 }}
+            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--rule)", background: "var(--sheet)", minWidth: 0, flex: "1 1 220px", maxWidth: 360 }}
           />
           <div className="row">
             <button className="btn ghost" onClick={exportCsv}>{t("ดาวน์โหลด CSV", "Download CSV")}</button>
@@ -115,7 +114,7 @@ export default function Ranking({ scored, weights }: PageProps) {
             <tbody>
               {rows.map((s) => (
                 <tr key={s.props.id}>
-                  <td className="mono">{s.rank} · <b>{num(s.score, 1)}</b></td>
+                  <td className="mono"><span className="muted">{s.rank}</span> <b>{num(s.score, 1)}</b></td>
                   <td>
                     <a href={href("map", s.props.id)}>{t(s.props.tambon_th, s.props.tambon_en)}</a>
                     <div className="small muted">{t(`อ.${s.props.amphoe_th}`, s.props.amphoe_en)}</div>
@@ -135,7 +134,7 @@ export default function Ranking({ scored, weights }: PageProps) {
           </table>
         </div>
         <p className="small muted">
-          {FACTORS.map((f) => `${t(f.th, f.en)}: ${t(f.unitTh, f.unitEn)}`).join(" · ")}
+          {FACTORS.map((f) => `${t(f.th, f.en)}: ${t(f.unitTh, f.unitEn)}`).join(", ")}
         </p>
       </section>
     </div>

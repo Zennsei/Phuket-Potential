@@ -29,6 +29,21 @@ interface Props {
   focus?: { key: string; lon: number; lat: number; zoom: number };
   /** last clicked point */
   clickPoint?: { lon: number; lat: number };
+  /** reports the visible area so the collar can draw coordinate ticks */
+  onView?: (v: MapViewport) => void;
+}
+
+export interface MapViewport {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+  width: number;
+  height: number;
+  /** position of the map canvas inside its frame */
+  ox: number;
+  oy: number;
+  project: (lng: number, lat: number) => { x: number; y: number };
 }
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -112,12 +127,13 @@ export default function MapView(p: Props) {
 
       m.addSource("tambons", { type: "geojson", data: latest.current.tambons, promoteId: "id" });
       m.addLayer({ id: "tambon-fill", type: "fill", source: "tambons", paint: { "fill-color": ["coalesce", ["get", "_fill"], "#cccccc"], "fill-opacity": 0.7 } });
-      m.addLayer({ id: "tambon-line", type: "line", source: "tambons", paint: { "line-color": "#ffffff", "line-width": 1.2 } });
-      m.addLayer({ id: "tambon-sel", type: "line", source: "tambons", filter: ["==", ["get", "id"], ""], paint: { "line-color": "#14232b", "line-width": 3 } });
+      m.addLayer({ id: "tambon-line", type: "line", source: "tambons", paint: { "line-color": "#ffffff", "line-width": 1 } });
+      m.addLayer({ id: "tambon-sel", type: "line", source: "tambons", filter: ["==", ["get", "id"], ""], paint: { "line-color": "#b0186e", "line-width": 3 } });
 
       m.addLayer({ id: "overlay-roads", type: "line", source: "ov-roads", layout: { visibility: "none", "line-cap": "round" },
         paint: {
-          "line-color": ["match", ["get", "hw"], ["primary", "primary_link"], "#1d4f7a", ["secondary", "secondary_link"], "#2b6f9e", "#6d9cc0"],
+          // topographic-map road colours: they stay readable over the blue score colours
+          "line-color": ["match", ["get", "hw"], ["primary", "primary_link"], "#c4511c", ["secondary", "secondary_link"], "#e0873a", "#c9a27a"],
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, ["match", ["get", "hw"], ["primary"], 2.2, ["secondary"], 1.4, 0.6], 14, ["match", ["get", "hw"], ["primary"], 6, ["secondary"], 4, 2]],
         } });
       m.addLayer({ id: "overlay-pois", type: "circle", source: "ov-pois", layout: { visibility: "none" },
@@ -165,9 +181,9 @@ export default function MapView(p: Props) {
           row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
         const b = first("overlay-buildings");
-        if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง · หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings · roofs cover ${b.cover}% of the cell`);
+        if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings, roofs cover ${b.cover}% of the cell`);
         const pop = first("overlay-population");
-        if (pop) row(label("population"), th ? `<b>${nf(Number(pop.population))}</b> คน · ${nf(Number(pop.density))} คน/ตร.กม.` : `<b>${nf(Number(pop.population))}</b> people · ${nf(Number(pop.density))} per km²`);
+        if (pop) row(label("population"), th ? `<b>${nf(Number(pop.population))}</b> คน หนาแน่น ${nf(Number(pop.density))} คน/ตร.กม.` : `<b>${nf(Number(pop.population))}</b> people, ${nf(Number(pop.density))} per km²`);
         const lv = first("overlay-land");
         if (lv) row(label("land"), th ? `ค่ากลาง <b>${nf(Number(lv.median_price))}</b> บาท/ตร.ว. จาก ${nf(Number(lv.parcels))} แปลง` : `median <b>${nf(Number(lv.median_price))}</b> THB/sq.wah from ${nf(Number(lv.parcels))} parcels`);
         const lu = first("overlay-landuse");
@@ -187,6 +203,24 @@ export default function MapView(p: Props) {
         const hit = m.queryRenderedFeatures(e.point, { layers }).length > 0;
         m.getCanvas().style.cursor = hit ? "pointer" : "";
       });
+      // report the viewport for the coordinate collar (at most once per frame)
+      let raf = 0;
+      const report = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          const b = m.getBounds();
+          const c = m.getCanvas();
+          latest.current.onView?.({
+            west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth(),
+            width: c.clientWidth, height: c.clientHeight,
+            ox: box.current?.offsetLeft ?? 0, oy: box.current?.offsetTop ?? 0,
+            project: (lng, lat) => m.project([lng, lat]),
+          });
+        });
+      };
+      m.on("move", report);
+      m.on("resize", report);
+      report();
       setReady(true);
     });
     return () => {
@@ -303,7 +337,7 @@ export default function MapView(p: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, p.basemap]);
 
-  return <div ref={box} className="maplibre-host" style={{ position: "absolute", inset: 0 }} aria-label={t("แผนที่ภูเก็ต", "Map of Phuket")} />;
+  return <div ref={box} className="maplibre-host" aria-label={t("แผนที่ภูเก็ต", "Map of Phuket")} />;
 }
 
 function escapeHtml(s: string) {

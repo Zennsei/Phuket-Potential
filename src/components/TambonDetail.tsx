@@ -30,7 +30,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
       <div className="row" style={{ alignItems: "baseline", gap: 14 }}>
         <span className="bigscore">{num(s.score, 1)}</span>
         <span className="muted">
-          {t(`คะแนนศักยภาพ · อันดับ ${s.rank} จาก ${total}`, `potential score · rank ${s.rank} of ${total}`)}
+          {t(`คะแนนศักยภาพ อันดับ ${s.rank} จาก ${total}`, `potential score, rank ${s.rank} of ${total}`)}
         </span>
       </div>
       <div style={{ display: "grid", gap: 10 }}>

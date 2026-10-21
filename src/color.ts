@@ -1,4 +1,5 @@
-export const RAMP = ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"];
+/** potential score ramp: pale sea-glass to deep Andaman blue */
+export const RAMP = ["#e7f0ec", "#b7d6ce", "#6bafb2", "#2c7a98", "#133d66"];
 
 /** class breaks at the 20/40/60/80th percentiles of the values */
 export function quantileBreaks(values: number[]): number[] {

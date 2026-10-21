@@ -49,7 +49,7 @@ export const OVERLAYS: Overlay[] = [
   {
     id: "roads", file: "data/roads_main.geojson",
     th: "ถนนสายหลัก", en: "Main roads",
-    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#2b6f9e",
+    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#c4511c",
   },
   {
     id: "pois", file: "data/pois.geojson",
