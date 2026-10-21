@@ -94,7 +94,7 @@ export default function Mission({ data }: PageProps) {
   return (
     <div className="page" style={{ maxWidth: 900 }}>
       <header style={{ display: "grid", gap: 8 }}>
-        <div className="eyebrow">Mission · {t("ด้านการจัดการเมืองและเส้นทางระเบียงเศรษฐกิจ", "Urban management & economic corridors")}</div>
+        <div className="eyebrow">{t("ด้านการจัดการเมืองและเส้นทางระเบียงเศรษฐกิจ", "Urban management & economic corridors")}</div>
         <h1>{t("ภารกิจ: เลือกพื้นที่เศรษฐกิจใหม่ของภูเก็ต", "Mission: choose Phuket's next economic area")}</h1>
         <p className="lede">
           {t("ใช้ข้อมูลหลายชั้นตัดสินใจว่าตำบลไหนควรได้รับการส่งเสริมเป็นศูนย์กลางเศรษฐกิจแห่งใหม่ แล้วทดสอบว่าการตัดสินใจยังใช้ได้ไหมเมื่อสถานการณ์เปลี่ยน",
@@ -132,7 +132,7 @@ export default function Mission({ data }: PageProps) {
               { th: "อาคารกระจุกตัวที่ไหน และตำบลไหนยังมีที่ว่างเยอะ", en: "Where are buildings concentrated, and which sub-districts still have open land?", l: "GISTDA" },
               { th: "ถนนสายหลักผ่านตำบลไหนบ้าง ตำบลไหนอยู่ไกลถนน", en: "Which sub-districts do the main roads pass through, and which are far from them?", l: "OpenStreetMap" },
               { th: "ราคาที่ดินแพงที่สุดอยู่ตรงไหน สอดคล้องกับความหนาแน่นอาคารไหม", en: "Where is land most expensive, and does it match building density?", l: t("กรมธนารักษ์", "Treasury") },
-              { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur · OSM" },
+              { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur, OSM" },
               { th: "เปลี่ยนแผนที่พื้นหลังเป็นภาพดาวเทียม ซูมไปที่ตำบลที่สนใจ ยังมีที่ดินว่างหรือมีการก่อสร้างใหม่ไหม", en: "Switch the base map to satellite imagery and zoom into a sub-district: is there open land or new construction?", l: "GISTDA Sphere" },
               { th: "คลิกจุดบนแผนที่แล้วถาม Sphere ว่ารอบจุดนั้นมีสถานที่อะไรบ้าง", en: "Click a point and ask Sphere which places are around it", l: "GISTDA Sphere" },
             ].map((q) => (

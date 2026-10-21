@@ -46,7 +46,7 @@ export default function SphereNearby({ point }: { point: { lon: number; lat: num
         <div style={{ display: "grid", gap: 4 }}>
           {state.places.map((p) => (
             <div key={p.id} className="row small" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-              <span style={{ minWidth: 0 }}>{p.name}{p.tag?.[0] ? <span className="muted"> · {p.tag[lang === "th" ? 0 : 1] ?? p.tag[0]}</span> : null}</span>
+              <span style={{ minWidth: 0 }}>{p.name}{p.tag?.[0] ? <span className="muted"> ({p.tag[lang === "th" ? 0 : 1] ?? p.tag[0]})</span> : null}</span>
               {p.distance != null && <span className="mono muted" style={{ flex: "none" }}>{num(metres(p.distance))} {t("ม.", "m")}</span>}
             </div>
           ))}

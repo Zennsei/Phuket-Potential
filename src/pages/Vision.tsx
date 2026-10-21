@@ -21,7 +21,7 @@ export default function Vision() {
 
   const statusLabel: Record<Status, [string, string, string]> = {
     used: ["ใช้แล้วในเว็บนี้", "In use", "var(--ok)"],
-    ready: ["มีบริการแล้ว พร้อมต่อยอด", "Service exists, ready to add", "var(--accent)"],
+    ready: ["มีบริการแล้ว พร้อมต่อยอด", "Service exists, ready to add", "var(--sea)"],
     idea: ["แนวคิด", "Idea", "var(--muted)"],
   };
   const Pill = ({ s }: { s: Status }) => (
@@ -50,7 +50,6 @@ export default function Vision() {
   return (
     <div className="page">
       <header style={{ display: "grid", gap: 8 }}>
-        <div className="eyebrow">{t("วิสัยทัศน์และการต่อยอด", "Vision & next steps")}</div>
         <h1>{t("จากแผนที่ศักยภาพ สู่เครื่องมือวางแผนเมืองของภูเก็ต", "From a potential map to a planning tool for Phuket")}</h1>
         <p className="lede">
           {t("เว็บนี้คือต้นแบบ หน้านี้อธิบายว่าใครใช้ได้อย่างไร ต่อยอดด้วยข้อมูลของ GISTDA ได้อีกแค่ไหน และนำไปใช้กับเรื่องอื่นได้อย่างไร",
@@ -79,7 +78,7 @@ export default function Vision() {
               </div>
             ))}
           </div>
-          <p className="small muted">{t("ที่มา: สำนักงานสถิติแห่งชาติ สำมะโนประชากรและเคหะ (data.go.th) · ข้อมูลระดับอำเภอ", "Source: National Statistical Office census (data.go.th) · district level")}</p>
+          <p className="small muted">{t("ที่มา: สำนักงานสถิติแห่งชาติ สำมะโนประชากรและเคหะ (data.go.th) ข้อมูลระดับอำเภอ", "Source: National Statistical Office census (data.go.th), district level")}</p>
         </section>
       )}
 

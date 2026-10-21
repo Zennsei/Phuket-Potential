@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import MapView from "../components/MapView";
+import MapView, { type MapViewport } from "../components/MapView";
+import Collar from "../components/Collar";
 import WeightPanel from "../components/WeightPanel";
 import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
@@ -22,6 +23,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
   const [tambonFill, setTambonFill] = useState(true);
+  const [view, setView] = useState<MapViewport>();
   const [baseFailed, setBaseFailed] = useState(false);
   const [clickPoint, setClickPoint] = useState<{ lon: number; lat: number }>();
   const [pins, setPins] = useState<SpherePlace[]>([]);
@@ -110,7 +112,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           <h3>{t("แผนที่พื้นหลัง", "Base map")}</h3>
           <select value={basemap} onChange={(e) => setBasemap(e.target.value)} aria-label={t("แผนที่พื้นหลัง", "Base map")}>
             {BASEMAPS.map((b) => (
-              <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? " · GISTDA" : ""}</option>
+              <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? " (GISTDA)" : ""}</option>
             ))}
           </select>
         </section>
@@ -131,7 +133,9 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           pins={pins.map((p) => ({ id: p.id, lon: p.lon, lat: p.lat, label: p.name }))}
           focus={focus}
           clickPoint={clickPoint}
+          onView={setView}
         />
+        <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />
         {baseFailed && (
           <div className="notice" role="status">
             {t("โหลดแผนที่พื้นหลังไม่สำเร็จ (อาจเป็นเพราะ API key หรือเครดิตของ Sphere) ข้อมูลวิเคราะห์ยังใช้ได้ตามปกติ ",

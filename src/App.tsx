@@ -53,15 +53,22 @@ export default function App() {
       route === "mission" ? <Mission {...common} /> :
       route === "method" ? <Method data={data} /> :
       route === "vision" ? <Vision /> :
-      <Home scored={scored} />;
+      <Home scored={scored} data={data} />;
   }
 
   return (
     <div className="shell">
       <header className="topbar">
         <a className="brand" href={href("home")}>
+          <svg className="brand-mark" viewBox="0 0 26 26" aria-hidden="true">
+            <rect x="3" y="3" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M9 0v3M17 0v3M9 23v3M17 23v3M0 9h3M0 17h3M23 9h3M23 17h3" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M11 7c2 1 1 3 3 4s1 3 0 5-1 3-2 3-2-2-2-4 0-3 0-5 0-3 1-3z" fill="var(--overprint)" />
+          </svg>
+          <span>
           <b>{t("ศักยภาพพื้นที่ภูเก็ต", "Phuket Potential Map")}</b>
-          <span>{t("ข้อมูล GISTDA + ข้อมูลเปิด รายตำบล", "GISTDA + open data, by sub-district")}</span>
+          <span>{t("แผนที่ศักยภาพรายตำบล จากข้อมูล GISTDA", "Sub-district potential from GISTDA data")}</span>
+          </span>
         </a>
         <nav className="nav" aria-label={t("เมนูหลัก", "Main menu")}>
           {nav.map((n) => (
