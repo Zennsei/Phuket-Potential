@@ -21,6 +21,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
+  const [tambonFill, setTambonFill] = useState(true);
   const [baseFailed, setBaseFailed] = useState(false);
   const [clickPoint, setClickPoint] = useState<{ lon: number; lat: number }>();
   const [pins, setPins] = useState<SpherePlace[]>([]);
@@ -86,6 +87,11 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
         </section>
         <section>
           <h3>{t("ชั้นข้อมูล", "Layers")}</h3>
+          <label className="check">
+            <input type="checkbox" checked={tambonFill} onChange={(e) => setTambonFill(e.target.checked)} />
+            <span className="sw" style={{ background: "#c4512e" }} />
+            <span>{t("สีตำบลตามคะแนน", "Sub-district colours")}</span>
+          </label>
           {OVERLAYS.map((o) => (
             <label key={o.id} className="check">
               <input type="checkbox" checked={overlays[o.id]} onChange={(e) => setOverlays({ ...overlays, [o.id]: e.target.checked })} />
@@ -115,6 +121,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           tambons={data.tambons}
           fills={fills}
           tambonOpacity={anyFillOverlay ? 0.12 : 0.72}
+          showTambonFill={tambonFill}
           overlays={overlays}
           basemap={basemap}
           showLabels={labels}
@@ -137,7 +144,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           </div>
         )}
         <div className="legend">
-          {!anyFillOverlay && (
+          {!anyFillOverlay && tambonFill && (
             <>
               <b>{legend.title}</b>
               <div className="ramp">{RAMP.map((c) => <i key={c} style={{ background: c }} />)}</div>

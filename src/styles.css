@@ -180,3 +180,9 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--line); border-
 .results button:hover { background: var(--surface-2); }
 .searchrow { display: flex; gap: 6px; }
 .searchrow input { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+
+/* map popup listing values of each visible layer */
+.maplibregl-popup-content { font-family: var(--font-body); font-size: 13px; color: #14232b; padding: 10px 12px; }
+.pp-row + .pp-row { border-top: 1px solid #e3e8e6; margin-top: 6px; padding-top: 6px; }
+.pp-title { font-size: 11px; color: #5b6b70; margin-bottom: 1px; }
+.pp-muted { color: #5b6b70; }

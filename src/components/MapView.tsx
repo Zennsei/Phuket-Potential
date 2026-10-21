@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
-import type { GeoJSONSource, MapGeoJSONFeature, StyleSpecification } from "maplibre-gl";
+import type { GeoJSONSource, StyleSpecification } from "maplibre-gl";
 // MapLibre builds its worker path at runtime, which the bundler cannot see; bundle the worker explicitly.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
@@ -14,6 +14,8 @@ interface Props {
   /** fill colour per tambon id */
   fills: Record<string, string>;
   tambonOpacity: number;
+  /** show the sub-district colour fill (outlines stay) */
+  showTambonFill: boolean;
   overlays: Record<OverlayId, boolean>;
   basemap: string;
   showLabels: boolean;
@@ -136,25 +138,43 @@ export default function MapView(p: Props) {
       m.fitBounds([[98.255, 7.75], [98.47, 8.2]], { padding: 20, duration: 0 });
 
       m.on("click", (e) => {
-        const poi = m.queryRenderedFeatures(e.point, { layers: ["overlay-pois"] })[0] as MapGeoJSONFeature | undefined;
+        // one popup listing what every visible layer says about this spot
+        const box: [maplibregl.PointLike, maplibregl.PointLike] = [[e.point.x - 5, e.point.y - 5], [e.point.x + 5, e.point.y + 5]];
+        const html: string[] = [];
+        const th = langRef.current === "th";
+        const nf = (n: number) => Math.round(n).toLocaleString(th ? "th-TH" : "en-US");
+        const row = (title: string, body: string) => html.push(`<div class="pp-row"><div class="pp-title">${escapeHtml(title)}</div><div>${body}</div></div>`);
+        const first = (layer: string, pt: maplibregl.PointLike | [maplibregl.PointLike, maplibregl.PointLike] = e.point) =>
+          m.getLayer(layer) && m.getLayoutProperty(layer, "visibility") !== "none"
+            ? (m.queryRenderedFeatures(pt, { layers: [layer] })[0]?.properties as Record<string, string | number> | undefined)
+            : undefined;
+        const ov = (id: OverlayId) => OVERLAYS.find((o) => o.id === id)!;
+        const label = (id: OverlayId) => (th ? ov(id).th : ov(id).en);
+
+        const poi = first("overlay-pois", box);
         if (poi) {
-          const pr = poi.properties as Record<string, string>;
-          const cat = POI_COLORS[pr.cat];
-          const name = (langRef.current === "en" && pr.name_en) || pr.name || pr.kind;
-          new maplibregl.Popup({ closeButton: false })
-            .setLngLat(e.lngLat)
-            .setHTML(`<b>${escapeHtml(name)}</b><br><span style="color:#5b6b70">${escapeHtml(cat ? (langRef.current === "th" ? cat.th : cat.en) : pr.kind)}</span>`)
-            .addTo(m);
-          return;
+          const cat = POI_COLORS[String(poi.cat)];
+          const name = (!th && poi.name_en) || poi.name || poi.kind;
+          row(label("pois"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${escapeHtml(cat ? (th ? cat.th : cat.en) : String(poi.kind))}</span>`);
         }
-        const lu = m.queryRenderedFeatures(e.point, { layers: ["overlay-landuse"] })[0];
-        if (lu) {
-          const pr = lu.properties as Record<string, string>;
-          new maplibregl.Popup({ closeButton: false })
-            .setLngLat(e.lngLat)
-            .setHTML(`<b>${escapeHtml(langRef.current === "th" ? pr.th : pr.en)}</b><br><span style="color:#5b6b70">${langRef.current === "th" ? "การใช้ที่ดิน ปี 2563 (กรมพัฒนาที่ดิน)" : "Land use 2020 (LDD)"}</span>`)
-            .addTo(m);
+        const road = first("overlay-roads", box);
+        if (road) {
+          const cls: Record<string, [string, string]> = { primary: ["ถนนสายหลัก", "primary road"], secondary: ["ถนนสายรอง", "secondary road"], tertiary: ["ถนนท้องถิ่น", "tertiary road"] };
+          const c = cls[String(road.hw).replace("_link", "")] ?? [String(road.hw), String(road.hw)];
+          const name = [road.name, road.ref ? `(${road.ref})` : ""].filter(Boolean).join(" ") || (th ? "ไม่มีชื่อ" : "unnamed");
+          row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
+        const b = first("overlay-buildings");
+        if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง · หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings · roofs cover ${b.cover}% of the cell`);
+        const pop = first("overlay-population");
+        if (pop) row(label("population"), th ? `<b>${nf(Number(pop.population))}</b> คน · ${nf(Number(pop.density))} คน/ตร.กม.` : `<b>${nf(Number(pop.population))}</b> people · ${nf(Number(pop.density))} per km²`);
+        const lv = first("overlay-land");
+        if (lv) row(label("land"), th ? `ค่ากลาง <b>${nf(Number(lv.median_price))}</b> บาท/ตร.ว. จาก ${nf(Number(lv.parcels))} แปลง` : `median <b>${nf(Number(lv.median_price))}</b> THB/sq.wah from ${nf(Number(lv.parcels))} parcels`);
+        const lu = first("overlay-landuse");
+        if (lu) row(label("landuse"), `<b>${escapeHtml(String(th ? lu.th : lu.en))}</b>`);
+
+        if (html.length) new maplibregl.Popup({ closeButton: true, maxWidth: "300px" }).setLngLat(e.lngLat).setHTML(html.join("")).addTo(m);
+
         const f = m.queryRenderedFeatures(e.point, { layers: ["tambon-fill"] })[0];
         latest.current.onMapClick({
           id: f ? String((f.properties as TambonProps).id) : undefined,
@@ -163,7 +183,8 @@ export default function MapView(p: Props) {
         });
       });
       m.on("mousemove", (e) => {
-        const hit = m.queryRenderedFeatures(e.point, { layers: ["tambon-fill", "overlay-pois"] }).length > 0;
+        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`)].filter((l) => m.getLayer(l));
+        const hit = m.queryRenderedFeatures(e.point, { layers }).length > 0;
         m.getCanvas().style.cursor = hit ? "pointer" : "";
       });
       setReady(true);
@@ -186,8 +207,12 @@ export default function MapView(p: Props) {
     };
     (m.getSource("tambons") as GeoJSONSource).setData(data);
     // fade the sub-district colour when zoomed in, so the base map / satellite image shows through
-    m.setPaintProperty("tambon-fill", "fill-opacity", ["interpolate", ["linear"], ["zoom"], 11, p.tambonOpacity, 14, Math.min(p.tambonOpacity, 0.12)]);
-  }, [ready, p.fills, p.tambons, p.tambonOpacity]);
+    m.setPaintProperty(
+      "tambon-fill",
+      "fill-opacity",
+      p.showTambonFill ? ["interpolate", ["linear"], ["zoom"], 11, p.tambonOpacity, 14, Math.min(p.tambonOpacity, 0.12)] : 0,
+    );
+  }, [ready, p.fills, p.tambons, p.tambonOpacity, p.showTambonFill]);
 
   // overlays on/off (load each file the first time its layer is shown)
   const loaded = useRef(new Set<OverlayId>());
