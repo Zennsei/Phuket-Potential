@@ -1,0 +1,10 @@
+{
+ "generated": "2026-10-21",
+ "notes": {
+  "buildings": "GISTDA building footprints, Phuket (file 83_ภูเก็ต, dated 2022-06), 130403 polygons",
+  "population": "Kontur Population, H3 400 m hexagons, release 2023-11-01 (2022-06-30 kept for comparison)",
+  "roads_pois": "OpenStreetMap via Geofabrik extract thailand-261020 (2026-10-20)",
+  "land_value": "Treasury Department appraisal CSV land_83_phuket (data.go.th); 199091 of 215944 parcels located by UTM map-sheet number; 1:5000 sheets and zero prices excluded",
+  "boundaries": "THA_Tambon shapefile supplied by team"
+ }
+}
