@@ -1,4 +1,5 @@
 import { FACTORS } from "../factors";
+import { LANDUSE_COLORS } from "../layers";
 import { useI18n } from "../i18n";
 import { href } from "../router";
 import type { Scored, Weights } from "../types";
@@ -12,7 +13,14 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
     services: num(p.services_per_km2, 1),
     population: num(p.pop_per_km2),
     land: p.land_median == null ? "–" : num(p.land_median),
+    developable: num(p.developable_pct, 1),
   };
+  const lu = [
+    { k: "U1", v: p.lu_urban_pct, th: "พื้นที่ชุมชนและสิ่งปลูกสร้าง", en: "Built-up" },
+    { k: "A", v: p.lu_agri_pct, th: "เกษตรกรรม", en: "Agriculture" },
+    { k: "M", v: p.lu_misc_pct, th: "เบ็ดเตล็ด", en: "Miscellaneous" },
+    { k: "F", v: p.lu_forest_pct, th: "ป่าไม้", en: "Forest" },
+  ];
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div>
@@ -41,6 +49,20 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
             </div>
           );
         })}
+      </div>
+      <div>
+        <div className="small" style={{ marginBottom: 4 }}>{t("การใช้ที่ดิน ปี 2563 (กรมพัฒนาที่ดิน)", "Land use 2020 (LDD)")}</div>
+        <div style={{ display: "flex", height: 12, borderRadius: 3, overflow: "hidden" }}>
+          {lu.map((x) => <i key={x.k} title={`${t(x.th, x.en)} ${x.v}%`} style={{ width: `${x.v}%`, background: LANDUSE_COLORS[x.k].c }} />)}
+        </div>
+        <div className="row small muted" style={{ gap: "2px 10px", marginTop: 4 }}>
+          {lu.map((x) => (
+            <span key={x.k} className="row" style={{ gap: 4 }}>
+              <i style={{ width: 8, height: 8, background: LANDUSE_COLORS[x.k].c, display: "inline-block" }} />
+              {t(x.th, x.en)} {num(x.v, 1)}%
+            </span>
+          ))}
+        </div>
       </div>
       <dl className="kv">
         <dt>{t("พื้นที่", "Area")}</dt><dd>{num(p.area_km2, 1)} {t("ตร.กม.", "km²")}</dd>

@@ -5,7 +5,7 @@ import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
 import SphereNearby from "../components/SphereNearby";
 import { FACTORS } from "../factors";
-import { OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
+import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { useI18n } from "../i18n";
@@ -18,7 +18,7 @@ type ColorBy = "score" | FactorKey;
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
   const { t, num } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ buildings: false, population: false, land: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
   const [baseFailed, setBaseFailed] = useState(false);
@@ -53,7 +53,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     };
   }, [colorBy, scored, t, num]);
 
-  const anyFillOverlay = overlays.buildings || overlays.population || overlays.land;
+  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land;
   const selected = scored.find((s) => s.props.id === selectedId);
   const onMapClick = (hit: { id?: string; lon: number; lat: number }) => {
     setClickPoint({ lon: hit.lon, lat: hit.lat });
@@ -151,6 +151,16 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               <div className="ends"><span>&lt;{num(o.breaks![0])}</span><span>{num(o.breaks![3])}+ {t(o.unitTh!, o.unitEn!)}</span></div>
             </div>
           ))}
+          {overlays.landuse && (
+            <div>
+              <b>{t("การใช้ที่ดิน ปี 2563", "Land use 2020")}</b>
+              <div className="row" style={{ gap: "2px 8px" }}>
+                {Object.values(LANDUSE_COLORS).map((c) => (
+                  <span key={c.th} className="row" style={{ gap: 4 }}><i style={{ width: 9, height: 9, background: c.c, display: "inline-block" }} />{t(c.th, c.en)}</span>
+                ))}
+              </div>
+            </div>
+          )}
           {overlays.pois && (
             <div className="row" style={{ gap: "2px 8px" }}>
               {Object.values(POI_COLORS).map((c) => (

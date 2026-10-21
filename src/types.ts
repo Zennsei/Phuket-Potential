@@ -28,11 +28,19 @@ export interface TambonProps {
   land_parcels: number;
   land_median: number | null;
   land_mean: number | null;
+  /** LDD land use 2563 (2020), % of land area (water excluded) */
+  lu_urban_pct: number;
+  lu_agri_pct: number;
+  lu_forest_pct: number;
+  lu_misc_pct: number;
+  lu_water_km2: number;
+  /** agriculture + miscellaneous land, % of land area */
+  developable_pct: number;
 }
 
 export type TambonCollection = FeatureCollection<Polygon | MultiPolygon, TambonProps>;
 
-export type FactorKey = "buildings" | "road" | "services" | "population" | "land";
+export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable";
 
 /** +1 = higher value is better, -1 = lower value is better, 0 = factor switched off */
 export type Direction = 1 | -1 | 0;

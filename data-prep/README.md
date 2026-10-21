@@ -7,7 +7,10 @@
 - `kontur_population_TH_20231101.gpkg` จาก HDX
 - `land_83_phuket.csv` ราคาประเมิน กรมธนารักษ์ จาก https://data.go.th/dataset/land-valuation
 
-ลำดับการรัน: `osm_extract.py` → `bldg_grid.py` → `data_prep.py` (แก้ path ของไฟล์ต้นทางที่ต้นไฟล์ก่อน)
+- `LU_PKT_2563.shp` การใช้ที่ดิน กรมพัฒนาที่ดิน ปี 2563 (จาก Landuse_pkt.zip)
+- `data_4.csv` สำมะโนประชากร ภาคใต้ (data.go.th/dataset/0703_01_14)
+
+ลำดับการรัน: `osm_extract.py` → `bldg_grid.py` → `data_prep.py` → `landuse_prep.py` (แก้ path ของไฟล์ต้นทางที่ต้นไฟล์ก่อน)
 
 ## วิธีหาตำแหน่งราคาประเมิน
 ไฟล์ราคาประเมินไม่มีพิกัด มีแต่เลขระวาง UTM เช่น `4624 I 3470-01 (1:1000)`

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-export type Route = "home" | "map" | "ranking" | "mission" | "method";
-const ROUTES: Route[] = ["home", "map", "ranking", "mission", "method"];
+export type Route = "home" | "map" | "ranking" | "mission" | "vision" | "method";
+const ROUTES: Route[] = ["home", "map", "ranking", "mission", "vision", "method"];
 
 function read(): { route: Route; param?: string } {
   const [r, param] = window.location.hash.replace(/^#\/?/, "").split("/");
