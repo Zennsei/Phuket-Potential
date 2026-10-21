@@ -74,9 +74,21 @@ export const FACTORS: FactorDef[] = [
     unitEn: "THB/sq.wah (median)",
     value: (p) => p.land_median,
     higherIsBetter: true,
-    sourceTh: "กรมธนารักษ์ ผ่าน data.go.th",
-    sourceEn: "Treasury Dept. via data.go.th",
+    sourceTh: "กรมธนารักษ์ รอบบัญชี 2566–2569 ผ่าน data.go.th",
+    sourceEn: "Treasury Dept., 2023–2026 round, via data.go.th",
     color: "#a3741b",
+  },
+  {
+    key: "developable",
+    th: "ที่ดินที่ยังพัฒนาได้",
+    en: "Developable land",
+    unitTh: "% ของพื้นที่ (เกษตร + เบ็ดเตล็ด)",
+    unitEn: "% of land (agriculture + misc.)",
+    value: (p) => p.developable_pct,
+    higherIsBetter: true,
+    sourceTh: "การใช้ที่ดิน กรมพัฒนาที่ดิน ปี 2563",
+    sourceEn: "LDD land use 2020 (2563)",
+    color: "#5c8a3a",
   },
 ];
 
@@ -91,12 +103,13 @@ export interface Preset {
   weights: Weights;
 }
 
-const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -1 | 0 = 1): Weights => ({
+const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -1 | 0 = 1, d = 0): Weights => ({
   buildings: { weight: b, direction: b ? 1 : 0 },
   road: { weight: r, direction: r ? 1 : 0 },
   services: { weight: s, direction: s ? 1 : 0 },
   population: { weight: p, direction: p ? 1 : 0 },
   land: { weight: l, direction: l ? landDir : 0 },
+  developable: { weight: d, direction: d ? 1 : 0 },
 });
 
 export const PRESETS: Preset[] = [
@@ -104,17 +117,17 @@ export const PRESETS: Preset[] = [
     id: "equal",
     th: "ถ่วงน้ำหนักเท่ากัน",
     en: "Equal weights",
-    descTh: "ทุกปัจจัย 20% คือพื้นที่ที่เจริญอยู่แล้วในปัจจุบัน",
-    descEn: "Every factor 20%: areas that are already developed",
+    descTh: "5 ปัจจัยหลัก ปัจจัยละ 20% (ปิดปัจจัยที่ดินที่ยังพัฒนาได้) ผลที่ได้คือพื้นที่ที่เจริญอยู่แล้วในปัจจุบัน",
+    descEn: "The 5 core factors at 20% each (developable land off): areas that are already developed",
     weights: w(20, 20, 20, 20, 20),
   },
   {
     id: "emerging",
     th: "พื้นที่เศรษฐกิจใหม่",
     en: "Emerging areas",
-    descTh: "เข้าถึงถนนและบริการได้ดี แต่ราคาที่ดินยังไม่สูง (ราคายิ่งต่ำยิ่งได้คะแนน)",
-    descEn: "Good road and service access while land is still cheap (lower price scores higher)",
-    weights: w(10, 30, 25, 15, 20, -1),
+    descTh: "เข้าถึงถนนและบริการได้ดี ราคาที่ดินยังไม่สูง (ราคายิ่งต่ำยิ่งได้คะแนน) และยังมีที่ดินเหลือให้พัฒนา",
+    descEn: "Good road and service access, land still cheap (lower price scores higher), and land left to develop",
+    weights: w(5, 25, 20, 10, 20, -1, 20),
   },
   {
     id: "people",

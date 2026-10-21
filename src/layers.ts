@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "buildings" | "population" | "land" | "roads" | "pois";
+export type OverlayId = "landuse" | "buildings" | "population" | "land" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -19,6 +19,12 @@ export interface Overlay {
 }
 
 export const OVERLAYS: Overlay[] = [
+  {
+    id: "landuse", file: "data/landuse_2563.geojson",
+    th: "การใช้ที่ดิน ปี 2563", en: "Land use 2020 (2563)",
+    sourceTh: "กรมพัฒนาที่ดิน", sourceEn: "LDD",
+    swatch: "#5c8a3a",
+  },
   {
     id: "buildings", file: "data/buildings_grid500.geojson",
     th: "ความหนาแน่นอาคาร (ช่อง 500 ม.)", en: "Building density (500 m cells)",
@@ -51,6 +57,21 @@ export const OVERLAYS: Overlay[] = [
     sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#7a5aa6",
   },
 ];
+
+/** land use classes (level 1, urban split into level 2) */
+export const LANDUSE_COLORS: Record<string, { c: string; th: string; en: string }> = {
+  U1: { c: "#b2182b", th: "ตัวเมือง/ย่านการค้า", en: "City & commercial" },
+  U2: { c: "#e7837a", th: "หมู่บ้าน/ที่อยู่อาศัย", en: "Housing" },
+  U3: { c: "#8e5aa3", th: "สถานที่ราชการ", en: "Institutional" },
+  U4: { c: "#6b6b6b", th: "คมนาคม", en: "Transport" },
+  U5: { c: "#5b3a29", th: "อุตสาหกรรม", en: "Industrial" },
+  U6: { c: "#f0a33a", th: "รีสอร์ท/โรงแรม", en: "Resort & hotel" },
+  U7: { c: "#b7d36b", th: "สนามกอล์ฟ", en: "Golf" },
+  A: { c: "#e9dc8f", th: "เกษตรกรรม", en: "Agriculture" },
+  F: { c: "#2e6b3a", th: "ป่าไม้", en: "Forest" },
+  W: { c: "#4a90c2", th: "แหล่งน้ำ", en: "Water" },
+  M: { c: "#c8b8a0", th: "เบ็ดเตล็ด", en: "Miscellaneous" },
+};
 
 export const POI_COLORS: Record<string, { c: string; th: string; en: string }> = {
   education: { c: "#2f6fd0", th: "การศึกษา", en: "Education" },

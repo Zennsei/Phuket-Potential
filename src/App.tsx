@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Ranking from "./pages/Ranking";
 import Mission from "./pages/Mission";
 import Method from "./pages/Method";
+import Vision from "./pages/Vision";
 
 // the map page pulls in MapLibre (~1 MB), so load it only when needed
 const MapPage = lazy(() => import("./pages/MapPage"));
@@ -27,6 +28,7 @@ export default function App() {
     { r: "map", th: "แผนที่วิเคราะห์", en: "Map" },
     { r: "ranking", th: "จัดอันดับ", en: "Ranking" },
     { r: "mission", th: "ภารกิจ", en: "Mission" },
+    { r: "vision", th: "วิสัยทัศน์", en: "Vision" },
     { r: "method", th: "วิธีคิดและแหล่งข้อมูล", en: "Method & data" },
   ];
 
@@ -50,6 +52,7 @@ export default function App() {
       route === "ranking" ? <Ranking {...common} /> :
       route === "mission" ? <Mission {...common} /> :
       route === "method" ? <Method data={data} /> :
+      route === "vision" ? <Vision /> :
       <Home scored={scored} />;
   }
 

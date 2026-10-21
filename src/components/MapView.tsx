@@ -5,7 +5,7 @@ import type { GeoJSONSource, MapGeoJSONFeature, StyleSpecification } from "mapli
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import { BASEMAPS } from "../sphere";
-import { OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
+import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps } from "../types";
 
@@ -31,7 +31,8 @@ interface Props {
 
 maplibregl.setWorkerUrl(workerUrl);
 
-const BEFORE_BASE = "overlay-land";
+const BEFORE_BASE = "overlay-landuse";
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function labelPoint(f: Feature<Polygon | MultiPolygon>): [number, number] {
   const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
@@ -91,8 +92,13 @@ export default function MapView(p: Props) {
     // "style.load" fires as soon as the style is parsed; "load" would wait for base-map tiles,
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
-      const files = await Promise.all(OVERLAYS.map((o) => fetch(o.file).then((r) => r.json())));
-      OVERLAYS.forEach((o, i) => m.addSource(`ov-${o.id}`, { type: "geojson", data: files[i] }));
+      // overlay files are fetched only when a layer is first switched on (see the effect below)
+      OVERLAYS.forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY }));
+      m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
+        paint: {
+          "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
+          "fill-opacity": 0.75,
+        } });
       const fillOverlay = (id: OverlayId) => {
         const o = OVERLAYS.find((x) => x.id === id)!;
         m.addLayer({ id: `overlay-${id}`, type: "fill", source: `ov-${id}`, layout: { visibility: "none" },
@@ -141,6 +147,14 @@ export default function MapView(p: Props) {
             .addTo(m);
           return;
         }
+        const lu = m.queryRenderedFeatures(e.point, { layers: ["overlay-landuse"] })[0];
+        if (lu) {
+          const pr = lu.properties as Record<string, string>;
+          new maplibregl.Popup({ closeButton: false })
+            .setLngLat(e.lngLat)
+            .setHTML(`<b>${escapeHtml(langRef.current === "th" ? pr.th : pr.en)}</b><br><span style="color:#5b6b70">${langRef.current === "th" ? "การใช้ที่ดิน ปี 2563 (กรมพัฒนาที่ดิน)" : "Land use 2020 (LDD)"}</span>`)
+            .addTo(m);
+        }
         const f = m.queryRenderedFeatures(e.point, { layers: ["tambon-fill"] })[0];
         latest.current.onMapClick({
           id: f ? String((f.properties as TambonProps).id) : undefined,
@@ -175,11 +189,22 @@ export default function MapView(p: Props) {
     m.setPaintProperty("tambon-fill", "fill-opacity", ["interpolate", ["linear"], ["zoom"], 11, p.tambonOpacity, 14, Math.min(p.tambonOpacity, 0.12)]);
   }, [ready, p.fills, p.tambons, p.tambonOpacity]);
 
-  // overlays on/off
+  // overlays on/off (load each file the first time its layer is shown)
+  const loaded = useRef(new Set<OverlayId>());
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    for (const o of OVERLAYS) m.setLayoutProperty(`overlay-${o.id}`, "visibility", p.overlays[o.id] ? "visible" : "none");
+    for (const o of OVERLAYS) {
+      const on = p.overlays[o.id];
+      if (on && !loaded.current.has(o.id)) {
+        loaded.current.add(o.id);
+        fetch(o.file)
+          .then((r) => r.json())
+          .then((data) => (m.getSource(`ov-${o.id}`) as GeoJSONSource | undefined)?.setData(data))
+          .catch(() => loaded.current.delete(o.id));
+      }
+      m.setLayoutProperty(`overlay-${o.id}`, "visibility", on ? "visible" : "none");
+    }
   }, [ready, p.overlays]);
 
   // selection
