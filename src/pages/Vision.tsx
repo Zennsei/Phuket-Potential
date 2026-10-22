@@ -116,7 +116,7 @@ export default function Vision() {
 
       <section className="prose">
         <h2>{t("ข้อมูลที่กำลังรอ", "Data on the way")}</h2>
-        <p>• {t("การใช้ที่ดินปี 2568 จากกรมพัฒนาที่ดิน (ยื่นขอแล้ว) จะใช้แทนข้อมูลปี 2563 และเทียบกันได้ว่าพื้นที่เมืองเพิ่มขึ้นตรงไหน", "LDD land use 2025 (requested): replaces the 2020 layer and shows where built-up land grew")}</p>
+        <p>• {t("การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอแล้ว) เทียบกับปี 2563 ดูว่าพื้นที่เมืองขยายตรงไหนในรอบ 10 ปี", "LDD land use 2009 and 2016 (requested): compared with 2020 to show where built-up land spread over 10 years")}</p>
         <p>• {t("ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) ใช้ตัดพื้นที่ที่กฎหมายไม่ให้พัฒนาออกจากที่ดินที่ยังพัฒนาได้", "Phuket comprehensive plan zoning: removes legally restricted land from the developable-land factor")}</p>
         <p>• {t("ประชากรตามทะเบียนราษฎร์รายตำบล (กรมการปกครอง) ใช้เทียบกับค่าประมาณของ Kontur", "Civil-registry population by sub-district (DOPA), to compare with the Kontur estimate")}</p>
       </section>
