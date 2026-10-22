@@ -4,6 +4,10 @@ Input : stat_tYY.txt from https://stat.bora.dopa.go.th/new_stat/webPage/statByYe
         pipe-separated, UTF-8:
         YYMM|CC|province|RCODE|registry office|CCAATT|tambon|CCAATTMM|village|MALE|FEMALE|TOTAL|HOUSE|
 Output: public/data/dopa_tambon.csv
+        and new columns in public/data/tambons.geojson + phuket_tambon_factors.csv (matched by tambon name):
+          reg_pop_2565, reg_pop_2568, reg_house_2568, reg_pop_per_km2 (2568),
+          reg_pop_growth_pct, house_growth_pct (2559 -> 2568),
+          unreg_ratio = Kontur 2566 estimate / registered 2565 (how many people live there per registered person)
 
 A tambon can be split across several registry offices (district office + municipality),
 so rows are summed by tambon code. Office summary rows (CCAATT = 0) are skipped.
@@ -14,7 +18,9 @@ Usage: python dopa_prep.py <folder with stat_t*.txt> [output csv]
 import csv, glob, os, re, sys
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "."
-OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "..", "public", "data", "dopa_tambon.csv")
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "data")
+OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATA, "dopa_tambon.csv")
+GROWTH_FROM, GROWTH_TO = 2559, 2568
 
 
 def num(s):
@@ -54,3 +60,47 @@ with open(OUT, "w", newline="", encoding="utf-8-sig") as fh:
                    + [table[y][0][code] for y in years]
                    + [table[y][1][code] for y in years])
 print("wrote", OUT)
+
+
+# ---- merge into the per-tambon files used by the site ----
+import json
+
+by_name = {names[c]: c for c in names}
+
+
+def extra(p):
+    c = by_name[p["tambon_th"]]
+    pop, house = (lambda y: table[y][0][c]), (lambda y: table[y][1][c])
+    return {
+        "reg_pop_2565": pop(2565),
+        "reg_pop_2568": pop(2568),
+        "reg_house_2568": house(2568),
+        "reg_pop_per_km2": round(pop(2568) / p["area_km2"], 1),
+        "reg_pop_growth_pct": round((pop(GROWTH_TO) / pop(GROWTH_FROM) - 1) * 100, 1),
+        "house_growth_pct": round((house(GROWTH_TO) / house(GROWTH_FROM) - 1) * 100, 1),
+        "unreg_ratio": round(p["population"] / pop(2565), 2),
+    }
+
+
+gj_path = os.path.join(DATA, "tambons.geojson")
+gj = json.load(open(gj_path, encoding="utf-8"))
+for f in gj["features"]:
+    f["properties"].update(extra(f["properties"]))
+with open(gj_path, "w", encoding="utf-8") as fh:  # one feature per line keeps git diffs readable
+    head = {k: v for k, v in gj.items() if k != "features"}
+    fh.write(json.dumps(head, ensure_ascii=False)[:-1] + ',\n"features": [\n')
+    fh.write(",\n".join(json.dumps(f, ensure_ascii=False, separators=(",", ":")) for f in gj["features"]))
+    fh.write("\n]\n}\n")
+
+csv_path = os.path.join(DATA, "phuket_tambon_factors.csv")
+rows = list(csv.DictReader(open(csv_path, encoding="utf-8-sig")))
+area = {f["properties"]["tambon_th"]: f["properties"] for f in gj["features"]}
+new_cols = list(extra(gj["features"][0]["properties"]).keys())
+cols = [c for c in rows[0].keys() if c not in new_cols] + new_cols
+with open(csv_path, "w", newline="", encoding="utf-8-sig") as fh:
+    w = csv.DictWriter(fh, fieldnames=cols)
+    w.writeheader()
+    for r in rows:
+        r.update({k: area[r["tambon_th"]][k] for k in new_cols})
+        w.writerow({c: r.get(c, "") for c in cols})
+print("merged", new_cols, "into tambons.geojson and phuket_tambon_factors.csv")

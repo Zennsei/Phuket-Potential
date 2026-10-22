@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { FACTORS } from "../factors";
+import { CATEGORIES, DEFAULT_THRESHOLDS, decide } from "../decision";
 import { scoreColor } from "../color";
 import { downloadText } from "../download";
 import { useI18n } from "../i18n";
@@ -13,6 +14,10 @@ export default function Ranking({ scored, weights }: PageProps) {
   const { t, num, lang } = useI18n();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<{ k: SortKey; desc: boolean }>({ k: "rank", desc: false });
+  const decisions = useMemo(
+    () => new Map(decide(scored.map((s) => s.props), weights, DEFAULT_THRESHOLDS).map((d) => [d.s.props.id, d])),
+    [scored, weights],
+  );
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -46,12 +51,19 @@ export default function Ranking({ scored, weights }: PageProps) {
       tambon_en: s.props.tambon_en,
       amphoe_th: s.props.amphoe_th,
       score: Number(s.score.toFixed(2)),
+      decision: decisions.get(s.props.id)?.category ?? "",
+      decision_changes_under: decisions.get(s.props.id)?.changesUnder.join(" ") ?? "",
       ...Object.fromEntries(FACTORS.map((f) => [`score_${f.key}`, Number(s.parts[f.key].toFixed(2))])),
       bldg_per_km2: s.props.bldg_per_km2,
       road_dist_m: s.props.road_dist_m,
       services_per_km2: s.props.services_per_km2,
       pop_per_km2: s.props.pop_per_km2,
       land_median: s.props.land_median,
+      developable_pct: s.props.developable_pct,
+      house_growth_pct: s.props.house_growth_pct,
+      reg_pop_2568: s.props.reg_pop_2568,
+      reg_pop_growth_pct: s.props.reg_pop_growth_pct,
+      unreg_ratio: s.props.unreg_ratio,
     }));
 
   const exportCsv = () => {
@@ -108,6 +120,7 @@ export default function Ranking({ scored, weights }: PageProps) {
               <tr>
                 {head("rank", t("อันดับ / คะแนน", "Rank / score"))}
                 {head("name", t("ตำบล", "Sub-district"))}
+                <th>{t("กลุ่มการตัดสินใจ", "Decision")}</th>
                 {FACTORS.map((f) => head(f.key, `${t(f.th, f.en)}`, true))}
               </tr>
             </thead>
@@ -118,6 +131,19 @@ export default function Ranking({ scored, weights }: PageProps) {
                   <td>
                     <a href={href("map", s.props.id)}>{t(s.props.tambon_th, s.props.tambon_en)}</a>
                     <div className="small muted">{t(`อ.${s.props.amphoe_th}`, s.props.amphoe_en)}</div>
+                  </td>
+                  <td className="small">
+                    {(() => {
+                      const d = decisions.get(s.props.id);
+                      if (!d) return "–";
+                      const c = CATEGORIES[d.category];
+                      return (
+                        <>
+                          <b style={{ color: c.color }}>{t(c.th, c.en)}</b>
+                          {d.changesUnder.length > 0 && <div className="muted">{t("อ่อนไหวต่อ Stress Test", "sensitive to stress tests")}</div>}
+                        </>
+                      );
+                    })()}
                   </td>
                   {FACTORS.map((f) => {
                     const v = f.value(s.props);
@@ -135,6 +161,11 @@ export default function Ranking({ scored, weights }: PageProps) {
         </div>
         <p className="small muted">
           {FACTORS.map((f) => `${t(f.th, f.en)}: ${t(f.unitTh, f.unitEn)}`).join(", ")}
+        </p>
+        <p className="small muted">
+          {t(`กลุ่มการตัดสินใจใช้เกณฑ์ตั้งต้น คะแนน ${DEFAULT_THRESHOLDS.score} และที่ดินที่ยังพัฒนาได้ ${DEFAULT_THRESHOLDS.land}% (ปรับเกณฑ์ได้ในหน้าภารกิจ)`,
+             `Decision groups use the default cut-offs: score ${DEFAULT_THRESHOLDS.score} and developable land ${DEFAULT_THRESHOLDS.land}% (adjustable on the mission page).`)}{" "}
+          <a href={href("mission")}>{t("ไปหน้าภารกิจ", "Go to the mission")}</a>
         </p>
       </section>
     </div>

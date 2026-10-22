@@ -36,11 +36,22 @@ export interface TambonProps {
   lu_water_km2: number;
   /** agriculture + miscellaneous land, % of land area */
   developable_pct: number;
+  /** DOPA civil registry (house register), December of each year */
+  reg_pop_2565: number;
+  reg_pop_2568: number;
+  reg_house_2568: number;
+  /** registered people per km², 2568 */
+  reg_pop_per_km2: number;
+  /** % change 2559 -> 2568 */
+  reg_pop_growth_pct: number;
+  house_growth_pct: number;
+  /** Kontur 2566 estimate ÷ registered 2565: people living there per registered person */
+  unreg_ratio: number;
 }
 
 export type TambonCollection = FeatureCollection<Polygon | MultiPolygon, TambonProps>;
 
-export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable";
+export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable" | "growth";
 
 /** +1 = higher value is better, -1 = lower value is better, 0 = factor switched off */
 export type Direction = 1 | -1 | 0;

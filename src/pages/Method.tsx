@@ -1,4 +1,6 @@
 import { FACTORS } from "../factors";
+import { CATEGORIES, DEFAULT_THRESHOLDS, UNREG_FLAG } from "../decision";
+import { SCENARIOS } from "../scenarios";
 import { useI18n } from "../i18n";
 import type { AppData } from "../data";
 
@@ -17,6 +19,7 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
       { th: "ถนนและสถานที่ OpenStreetMap 2569", en: "OpenStreetMap roads and places 2026" },
       { th: "สำมะโนประชากร 2533, 2543, 2553", en: "Census 1990, 2000, 2010" },
       { th: "ขอบเขต 17 ตำบล", en: "17 sub-district boundaries" },
+      { th: "ประชากรและบ้านตามทะเบียนราษฎร์รายตำบล 2559, 2565, 2568", en: "Registered population and houses by sub-district 2016, 2022, 2025" },
     ],
   },
   {
@@ -30,7 +33,6 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
     th: "ได้แล้ว ยังไม่ใส่ในเว็บ", en: "Received, not yet used",
     items: [
       { th: "อาคาร Overture 2569 ใช้ตรวจความครบของข้อมูลอาคาร", en: "Overture buildings 2026, to check building-data coverage" },
-      { th: "ประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล ปี 2552, 2559, 2563, 2565, 2568 (กรมการปกครอง)", en: "Registered population and houses by sub-district, 2009–2025 (DOPA)" },
       { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
       { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
       { th: "อาคารพร้อมความสูงและจำนวนชั้น ปี 2567 จาก GISTDA API Gateway (243,747 หลังในกรอบภูเก็ต)", en: "Buildings with height and storeys, 2024, from the GISTDA API Gateway (243,747 in the Phuket box)" },
@@ -50,6 +52,7 @@ export default function Method({ data }: { data: AppData }) {
     { th: "ถนนและสถานที่บริการ", en: "Roads & services", src: "OpenStreetMap (Geofabrik)", date: t("20 ต.ค. 2569", "20 Oct 2026"), use: t("ระยะถึงถนนสายหลัก และจำนวนสถานที่บริการต่อ ตร.กม.", "Distance to main roads, services per km²"), note: n.roads_pois },
     { th: "การใช้ที่ดิน", en: "Land use", src: t("กรมพัฒนาที่ดิน (LDD)", "Land Development Dept. (LDD)"), date: "2563 (2020)", use: t("สัดส่วนพื้นที่เมือง เกษตร ป่า และที่ดินที่ยังพัฒนาได้ ต่อตำบล + ชั้นข้อมูลบนแผนที่", "Share of built-up, farm, forest and developable land per sub-district + a map layer"), note: "LU_PKT_2563 จาก lddcatalog.ldd.go.th" },
     { th: "สำมะโนประชากร", en: "Population census", src: t("สำนักงานสถิติแห่งชาติ (data.go.th)", "National Statistical Office (data.go.th)"), date: "2533, 2543, 2553", use: t("บริบทการเติบโตของประชากรรายอำเภอในหน้าวิสัยทัศน์", "District population growth on the vision page"), note: "data.go.th/dataset/0703_01_14" },
+    { th: "ประชากรและบ้านตามทะเบียนราษฎร์", en: "Registered population & houses", src: t("กรมการปกครอง", "Dept. of Provincial Administration"), date: "2559, 2565, 2568", use: t("ปัจจัยการเติบโตของบ้าน, Stress Test เปลี่ยนแหล่งข้อมูลประชากร, เทียบคนอยู่จริงกับทะเบียน", "House-growth factor, population-source stress test, residents vs registered"), note: "stat.bora.dopa.go.th (ระดับตำบล, ข้อมูล ณ ธ.ค.)" },
     { th: "ราคาประเมินที่ดิน", en: "Land appraisal", src: t("กรมธนารักษ์ (data.go.th)", "Treasury Dept. (data.go.th)"), date: t("รอบบัญชี 2566–2569", "2023–2026 round"), use: t("ค่ากลางราคาบาท/ตร.ว. ต่อตำบล", "Median THB/sq.wah per sub-district"), note: n.land_value },
   ];
   return (
@@ -71,7 +74,7 @@ export default function Method({ data }: { data: AppData }) {
       </section>
 
       <section>
-        <h2>{t("ปัจจัยทั้ง 5", "The five factors")}</h2>
+        <h2>{t(`ปัจจัยทั้ง ${FACTORS.length}`, `The ${FACTORS.length} factors`)}</h2>
         <div className="tbl">
           <table>
             <thead><tr><th>{t("ปัจจัย", "Factor")}</th><th>{t("หน่วย", "Unit")}</th><th>{t("ทิศทางเริ่มต้น", "Default direction")}</th><th>{t("แหล่ง", "Source")}</th></tr></thead>
@@ -87,6 +90,42 @@ export default function Method({ data }: { data: AppData }) {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section style={{ display: "grid", gap: 12 }}>
+        <h2>{t("Logic Matrix: จากคะแนนไปสู่การตัดสินใจ", "Logic matrix: from score to decision")}</h2>
+        <p className="prose">
+          {t(`คะแนนอย่างเดียวบอกได้แค่ว่าตำบลไหน "พร้อม" แต่ไม่ได้บอกว่าควรทำอะไร จึงนำคะแนนมาเทียบกับที่ดินที่ยังพัฒนาได้ (การใช้ที่ดิน กรมพัฒนาที่ดิน 2563) ได้ 4 กลุ่ม เกณฑ์ตั้งต้นคือ คะแนน ${DEFAULT_THRESHOLDS.score} และที่ดิน ${DEFAULT_THRESHOLDS.land}% ผู้ใช้ปรับได้ในหน้าภารกิจ`,
+             `A score only says which areas are "ready", not what to do. So the score is set against developable land (LDD land use 2020) to give 4 groups. Default cut-offs: score ${DEFAULT_THRESHOLDS.score} and land ${DEFAULT_THRESHOLDS.land}%, adjustable on the mission page.`)}
+        </p>
+        <div className="tbl">
+          <table>
+            <thead><tr><th></th><th>{t(`ที่ดินที่ยังพัฒนาได้ ≥ ${DEFAULT_THRESHOLDS.land}%`, `Developable land ≥ ${DEFAULT_THRESHOLDS.land}%`)}</th><th>{t(`ที่ดินที่ยังพัฒนาได้ < ${DEFAULT_THRESHOLDS.land}%`, `Developable land < ${DEFAULT_THRESHOLDS.land}%`)}</th></tr></thead>
+            <tbody>
+              {[["promote", "upgrade"], ["prepare", "maintain"]].map((pair, i) => (
+                <tr key={i}>
+                  <th>{i === 0 ? t(`คะแนน ≥ ${DEFAULT_THRESHOLDS.score}`, `Score ≥ ${DEFAULT_THRESHOLDS.score}`) : t(`คะแนน < ${DEFAULT_THRESHOLDS.score}`, `Score < ${DEFAULT_THRESHOLDS.score}`)}</th>
+                  {pair.map((c) => {
+                    const d = CATEGORIES[c as keyof typeof CATEGORIES];
+                    return <td key={c}><b style={{ color: d.color }}>{t(d.th, d.en)}</b><div className="small muted">{t(d.actionTh, d.actionEn)}</div></td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="prose">
+          {t(`ความมั่นใจ: คำนวณกลุ่มซ้ำภายใต้ Stress Test ${SCENARIOS.length} สถานการณ์ (${SCENARIOS.map((x) => x.th).join(", ")}) ถ้ากลุ่มไม่เปลี่ยนเลยถือว่ามั่นใจสูง ถ้าเปลี่ยนจะบอกว่าเปลี่ยนในสถานการณ์ไหน`,
+             `Confidence: the group is recomputed under ${SCENARIOS.length} stress tests (${SCENARIOS.map((x) => x.en).join(", ")}). If it never changes, confidence is high; otherwise the page names the scenario that changes it.`)}
+        </p>
+        <p className="prose">
+          {t(`ข้อสังเกตประชากรแฝง: ถ้าประชากรประมาณการของ Kontur มากกว่าทะเบียนราษฎร์ตั้งแต่ ${UNREG_FLAG} เท่า จะมีหมายเหตุว่าบริการที่วางแผนจากตัวเลขทะเบียนอาจไม่พอ ข้อสังเกตนี้ไม่เปลี่ยนกลุ่ม`,
+             `Unregistered-population note: where Kontur's estimate is at least ${UNREG_FLAG}× the civil registry, a note warns that services planned from registry numbers may fall short. The note does not change the group.`)}
+        </p>
+        <p className="small muted">
+          {t("ถ้าเปิดปัจจัย \"ที่ดินที่ยังพัฒนาได้\" ในหลักเกณฑ์ด้วย ข้อมูลชุดนี้จะถูกใช้ทั้งในคะแนนและในแกนของ Matrix ควรรู้ไว้เมื่ออ่านผล",
+             "If the developable-land factor is also switched on in the rule, the same data counts in both the score and the matrix axis; keep that in mind when reading the result.")}
+        </p>
       </section>
 
       <section>

@@ -14,6 +14,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
     population: num(p.pop_per_km2),
     land: p.land_median == null ? "–" : num(p.land_median),
     developable: num(p.developable_pct, 1),
+    growth: num(p.house_growth_pct, 1),
   };
   const lu = [
     { k: "U1", v: p.lu_urban_pct, th: "พื้นที่ชุมชนและสิ่งปลูกสร้าง", en: "Built-up" },
@@ -68,7 +69,10 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
         <dt>{t("พื้นที่", "Area")}</dt><dd>{num(p.area_km2, 1)} {t("ตร.กม.", "km²")}</dd>
         <dt>{t("อาคารทั้งหมด", "Buildings")}</dt><dd>{num(p.buildings)}</dd>
         <dt>{t("อาคารใหญ่ ≥1,000 ตร.ม.", "Large bldgs ≥1,000 m²")}</dt><dd>{num(p.large_bldg)}</dd>
-        <dt>{t("ประชากร (ประมาณการ)", "Population (est.)")}</dt><dd>{num(p.population)}</dd>
+        <dt>{t("ประชากร (ประมาณการ Kontur 2566)", "Population (Kontur est. 2023)")}</dt><dd>{num(p.population)}</dd>
+        <dt>{t("ประชากรตามทะเบียน 2568", "Registered population 2025")}</dt><dd>{num(p.reg_pop_2568)} <span className="muted">({p.reg_pop_growth_pct > 0 ? "+" : ""}{num(p.reg_pop_growth_pct, 1)}% {t("จาก 2559", "since 2016")})</span></dd>
+        <dt>{t("คนอยู่จริงต่อคนในทะเบียน", "Residents per registered person")}</dt><dd>{num(p.unreg_ratio, 1)} {t("เท่า", "×")}</dd>
+        <dt>{t("บ้านตามทะเบียน 2568", "Registered houses 2025")}</dt><dd>{num(p.reg_house_2568)}</dd>
         <dt>{t("โรงเรียน/สถานศึกษา", "Education")}</dt><dd>{num(p.svc_education)}</dd>
         <dt>{t("สถานพยาบาล/ร้านยา", "Health")}</dt><dd>{num(p.svc_health)}</dd>
         <dt>{t("ห้าง/ตลาด/ร้านค้า", "Retail & markets")}</dt><dd>{num(p.svc_retail)}</dd>

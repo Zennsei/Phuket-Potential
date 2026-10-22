@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import WeightPanel from "../components/WeightPanel";
+import DecisionMatrix from "../components/DecisionMatrix";
+import { CATEGORIES, DEFAULT_THRESHOLDS, categoryOf, type Thresholds } from "../decision";
+import { SCENARIOS, applyScenarioRows } from "../scenarios";
 import { DEFAULT_WEIGHTS, FACTORS } from "../factors";
 import { scoreTambons } from "../scoring";
 import { scoreColor } from "../color";
@@ -25,36 +28,6 @@ const STEPS = [
   { th: "สรุป", en: "Summary" },
 ];
 
-interface Scenario {
-  id: string;
-  th: string;
-  en: string;
-  descTh: string;
-  descEn: string;
-  apply: (w: Weights) => Weights;
-}
-
-const SCENARIOS: Scenario[] = [
-  {
-    id: "no-road", th: "ถนนสายหลักถูกตัด", en: "Main road cut off",
-    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ข้อมูลการเข้าถึงถนนไม่ได้ ปัจจัยถนนถูกปิด",
-    descEn: "A flood or landslide makes road access unreliable, so the road factor is switched off",
-    apply: (w) => ({ ...w, road: { ...w.road, direction: 0 } }),
-  },
-  {
-    id: "no-land", th: "ข้อมูลราคาที่ดินไม่ครบ", en: "Land price data missing",
-    descTh: "ไม่มีข้อมูลราคาประเมิน ต้องตัดสินใจจากปัจจัยที่เหลือ",
-    descEn: "No appraisal data is available, so the decision uses the remaining factors",
-    apply: (w) => ({ ...w, land: { ...w.land, direction: 0 } }),
-  },
-  {
-    id: "decentralise", th: "นโยบายลดความแออัด", en: "Decongestion policy",
-    descTh: "จังหวัดไม่ส่งเสริมพื้นที่ที่อาคารหนาแน่นอยู่แล้ว ความหนาแน่นอาคารยิ่งน้อยยิ่งได้คะแนน",
-    descEn: "The province stops promoting already dense areas: lower building density now scores higher",
-    apply: (w) => ({ ...w, buildings: { weight: w.buildings.weight || 20, direction: -1 } }),
-  },
-];
-
 export default function Mission({ data }: PageProps) {
   const { t, num } = useI18n();
   const [step, setStep] = useState(0);
@@ -63,6 +36,7 @@ export default function Mission({ data }: PageProps) {
   const [choice, setChoice] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [copied, setCopied] = useState(false);
+  const [th, setTh] = useState<Thresholds>(DEFAULT_THRESHOLDS);
 
   const rows = useMemo(() => data.tambons.features.map((f) => f.properties), [data]);
   const scored = useMemo(() => scoreTambons(rows, weights), [rows, weights]);
@@ -70,13 +44,16 @@ export default function Mission({ data }: PageProps) {
   const stress = useMemo(
     () =>
       SCENARIOS.map((sc) => {
-        const r = scoreTambons(rows, sc.apply(weights));
-        return { sc, rank: r.find((s) => s.props.id === choice)?.rank ?? 0, top: r[0] };
+        const r = scoreTambons(applyScenarioRows(rows, sc), sc.apply(weights));
+        const me = r.find((s) => s.props.id === choice);
+        return { sc, rank: me?.rank ?? 0, top: r[0], cat: me ? categoryOf(me.score, me.props, th) : null };
       }),
-    [rows, weights, choice],
+    [rows, weights, choice, th],
   );
   const roleDef = ROLES.find((r) => r.id === role);
   const robust = stress.filter((s) => s.rank <= 5).length;
+  const chosenCat = chosen ? categoryOf(chosen.score, chosen.props, th) : null;
+  const sameCat = stress.filter((s) => s.cat === chosenCat).length;
 
   const summary = chosen
     ? [
@@ -85,9 +62,11 @@ export default function Mission({ data }: PageProps) {
         `${t("หลักเกณฑ์", "Rule")}: ${FACTORS.filter((f) => weights[f.key].direction !== 0)
           .map((f) => `${t(f.th, f.en)} ${weights[f.key].weight}${weights[f.key].direction === -1 ? t(" (กลับด้าน)", " (reversed)") : ""}`)
           .join(", ")}`,
-        `${t("ตำบลที่เลือก", "Chosen")}: ${t(chosen.props.tambon_th, chosen.props.tambon_en)} (${t("อันดับ", "rank")} ${chosen.rank}, ${num(chosen.score, 1)})`,
+        `${t("Logic Matrix", "Logic matrix")}: ${t(`คะแนน ≥ ${th.score} และที่ดินที่ยังพัฒนาได้ ≥ ${th.land}%`, `score ≥ ${th.score} and developable land ≥ ${th.land}%`)}`,
+        `${t("ตำบลที่เลือก", "Chosen")}: ${t(chosen.props.tambon_th, chosen.props.tambon_en)} (${t("อันดับ", "rank")} ${chosen.rank}, ${num(chosen.score, 1)}, ${t("ที่ดินพัฒนาได้", "developable")} ${num(chosen.props.developable_pct, 1)}%)`,
+        `${t("กลุ่มการตัดสินใจ", "Decision")}: ${chosenCat ? t(CATEGORIES[chosenCat].th, CATEGORIES[chosenCat].en) : "-"}`,
         `${t("เหตุผล", "Reason")}: ${reason || "-"}`,
-        ...stress.map((s) => `Stress test – ${t(s.sc.th, s.sc.en)}: ${t("อันดับ", "rank")} ${s.rank}`),
+        ...stress.map((s) => `Stress test – ${t(s.sc.th, s.sc.en)}: ${t("อันดับ", "rank")} ${s.rank}, ${s.cat ? t(CATEGORIES[s.cat].th, CATEGORIES[s.cat].en) : "-"}`),
       ].join("\n")
     : "";
 
@@ -134,6 +113,7 @@ export default function Mission({ data }: PageProps) {
               { th: "ราคาที่ดินแพงที่สุดอยู่ตรงไหน สอดคล้องกับความหนาแน่นอาคารไหม", en: "Where is land most expensive, and does it match building density?", l: t("กรมธนารักษ์", "Treasury") },
               { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur, OSM" },
               { th: "เปลี่ยนแผนที่พื้นหลังเป็นภาพดาวเทียม ซูมไปที่ตำบลที่สนใจ ยังมีที่ดินว่างหรือมีการก่อสร้างใหม่ไหม", en: "Switch the base map to satellite imagery and zoom into a sub-district: is there open land or new construction?", l: "GISTDA Sphere" },
+              { th: "เทียบประชากรตามทะเบียนกับแบบจำลอง ตำบลไหนคนอยู่จริงมากกว่าทะเบียนหลายเท่า และตำบลไหนบ้านเพิ่มเร็วที่สุด (ดูในรายละเอียดตำบล)", en: "Compare registered and modelled population: where do far more people live than are registered, and where are houses being added fastest? (see sub-district details)", l: t("กรมการปกครอง, Kontur", "DOPA, Kontur") },
               { th: "คลิกจุดบนแผนที่แล้วถาม Sphere ว่ารอบจุดนั้นมีสถานที่อะไรบ้าง", en: "Click a point and ask Sphere which places are around it", l: "GISTDA Sphere" },
             ].map((q) => (
               <div className="card" key={q.en}>
@@ -169,6 +149,17 @@ export default function Mission({ data }: PageProps) {
               </div>
             </div>
           </div>
+          <h3 style={{ fontSize: 17, marginTop: 8 }}>{t("Logic Matrix: จากคะแนนไปสู่การตัดสินใจ", "Logic matrix: from score to decision")}</h3>
+          <dl className="card rule-box">
+            <dt>{t("ขั้น 1", "Step 1")}</dt>
+            <dd>{t("คะแนนศักยภาพ = ค่าเฉลี่ยถ่วงน้ำหนักของปัจจัยด้านบน (0–100 เทียบกันใน 17 ตำบล)", "Potential score = weighted average of the factors above (0–100, relative to the 17 sub-districts)")}</dd>
+            <dt>{t("ขั้น 2", "Step 2")}</dt>
+            <dd>{t(`ถ้าคะแนน ≥ ${th.score} และที่ดินที่ยังพัฒนาได้ ≥ ${th.land}% → ส่งเสริมเป็นศูนย์กลางใหม่ · คะแนนถึงเกณฑ์แต่ที่ดินไม่ถึง → ยกระดับพื้นที่เดิม · ที่ดินถึงเกณฑ์แต่คะแนนไม่ถึง → เตรียมโครงสร้างพื้นฐานก่อน · ไม่ถึงทั้งคู่ → คงสภาพ`,
+                   `If score ≥ ${th.score} and developable land ≥ ${th.land}% → promote as a new centre · score passes but land does not → upgrade what is there · land passes but score does not → build infrastructure first · neither → maintain`)}</dd>
+            <dt>{t("ขั้น 3", "Step 3")}</dt>
+            <dd>{t(`ทดสอบด้วย Stress Test ${SCENARIOS.length} สถานการณ์ ถ้ากลุ่มไม่เปลี่ยนเลย ถือว่ามั่นใจสูง`, `Re-run under ${SCENARIOS.length} stress tests: if the group never changes, confidence is high`)}</dd>
+          </dl>
+          <DecisionMatrix rows={rows} weights={weights} th={th} setTh={setTh} selectedId={choice} onSelect={setChoice} />
         </section>
       )}
 
@@ -200,7 +191,7 @@ export default function Mission({ data }: PageProps) {
                 {t(`ถ้าสถานการณ์เปลี่ยน ต.${chosen.props.tambon_th} (ตอนนี้อันดับ ${chosen.rank}) ยังเป็นตัวเลือกที่ดีอยู่ไหม`,
                    `If conditions change, is ${chosen.props.tambon_en} (now rank ${chosen.rank}) still a good choice?`)}
               </p>
-              <div className="grid3">
+              <div className="grid4">
                 {stress.map((s) => {
                   const delta = chosen.rank - s.rank;
                   return (
@@ -213,17 +204,30 @@ export default function Mission({ data }: PageProps) {
                           {delta === 0 ? t("อันดับเท่าเดิม", "same rank") : delta > 0 ? t(`ขึ้น ${delta} อันดับ`, `up ${delta}`) : t(`ลง ${-delta} อันดับ`, `down ${-delta}`)}
                         </span>
                       </div>
+                      {s.cat && (
+                        <span className="small">
+                          {t("กลุ่ม", "Group")}: <b style={{ color: `var(--cat-${s.cat})` }}>{t(CATEGORIES[s.cat].th, CATEGORIES[s.cat].en)}</b>
+                          {s.cat !== chosenCat && <span style={{ color: "var(--warn)" }}>{t(" (เปลี่ยน)", " (changed)")}</span>}
+                        </span>
+                      )}
                       <span className="small muted">{t("อันดับ 1 ในสถานการณ์นี้", "Number 1 here")}: {t(s.top.props.tambon_th, s.top.props.tambon_en)}</span>
                     </div>
                   );
                 })}
               </div>
               <p className="card">
-                {robust === 3
+                {chosenCat && (
+                  <>
+                    {t(`กลุ่มการตัดสินใจตอนนี้: `, `Current decision: `)}<b style={{ color: `var(--cat-${chosenCat})` }}>{t(CATEGORIES[chosenCat].th, CATEGORIES[chosenCat].en)}</b>
+                    {t(` · กลุ่มไม่เปลี่ยน ${sameCat} จาก ${SCENARIOS.length} สถานการณ์`, ` · same group in ${sameCat} of ${SCENARIOS.length} scenarios`)}
+                    <br />
+                  </>
+                )}
+                {robust === SCENARIOS.length
                   ? t("ตัวเลือกนี้แข็งแรง ยังอยู่ใน 5 อันดับแรกทุกสถานการณ์", "A robust choice: it stays in the top 5 in every scenario.")
                   : robust === 0
                     ? t("ตัวเลือกนี้เปราะบาง หลุด 5 อันดับแรกทุกสถานการณ์ ลองทบทวนหลักเกณฑ์หรือเหตุผล", "A fragile choice: it drops out of the top 5 in every scenario. Revisit your rule or reasoning.")
-                    : t(`ตัวเลือกนี้อยู่ใน 5 อันดับแรก ${robust} จาก 3 สถานการณ์ ควรระบุว่าขึ้นกับปัจจัยไหน`, `This choice stays in the top 5 in ${robust} of 3 scenarios. Note which factor it depends on.`)}
+                    : t(`ตัวเลือกนี้อยู่ใน 5 อันดับแรก ${robust} จาก ${SCENARIOS.length} สถานการณ์ ควรระบุว่าขึ้นกับปัจจัยไหน`, `This choice stays in the top 5 in ${robust} of ${SCENARIOS.length} scenarios. Note which factor it depends on.`)}
               </p>
             </>
           )}
