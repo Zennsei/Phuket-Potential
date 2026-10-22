@@ -12,6 +12,8 @@
 
 ลำดับการรัน: `osm_extract.py` → `bldg_grid.py` → `data_prep.py` → `landuse_prep.py` (แก้ path ของไฟล์ต้นทางที่ต้นไฟล์ก่อน)
 
+`dopa_prep.py` รวมประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล จากไฟล์ `stat_t*.txt` ของกรมการปกครอง → `public/data/dopa_tambon.csv`
+
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
 รายละเอียดของข้อมูลทุกชุด (แหล่ง ปี สถานะ) อยู่ใน `DATA.md` ที่โฟลเดอร์หลัก

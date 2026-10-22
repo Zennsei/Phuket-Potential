@@ -16,7 +16,6 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
     th: "กำลังรอ", en: "On the way",
     items: [
       { th: "การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอ 22 ต.ค. 2569)", en: "LDD land use 2009 and 2016 (requested 22 Oct 2026)" },
-      { th: "ประชากรทะเบียนราษฎร์รายตำบล (กรมการปกครอง)", en: "Civil-registry population by sub-district (DOPA)" },
       { th: "ผังเมืองรวมจังหวัดภูเก็ตแบบแผนที่ (ยังไม่มีไฟล์ให้ดาวน์โหลด)", en: "Phuket comprehensive plan as a map (no downloadable file yet)" },
     ],
   },
@@ -24,6 +23,7 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
     th: "ได้แล้ว ยังไม่ใส่ในเว็บ", en: "Received, not yet used",
     items: [
       { th: "อาคาร Overture 2569 ใช้ตรวจความครบของข้อมูลอาคาร", en: "Overture buildings 2026, to check building-data coverage" },
+      { th: "ประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล ปี 2552, 2559, 2563, 2565, 2568 (กรมการปกครอง)", en: "Registered population and houses by sub-district, 2009–2025 (DOPA)" },
       { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
       { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
       { th: "GISTDA API Gateway (อาคาร 3 มิติ LOD1, เกาะความร้อน)", en: "GISTDA API Gateway (LOD1 3D buildings, urban heat island)" },
