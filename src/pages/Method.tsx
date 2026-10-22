@@ -2,6 +2,35 @@ import { FACTORS } from "../factors";
 import { useI18n } from "../i18n";
 import type { AppData } from "../data";
 
+const DATA_MD = "https://github.com/Zennsei/Phuket-Potential/blob/main/DATA.md";
+
+interface StatusItem { th: string; en: string }
+const status: { th: string; en: string; items: StatusItem[] }[] = [
+  {
+    th: "ใช้ในเว็บแล้ว", en: "In use",
+    items: [
+      { th: "ทุกชุดในตาราง \"แหล่งข้อมูล\" ด้านบน", en: "Everything in the data-sources table above" },
+    ],
+  },
+  {
+    th: "กำลังรอ", en: "On the way",
+    items: [
+      { th: "การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอ 22 ต.ค. 2569)", en: "LDD land use 2009 and 2016 (requested 22 Oct 2026)" },
+      { th: "ผังเมืองรวมจังหวัดภูเก็ตแบบแผนที่ (ยังไม่มีไฟล์ให้ดาวน์โหลด)", en: "Phuket comprehensive plan as a map (no downloadable file yet)" },
+    ],
+  },
+  {
+    th: "ได้แล้ว ยังไม่ใส่ในเว็บ", en: "Received, not yet used",
+    items: [
+      { th: "อาคาร Overture 2569 ใช้ตรวจความครบของข้อมูลอาคาร", en: "Overture buildings 2026, to check building-data coverage" },
+      { th: "ประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล ปี 2552, 2559, 2563, 2565, 2568 (กรมการปกครอง)", en: "Registered population and houses by sub-district, 2009–2025 (DOPA)" },
+      { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
+      { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
+      { th: "GISTDA API Gateway (อาคาร 3 มิติ LOD1, เกาะความร้อน)", en: "GISTDA API Gateway (LOD1 3D buildings, urban heat island)" },
+    ],
+  },
+];
+
 export default function Method({ data }: { data: AppData }) {
   const { t } = useI18n();
   const n = data.sources.notes;
@@ -70,6 +99,25 @@ export default function Method({ data }: { data: AppData }) {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section>
+        <h2>{t("สถานะข้อมูล", "Data status")}</h2>
+        <p className="small muted" style={{ marginBottom: 12 }}>{t("ข้อมูล ณ 23 ต.ค. 2569", "As of 23 Oct 2026")}</p>
+        <div className="grid4">
+          {status.map((g) => (
+            <div className="card" key={g.en}>
+              <b>{t(g.th, g.en)}</b>
+              <ul className="small" style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                {g.items.map((i) => <li key={i.en} style={{ marginBottom: 4 }}>{t(i.th, i.en)}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="small" style={{ marginTop: 12 }}>
+          {t("รายละเอียดเต็มของทุกชุด (แหล่ง ปี ขั้นตอนประมวลผล ไฟล์ผลลัพธ์ ข้อจำกัด และเครดิต) อยู่ใน ", "Full details of every dataset (source, year, processing, outputs, limits and credits) are in ")}
+          <a href={DATA_MD} target="_blank" rel="noreferrer">DATA.md</a>
+        </p>
       </section>
 
       <section className="prose">
