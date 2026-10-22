@@ -20,6 +20,7 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
       { th: "สำมะโนประชากร 2533, 2543, 2553", en: "Census 1990, 2000, 2010" },
       { th: "ขอบเขต 17 ตำบล", en: "17 sub-district boundaries" },
       { th: "ประชากรและบ้านตามทะเบียนราษฎร์รายตำบล 2559, 2565, 2568", en: "Registered population and houses by sub-district 2016, 2022, 2025" },
+      { th: "อาคารพร้อมความสูง GISTDA 2567 (239,992 หลัง)", en: "GISTDA buildings with height 2024 (239,992)" },
     ],
   },
   {
@@ -35,7 +36,6 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
       { th: "อาคาร Overture 2569 ใช้ตรวจความครบของข้อมูลอาคาร", en: "Overture buildings 2026, to check building-data coverage" },
       { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
       { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
-      { th: "อาคารพร้อมความสูงและจำนวนชั้น ปี 2567 จาก GISTDA API Gateway (243,747 หลังในกรอบภูเก็ต)", en: "Buildings with height and storeys, 2024, from the GISTDA API Gateway (243,747 in the Phuket box)" },
     ],
   },
 ];
@@ -52,6 +52,7 @@ export default function Method({ data }: { data: AppData }) {
     { th: "ถนนและสถานที่บริการ", en: "Roads & services", src: "OpenStreetMap (Geofabrik)", date: t("20 ต.ค. 2569", "20 Oct 2026"), use: t("ระยะถึงถนนสายหลัก และจำนวนสถานที่บริการต่อ ตร.กม.", "Distance to main roads, services per km²"), note: n.roads_pois },
     { th: "การใช้ที่ดิน", en: "Land use", src: t("กรมพัฒนาที่ดิน (LDD)", "Land Development Dept. (LDD)"), date: "2563 (2020)", use: t("สัดส่วนพื้นที่เมือง เกษตร ป่า และที่ดินที่ยังพัฒนาได้ ต่อตำบล + ชั้นข้อมูลบนแผนที่", "Share of built-up, farm, forest and developable land per sub-district + a map layer"), note: "LU_PKT_2563 จาก lddcatalog.ldd.go.th" },
     { th: "สำมะโนประชากร", en: "Population census", src: t("สำนักงานสถิติแห่งชาติ (data.go.th)", "National Statistical Office (data.go.th)"), date: "2533, 2543, 2553", use: t("บริบทการเติบโตของประชากรรายอำเภอในหน้าวิสัยทัศน์", "District population growth on the vision page"), note: "data.go.th/dataset/0703_01_14" },
+    { th: "อาคารพร้อมความสูงและจำนวนชั้น", en: "Buildings with height & storeys", src: "GISTDA API Gateway", date: t("2567 (อัปเดต ส.ค. 2569)", "2024 (updated Aug 2026)"), use: t("ตัวเลือก \"พื้นที่ใช้สอยต่อพื้นที่ดิน\" ของปัจจัยอาคาร + ชั้นอาคาร 3 มิติ", "\"Floor area per land area\" option of the building factor + 3D building layer"), note: t("239,992 หลังในภูเก็ต · รูปอาคารจาก Global Building Atlas (OSM/Google) · ความสูงจากแบบจำลอง (GEE_Height) · ดึงผ่าน features/thailand-buildings-footprint", "239,992 buildings in Phuket · footprints from Global Building Atlas (OSM/Google) · modelled heights (GEE_Height) · via features/thailand-buildings-footprint"), gistda: true },
     { th: "เวลาเดินทางตามถนน", en: "Road travel time", src: t("คำนวณจากโครงข่ายถนน OpenStreetMap + จุดกึ่งกลางอาคาร GISTDA", "Computed on the OpenStreetMap road network + GISTDA building centroids"), date: t("ถนน 20 ต.ค. 2569, อาคาร 2565", "roads 20 Oct 2026, buildings 2022"), use: t("ปัจจัยเวลาเดินทางถึงปลายทางที่เลือก + ชั้นช่อง 500 ม.", "Travel-time factor to the chosen destination + 500 m layer"), note: t("ความเร็วตามประเภทถนน (สายหลัก 60, สายรอง 50, ท้องถิ่น 40, ในหมู่บ้าน 25, ซอย/ทางเข้า 15 กม./ชม.) ไม่คิดรถติด", "Speed by road class (primary 60, secondary 50, tertiary 40, residential 25, service 15 km/h), no traffic") },
     { th: "ประชากรและบ้านตามทะเบียนราษฎร์", en: "Registered population & houses", src: t("กรมการปกครอง", "Dept. of Provincial Administration"), date: "2559, 2565, 2568", use: t("ปัจจัยการเติบโตของบ้าน, Stress Test เปลี่ยนแหล่งข้อมูลประชากร, เทียบคนอยู่จริงกับทะเบียน", "House-growth factor, population-source stress test, residents vs registered"), note: "stat.bora.dopa.go.th (ระดับตำบล, ข้อมูล ณ ธ.ค.)" },
     { th: "ราคาประเมินที่ดิน", en: "Land appraisal", src: t("กรมธนารักษ์ (data.go.th)", "Treasury Dept. (data.go.th)"), date: t("รอบบัญชี 2566–2569", "2023–2026 round"), use: t("ค่ากลางราคาบาท/ตร.ว. ต่อตำบล", "Median THB/sq.wah per sub-district"), note: n.land_value },

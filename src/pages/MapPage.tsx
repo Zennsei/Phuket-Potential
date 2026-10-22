@@ -5,7 +5,7 @@ import WeightPanel from "../components/WeightPanel";
 import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
 import SphereNearby from "../components/SphereNearby";
-import { FACTORS, TRAVEL_DESTS } from "../factors";
+import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
@@ -19,7 +19,7 @@ type ColorBy = "score" | FactorKey;
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
   const { t, num } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, travel: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, travel: false, height3d: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
   const [tambonFill, setTambonFill] = useState(true);
@@ -50,13 +50,13 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     return {
       fills,
       legend: {
-        title: `${t(f.th, f.en)} (${t(f.unitTh, f.unitEn)})`,
+        title: `${t(f.th, f.en)} (${(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()})`,
         ends: f.higherIsBetter ? [num(lo), num(hi)] : [num(hi), num(lo)],
       },
     };
   }, [colorBy, scored, t, num, weights]);
 
-  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel;
+  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d;
   const travelDest = weights.travel.dest ?? "oldtown";
   const selected = scored.find((s) => s.props.id === selectedId);
   const onMapClick = (hit: { id?: string; lon: number; lat: number }) => {
@@ -137,7 +137,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           onView={setView}
           travelDest={travelDest}
         />
-        <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />
+        {!overlays.height3d && <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />}
         {baseFailed && (
           <div className="notice" role="status">
             {t("โหลดแผนที่พื้นหลังไม่สำเร็จ (อาจเป็นเพราะ API key หรือเครดิตของ Sphere) ข้อมูลวิเคราะห์ยังใช้ได้ตามปกติ ",
@@ -162,6 +162,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               <b>{t(o.th, o.en)}{o.id === "travel" && `: ${(() => { const d = TRAVEL_DESTS.find((x) => x.id === travelDest)!; return t(d.th, d.en); })()}`}</b>
               <div className="ramp">{o.ramp!.map((c) => <i key={c} style={{ background: c }} />)}</div>
               <div className="ends"><span>&lt;{num(o.breaks![0])}</span><span>{num(o.breaks![3])}+ {t(o.unitTh!, o.unitEn!)}</span></div>
+              {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}
             </div>
           ))}
           {overlays.landuse && (

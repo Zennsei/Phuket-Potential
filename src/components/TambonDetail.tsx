@@ -1,4 +1,4 @@
-import { FACTORS, TRAVEL_DESTS, travelMinutes } from "../factors";
+import { FACTORS, TRAVEL_DESTS, travelMinutes, unitOf } from "../factors";
 import { LANDUSE_COLORS } from "../layers";
 import { useI18n } from "../i18n";
 import { href } from "../router";
@@ -8,7 +8,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
   const { t, num } = useI18n();
   const p = s.props;
   const raw: Record<string, string> = {
-    buildings: num(p.bldg_per_km2),
+    buildings: weights.buildings.measure === "floor" ? num(p.floor_to_land_pct, 1) : num(p.bldg_per_km2),
     road: num(p.road_dist_m),
     services: num(p.services_per_km2, 1),
     population: num(p.pop_per_km2),
@@ -47,7 +47,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
               </div>
               <div className="bar"><i style={{ width: `${s.parts[f.key]}%`, background: f.color }} /></div>
               <div className="small muted">
-                {raw[f.key]} {t(f.unitTh, f.unitEn)}{f.key === "travel" && ` · ${t(dest.th, dest.en)}`}
+                {raw[f.key]} {(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()}{f.key === "travel" && ` · ${t(dest.th, dest.en)}`}
               </div>
             </div>
           );
@@ -71,6 +71,10 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
         <dt>{t("พื้นที่", "Area")}</dt><dd>{num(p.area_km2, 1)} {t("ตร.กม.", "km²")}</dd>
         <dt>{t("อาคารทั้งหมด", "Buildings")}</dt><dd>{num(p.buildings)}</dd>
         <dt>{t("อาคารใหญ่ ≥1,000 ตร.ม.", "Large bldgs ≥1,000 m²")}</dt><dd>{num(p.large_bldg)}</dd>
+        <dt>{t("อาคาร 2567 (มีความสูง)", "Buildings 2024 (with height)")}</dt><dd>{num(p.bldg_2567)}</dd>
+        <dt>{t("ความสูงเฉลี่ย", "Mean height")}</dt><dd>{num(p.mean_height_m, 1)} {t("ม.", "m")}</dd>
+        <dt>{t("อาคาร 4 ชั้นขึ้นไป", "4+ storeys")}</dt><dd>{num(p.midrise_pct, 1)}% · {t(`8 ชั้นขึ้นไป ${num(p.highrise)} หลัง`, `8+ storeys: ${num(p.highrise)}`)}</dd>
+        <dt>{t("พื้นที่ใช้สอยต่อพื้นที่ดิน", "Floor area ÷ land")}</dt><dd>{num(p.floor_to_land_pct, 1)}%</dd>
         <dt>{t("ประชากร (ประมาณการ Kontur 2566)", "Population (Kontur est. 2023)")}</dt><dd>{num(p.population)}</dd>
         <dt>{t("ประชากรตามทะเบียน 2568", "Registered population 2025")}</dt><dd>{num(p.reg_pop_2568)} <span className="muted">({p.reg_pop_growth_pct > 0 ? "+" : ""}{num(p.reg_pop_growth_pct, 1)}% {t("จาก 2559", "since 2016")})</span></dd>
         <dt>{t("คนอยู่จริงต่อคนในทะเบียน", "Residents per registered person")}</dt><dd>{num(p.unreg_ratio, 1)} {t("เท่า", "×")}</dd>

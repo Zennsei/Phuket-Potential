@@ -1,4 +1,12 @@
-import type { FactorKey, FactorSetting, TambonProps, TravelDest, Weights } from "./types";
+import type { BuildingMeasure, FactorKey, FactorSetting, TambonProps, TravelDest, Weights } from "./types";
+
+export const BUILDING_MEASURES: { id: BuildingMeasure; th: string; en: string; unitTh: string; unitEn: string; sourceTh: string; sourceEn: string }[] = [
+  { id: "count", th: "จำนวนอาคารต่อพื้นที่", en: "Buildings per area", unitTh: "หลัง/ตร.กม.", unitEn: "bldg/km²",
+    sourceTh: "ข้อมูลรูปแปลงอาคาร GISTDA (2565)", sourceEn: "GISTDA building footprints (2022)" },
+  { id: "floor", th: "พื้นที่ใช้สอยต่อพื้นที่ดิน (มีความสูงอาคาร)", en: "Floor area per land area (with height)", unitTh: "% (พื้นที่ใช้สอย ÷ พื้นที่ตำบล)", unitEn: "% (floor area ÷ land area)",
+    sourceTh: "อาคารพร้อมความสูง GISTDA API Gateway (2567)", sourceEn: "GISTDA API Gateway buildings with height (2024)" },
+];
+export const buildingMeasure = (s?: FactorSetting) => BUILDING_MEASURES.find((m) => m.id === (s?.measure ?? "count"))!;
 
 export const TRAVEL_DESTS: { id: TravelDest; th: string; en: string; key: "a" | "o" | "h" | "s" | "p" }[] = [
   { id: "oldtown", th: "ย่านเมืองเก่า (ถนนถลาง)", en: "Old town (Thalang Rd)", key: "o" },
@@ -15,7 +23,7 @@ export interface FactorDef {
   en: string;
   unitTh: string;
   unitEn: string;
-  /** raw value used for scoring (the setting matters only for the travel factor) */
+  /** raw value used for scoring (the setting matters for the travel and building factors) */
   value: (p: TambonProps, s?: FactorSetting) => number | null;
   /** higher raw value is "better" when direction = +1; road distance is reversed */
   higherIsBetter: boolean;
@@ -32,7 +40,7 @@ export const FACTORS: FactorDef[] = [
     en: "Building density",
     unitTh: "หลัง/ตร.กม.",
     unitEn: "bldg/km²",
-    value: (p) => p.bldg_per_km2,
+    value: (p, s) => (s?.measure === "floor" ? p.floor_to_land_pct : p.bldg_per_km2),
     higherIsBetter: true,
     sourceTh: "ข้อมูลรูปแปลงอาคาร GISTDA (2565)",
     sourceEn: "GISTDA building footprints (2022)",
@@ -175,3 +183,12 @@ export const PRESETS: Preset[] = [
 ];
 
 export const DEFAULT_WEIGHTS: Weights = PRESETS[0].weights;
+
+/** unit of a factor under its current setting (the building factor has two measures) */
+export function unitOf(f: FactorDef, s?: FactorSetting): { th: string; en: string } {
+  if (f.key === "buildings") {
+    const m = buildingMeasure(s);
+    return { th: m.unitTh, en: m.unitEn };
+  }
+  return { th: f.unitTh, en: f.unitEn };
+}

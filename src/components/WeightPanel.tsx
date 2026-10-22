@@ -1,7 +1,7 @@
-import { FACTORS, PRESETS, TRAVEL_DESTS } from "../factors";
+import { BUILDING_MEASURES, FACTORS, PRESETS, TRAVEL_DESTS } from "../factors";
 import { useI18n } from "../i18n";
 import { effectiveShare } from "../scoring";
-import type { Direction, FactorKey, TravelDest, Weights } from "../types";
+import type { BuildingMeasure, Direction, FactorKey, TravelDest, Weights } from "../types";
 
 interface Props {
   weights: Weights;
@@ -56,6 +56,16 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
               disabled={s.direction === 0}
               onChange={(e) => set(f.key, { weight: Number(e.target.value) })}
             />
+            {f.key === "buildings" && (
+              <select
+                aria-label={t("วัดจาก", "Measure")}
+                value={s.measure ?? "count"}
+                onChange={(e) => set("buildings", { measure: e.target.value as BuildingMeasure })}
+                style={{ gridColumn: "1 / -1", fontSize: 13 }}
+              >
+                {BUILDING_MEASURES.map((m) => <option key={m.id} value={m.id}>{t(`วัดจาก: ${m.th}`, `Measure: ${m.en}`)}</option>)}
+              </select>
+            )}
             {f.key === "travel" && (
               <select
                 aria-label={t("ปลายทาง", "Destination")}
