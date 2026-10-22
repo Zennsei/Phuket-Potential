@@ -62,6 +62,9 @@ export interface TambonProps {
   highrise: number;
   /** total floor area (footprint × storeys) ÷ land area, % */
   floor_to_land_pct: number;
+  /** registered population / houses for every year in REG_YEARS (DOPA, December) */
+  [k: `reg_pop_${number}`]: number;
+  [k: `reg_house_${number}`]: number;
 }
 
 export type TambonCollection = FeatureCollection<Polygon | MultiPolygon, TambonProps>;

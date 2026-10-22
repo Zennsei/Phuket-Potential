@@ -281,6 +281,24 @@
 
 ---
 
+### บริการ GISTDA API Gateway ที่จะทดสอบต่อ
+
+ทีมส่งรายการ API ที่ key ของทีมใช้ได้มา (23 ต.ค. 2569) ชุดที่น่าจะช่วยโจทย์ภูเก็ต:
+
+| ลำดับ | บริการ | path | จะใช้ทำอะไร |
+|---|---|---|---|
+| 1 | พื้นที่น้ำท่วมซ้ำซาก v1.1 | `/gi-service/v1.1/disasters/flood-recurrence` | ปัจจัยความเสี่ยง หรือ Stress Test "น้ำท่วม" และตัดพื้นที่เสี่ยงออกจากที่ดินที่พัฒนาได้ |
+| 2 | ภาพ THEOS-1 (STAC) | `/stac/theos1/{path}` | ภาพจากดาวเทียมของไทยเป็นหลักฐานในหน้าภารกิจ เทียบก่อน/หลัง (THEOS-1 ใช้งานถึงราวปี 2563) |
+| 3 | ภาพถ่ายดาวเทียม 2515–2568 | `/gfms/service/` | ตัวเลื่อนปีของภาพดาวเทียม |
+| 4 | Landtrendr | `/maps/coverage/landtrendr`, `/maps/coverage/landtrendr-all` | พื้นที่ที่สิ่งปกคลุมดินเปลี่ยน (การขยายตัวของเมือง) |
+| 5 | Hillshade | `/tiles/public/hillshade` | เห็นพื้นที่ภูเขาลาดชันที่ไม่ควรพัฒนา |
+| 6 | น้ำท่วม 1 วันย้อนหลัง | `/gi-service/v1.1/disasters/flood-extent-1day` | สถานการณ์ปัจจุบัน (ถ้ามี) |
+| 7 | ภาพ PLEIADES (STAC) | `/stac/PLEIADES` | ภาพละเอียดสูงของพื้นที่ตัวอย่าง |
+| 8 | GI Basemap, Land feature collections, UHI | `/tiles/basemap_latest/…`, `/features/land/collections`, `/tiles/vector/uhi/…` | ดูว่ามีข้อมูลภูเก็ตไหม |
+
+- ทดสอบด้วย `data-prep/gistda_api_probe.py` (รันบนเครื่องทีม ใช้ประมาณ 15 ครั้ง) ได้รายงาน `data-prep/out/gistda_api_probe.txt` ที่ไม่มี key
+- **THEOS-2:** ซื้อภาพได้ที่ awagad.gistda.or.th (ยังไม่ทราบราคาและพื้นที่ขั้นต่ำ) ตัดสินใจหลังทดสอบ THEOS-1 และสอบถามผู้จัดการแข่งขันว่ามีภาพให้ใช้หรือไม่
+
 ## 5. ตรวจแล้วไม่ใช้ (❌)
 
 | ข้อมูล | เหตุผล |
