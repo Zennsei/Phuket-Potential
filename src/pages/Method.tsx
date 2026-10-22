@@ -9,14 +9,21 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
   {
     th: "ใช้ในเว็บแล้ว", en: "In use",
     items: [
-      { th: "ทุกชุดในตาราง \"แหล่งข้อมูล\" ด้านบน", en: "Everything in the data-sources table above" },
+      { th: "อาคาร GISTDA 2565", en: "GISTDA buildings 2022" },
+      { th: "การใช้ที่ดิน LDD 2563", en: "LDD land use 2020" },
+      { th: "แผนที่ ภาพดาวเทียม และการค้นหา GISTDA Sphere (ออนไลน์)", en: "GISTDA Sphere maps, imagery and search (live)" },
+      { th: "ราคาประเมินที่ดิน รอบ 2566–2569", en: "Land appraisal 2023–2026 round" },
+      { th: "ประชากร Kontur 2566", en: "Kontur population 2023" },
+      { th: "ถนนและสถานที่ OpenStreetMap 2569", en: "OpenStreetMap roads and places 2026" },
+      { th: "สำมะโนประชากร 2533, 2543, 2553", en: "Census 1990, 2000, 2010" },
+      { th: "ขอบเขต 17 ตำบล", en: "17 sub-district boundaries" },
     ],
   },
   {
     th: "กำลังรอ", en: "On the way",
     items: [
       { th: "การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอ 22 ต.ค. 2569)", en: "LDD land use 2009 and 2016 (requested 22 Oct 2026)" },
-      { th: "ผังเมืองรวมจังหวัดภูเก็ตแบบแผนที่ (ยังไม่มีไฟล์ให้ดาวน์โหลด)", en: "Phuket comprehensive plan as a map (no downloadable file yet)" },
+      { th: "ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) แบบแผนที่ (ขอไฟล์จากกรมโยธาฯ หรือวาดตามแผนที่ประกาศ)", en: "Phuket comprehensive plan zones as a map (requesting the file or tracing the official map)" },
     ],
   },
   {
@@ -26,7 +33,7 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
       { th: "ประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล ปี 2552, 2559, 2563, 2565, 2568 (กรมการปกครอง)", en: "Registered population and houses by sub-district, 2009–2025 (DOPA)" },
       { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
       { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
-      { th: "GISTDA API Gateway (อาคาร 3 มิติ LOD1, เกาะความร้อน)", en: "GISTDA API Gateway (LOD1 3D buildings, urban heat island)" },
+      { th: "อาคารพร้อมความสูงและจำนวนชั้น ปี 2567 จาก GISTDA API Gateway (243,747 หลังในกรอบภูเก็ต)", en: "Buildings with height and storeys, 2024, from the GISTDA API Gateway (243,747 in the Phuket box)" },
     ],
   },
 ];
