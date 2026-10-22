@@ -223,3 +223,32 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .matrix-wrap .matrix { min-width: 560px; display: block; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 24px; }
 .grid2 > .card { border: 0; border-top: 2px solid var(--ink); border-radius: 0; background: transparent; padding: 12px 0 8px; }
+/* collapsible panel sections */
+.panel.folds { gap: 0; padding-top: 6px; }
+.fold { border-bottom: 1px solid var(--rule); }
+.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 0; font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::after { content: "+"; margin-left: 8px; width: 18px; text-align: center; color: var(--muted); font-weight: 400; font-size: 18px; line-height: 1; }
+.fold[open] > summary::after { content: "−"; }
+.fold > summary .hint { margin-left: auto; font-family: var(--font-body); font-weight: 400; font-size: 12px; color: var(--muted); }
+.fold > summary:focus-visible { outline: 2px solid var(--overprint); outline-offset: 2px; }
+.fold-body { padding: 0 0 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.group-label { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.linkbtn { background: none; border: 0; padding: 4px 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--overprint); text-underline-offset: 3px; cursor: pointer; font: inherit; font-size: 13px; text-align: left; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile { border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 10px; }
+.tile .v { font-family: var(--font-display); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.yearbtns { display: flex; flex-wrap: wrap; gap: 4px; }
+.yearbtns button { border: 1px solid var(--rule); background: transparent; border-radius: var(--radius); padding: 2px 8px; font-size: 12px; cursor: pointer; color: var(--ink); font-variant-numeric: tabular-nums; }
+.yearbtns button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.ybars { display: grid; grid-template-columns: auto 1fr auto; gap: 3px 8px; align-items: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ybars .track { height: 8px; background: var(--sheet-2); }
+.ybars .track > i { display: block; height: 100%; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 2px; color: var(--sheet); }
+.searchrow { display: flex; gap: 6px; min-width: 0; }
+.searchrow input { flex: 1 1 auto; min-width: 0; }
+.searchrow .btn { flex: none; }
+.fold > summary > span:first-child { min-width: 0; }
+.fold > summary .hint { text-align: right; max-width: 55%; }
+.searchrow input { width: 100%; }

@@ -8,6 +8,7 @@ Output: public/data/dopa_tambon.csv
           reg_pop_2565, reg_pop_2568, reg_house_2568, reg_pop_per_km2 (2568),
           reg_pop_growth_pct, house_growth_pct (2559 -> 2568),
           unreg_ratio = Kontur 2566 estimate / registered 2565 (how many people live there per registered person)
+          reg_pop_<year>, reg_house_<year> for every year found
 
 A tambon can be split across several registry offices (district office + municipality),
 so rows are summed by tambon code. Office summary rows (CCAATT = 0) are skipped.
@@ -79,6 +80,9 @@ def extra(p):
         "reg_pop_growth_pct": round((pop(GROWTH_TO) / pop(GROWTH_FROM) - 1) * 100, 1),
         "house_growth_pct": round((house(GROWTH_TO) / house(GROWTH_FROM) - 1) * 100, 1),
         "unreg_ratio": round(p["population"] / pop(2565), 2),
+        # every year, for the year picker on the map and the chart in the sub-district panel
+        **{f"reg_pop_{y}": pop(y) for y in years},
+        **{f"reg_house_{y}": house(y) for y in years},
     }
 
 

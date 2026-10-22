@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "buildings" | "population" | "land" | "travel" | "roads" | "pois";
+export type OverlayId = "landuse" | "buildings" | "population" | "land" | "travel" | "height3d" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -52,6 +52,13 @@ export const OVERLAYS: Overlay[] = [
     sourceTh: "OSM + อาคาร GISTDA", sourceEn: "OSM + GISTDA buildings",
     prop: "o", breaks: [5, 10, 20, 30], ramp: ["#2a2f6e", "#4b5aa8", "#8391cc", "#c3cbe8", "#eef0f8"],
     unitTh: "นาที", unitEn: "min", swatch: "#4b5aa8",
+  },
+  {
+    id: "height3d", file: "data/height_grid500.geojson",
+    th: "อาคาร 3 มิติ: พื้นที่ใช้สอย (ช่อง 500 ม.)", en: "3D: building floor area (500 m cells)",
+    sourceTh: "GISTDA 2567", sourceEn: "GISTDA 2024", gistda: true,
+    prop: "h_mean", breaks: [5, 6.5, 8, 10], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
+    unitTh: "ม. สูงเฉลี่ย", unitEn: "m mean height", swatch: "#e08a45",
   },
   {
     id: "roads", file: "data/roads_main.geojson",

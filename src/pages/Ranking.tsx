@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FACTORS } from "../factors";
+import { FACTORS, unitOf } from "../factors";
 import { CATEGORIES, DEFAULT_THRESHOLDS, decide } from "../decision";
 import { scoreColor } from "../color";
 import { downloadText } from "../download";
@@ -151,7 +151,7 @@ export default function Ranking({ scored, weights }: PageProps) {
                     const v = f.value(s.props, weights[f.key]);
                     return (
                       <td key={f.key} className="num">
-                        {v == null ? "–" : num(v, f.key === "services" || f.key === "travel" ? 1 : 0)}
+                        {v == null ? "–" : num(v, f.key === "services" || f.key === "travel" || (f.key === "buildings" && weights.buildings.measure === "floor") ? 1 : 0)}
                         <div className="small muted">{num(s.parts[f.key])}/100</div>
                       </td>
                     );
@@ -162,7 +162,7 @@ export default function Ranking({ scored, weights }: PageProps) {
           </table>
         </div>
         <p className="small muted">
-          {FACTORS.map((f) => `${t(f.th, f.en)}: ${t(f.unitTh, f.unitEn)}`).join(", ")}
+          {FACTORS.map((f) => { const u = unitOf(f, weights[f.key]); return `${t(f.th, f.en)}: ${t(u.th, u.en)}`; }).join(", ")}
         </p>
         <p className="small muted">
           {t(`กลุ่มการตัดสินใจใช้เกณฑ์ตั้งต้น คะแนน ${DEFAULT_THRESHOLDS.score} และที่ดินที่ยังพัฒนาได้ ${DEFAULT_THRESHOLDS.land}% (ปรับเกณฑ์ได้ในหน้าภารกิจ)`,

@@ -126,6 +126,16 @@ export default function MapView(p: Props) {
       };
       fillOverlay("land");
       fillOverlay("travel");
+      {
+        const o = OVERLAYS.find((x) => x.id === "height3d")!;
+        // bar height follows floor area per cell (far_pct = floor area ÷ cell area × 100); colour = mean building height
+        m.addLayer({ id: "overlay-height3d", type: "fill-extrusion", source: "ov-height3d", layout: { visibility: "none" },
+          paint: {
+            "fill-extrusion-color": step(o.prop!, o.breaks!, o.ramp!),
+            "fill-extrusion-height": ["*", ["min", ["get", "far_pct"], 200], 20],
+            "fill-extrusion-opacity": 0.85,
+          } });
+      }
       fillOverlay("population");
       fillOverlay("buildings");
 
@@ -195,6 +205,10 @@ export default function MapView(p: Props) {
           const d = TRAVEL_DESTS.find((x) => x.id === (latest.current.travelDest ?? "oldtown"))!;
           row(label("travel"), th ? `ประมาณ <b>${tv[d.key]}</b> นาที ถึง${d.th}` : `about <b>${tv[d.key]}</b> min to ${d.en.toLowerCase()}`);
         }
+        const h3 = first("overlay-height3d");
+        if (h3) row(label("height3d"), th
+          ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
+          : `<b>${nf(Number(h3.n))}</b> buildings, mean height ${h3.h_mean} m (max ${h3.h_max} m), floor area ${h3.far_pct}% of the cell`);
         const lu = first("overlay-landuse");
         if (lu) row(label("landuse"), `<b>${escapeHtml(String(th ? lu.th : lu.en))}</b>`);
 
@@ -273,6 +287,12 @@ export default function MapView(p: Props) {
       }
       m.setLayoutProperty(`overlay-${o.id}`, "visibility", on ? "visible" : "none");
     }
+    // tilt the map for the 3D layer, flatten it again when the layer is off
+    const want = p.overlays.height3d ? 55 : 0;
+    if (Math.abs(m.getPitch() - want) > 1)
+      m.easeTo(p.overlays.height3d
+        ? { pitch: want, bearing: -15, zoom: Math.max(m.getZoom(), 10.6), center: [98.36, 7.9], duration: 900 }
+        : { pitch: 0, bearing: 0, duration: 800 });
   }, [ready, p.overlays]);
 
   // travel layer: colour by the chosen destination
