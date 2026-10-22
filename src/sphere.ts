@@ -20,7 +20,9 @@ export interface Basemap {
   gistda?: boolean;
 }
 
-const SPHERE_ATTR = '© <a href="https://sphere.gistda.or.th/" target="_blank" rel="noopener">GISTDA sphere</a>';
+// Sphere's terms ask for the GISTDA sphere credit and for third-party data inside it (OpenStreetMap, ODbL) to be credited too.
+const SPHERE_ATTR =
+  '© <a href="https://sphere.gistda.or.th/" target="_blank" rel="noopener">GISTDA sphere</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>';
 
 export const BASEMAPS: Basemap[] = [
   {

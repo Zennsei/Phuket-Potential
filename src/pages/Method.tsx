@@ -178,6 +178,13 @@ export default function Method({ data }: { data: AppData }) {
         <p>• {t("ข้อมูลอาคารเป็นของปี 2565 อาคารที่สร้างหลังจากนั้นยังไม่ถูกนับ ภาพจากดาวเทียม THEOS-2 ใช้ปรับปรุงชั้นข้อมูลนี้ได้ในอนาคต",
                "Building data dates from 2022, so newer buildings are missing. THEOS-2 imagery could be used to update this layer in future.")}</p>
         <p>• {t("ถนนและสถานที่จาก OpenStreetMap มาจากอาสาสมัคร บางพื้นที่อาจไม่ครบ", "OpenStreetMap roads and places are volunteer-mapped and may be incomplete in places.")}</p>
+        <p>• {t("แปลงราคาประเมินที่ตัดออก (ระวาง 1:5000) ส่วนใหญ่ราคาถูกและอยู่ทางเหนือของเกาะมากกว่า ราคากลางของตำบลใน อ.ถลาง จึงน่าจะสูงกว่าความจริงเล็กน้อย",
+               "The appraisal records left out (1:5000 sheets) are mostly cheaper and more common in the north, so the median price of Thalang sub-districts is probably a little too high.")}</p>
+        <p>• {t("ข้อมูลอาคารปี 2565 และ 2567 มาจากคนละวิธี ปี 2567 แบ่งอาคารเป็นชิ้นเล็กกว่า จึงมีจำนวนมากกว่า 1.5–2.4 เท่า แต่พื้นที่ฐานมากกว่าเพียง 1.1–1.8 เท่า ห้ามนำจำนวนมาลบกัน ความสูงและจำนวนชั้นปี 2567 เป็นค่าประมาณจากแบบจำลอง",
+               "The 2022 and 2024 building data use different methods: 2024 splits buildings into smaller pieces, so it has 1.5–2.4× as many buildings but only 1.1–1.8× the footprint. Do not subtract the counts. 2024 heights and storeys are model estimates.")}</p>
+        <p>• {t("\"ที่ดินที่ยังพัฒนาได้\" หมายถึงที่ดินที่ยังไม่ถูกสร้างทับตามการใช้ที่ดินปี 2563 ไม่ได้แปลว่ากฎหมายผังเมืองอนุญาตให้สร้าง",
+               "\"Developable land\" means land not yet built on in the 2020 land-use survey; it does not mean the town plan allows building there.")}</p>
+        <p>• {t("คะแนนรวมข้อมูลหลายปี (2563–2569) จึงเป็นภาพรวมช่วงเวลา ไม่ใช่ภาพ ณ ปีใดปีหนึ่ง", "The score combines data from 2020–2026, so it describes a period, not a single year.")}</p>
         <p>• {t("เวลาเดินทางเป็นแบบจำลองอย่างง่าย: ใช้ความเร็วตามประเภทถนน ไม่คิดรถติด สัญญาณไฟ หรือถนนเดินรถทางเดียว จึงเหมาะใช้เทียบกันระหว่างตำบล ไม่ใช่เวลาจริง อาคารที่ห่างถนนเกิน 1 กม. (เกาะที่ไม่มีสะพาน) ไม่ได้นับ",
                "Travel time is a simple model: speed by road class, no traffic, signals or one-way streets, so it compares sub-districts rather than predicting real trips. Buildings more than 1 km from a road (islands without a bridge) are left out.")}</p>
       </section>
