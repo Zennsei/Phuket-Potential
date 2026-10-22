@@ -14,6 +14,8 @@
 
 `dopa_prep.py` รวมประชากรและจำนวนบ้านตามทะเบียนราษฎร์รายตำบล จากไฟล์ `stat_t*.txt` ของกรมการปกครอง → `public/data/dopa_tambon.csv`
 
+`gistda_buildings_api.py` ดึงอาคารพร้อมความสูง ปี 2567 จาก GISTDA API Gateway รันบนเครื่องของทีมเท่านั้น (ต้องมี `GISTDA_API_KEY` ใน `.env`) ผลอยู่ใน `data-prep/out/` ซึ่งไม่ถูก commit
+
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
 รายละเอียดของข้อมูลทุกชุด (แหล่ง ปี สถานะ) อยู่ใน `DATA.md` ที่โฟลเดอร์หลัก

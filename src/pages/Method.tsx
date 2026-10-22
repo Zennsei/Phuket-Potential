@@ -23,7 +23,7 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
     th: "กำลังรอ", en: "On the way",
     items: [
       { th: "การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอ 22 ต.ค. 2569)", en: "LDD land use 2009 and 2016 (requested 22 Oct 2026)" },
-      { th: "ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) จากบริการแผนที่ของกรมโยธาธิการและผังเมือง (กำลังตรวจ)", en: "Phuket comprehensive plan zones from the DPT map service (being checked)" },
+      { th: "ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) แบบแผนที่ (ขอไฟล์จากกรมโยธาฯ หรือวาดตามแผนที่ประกาศ)", en: "Phuket comprehensive plan zones as a map (requesting the file or tracing the official map)" },
     ],
   },
   {
