@@ -5,7 +5,7 @@ import WeightPanel from "../components/WeightPanel";
 import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
 import SphereNearby from "../components/SphereNearby";
-import { FACTORS } from "../factors";
+import { FACTORS, TRAVEL_DESTS } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
@@ -19,7 +19,7 @@ type ColorBy = "score" | FactorKey;
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
   const { t, num } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, travel: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
   const [tambonFill, setTambonFill] = useState(true);
@@ -35,11 +35,11 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
       return { fills, legend: { title: t("คะแนนศักยภาพ (0–100)", "Potential score (0–100)"), ends: ["0", "100"] } };
     }
     const f = FACTORS.find((x) => x.key === colorBy)!;
-    const vals = scored.map((s) => f.value(s.props) ?? NaN);
+    const vals = scored.map((s) => f.value(s.props, weights[f.key]) ?? NaN);
     const br = quantileBreaks(vals);
     const fills = Object.fromEntries(
       scored.map((s) => {
-        const v = f.value(s.props);
+        const v = f.value(s.props, weights[f.key]);
         if (v == null) return [s.props.id, "#cccccc"];
         let c = classOf(v, br);
         if (!f.higherIsBetter) c = 4 - c; // nearer road = darker
@@ -54,9 +54,10 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
         ends: f.higherIsBetter ? [num(lo), num(hi)] : [num(hi), num(lo)],
       },
     };
-  }, [colorBy, scored, t, num]);
+  }, [colorBy, scored, t, num, weights]);
 
-  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land;
+  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel;
+  const travelDest = weights.travel.dest ?? "oldtown";
   const selected = scored.find((s) => s.props.id === selectedId);
   const onMapClick = (hit: { id?: string; lon: number; lat: number }) => {
     setClickPoint({ lon: hit.lon, lat: hit.lat });
@@ -134,6 +135,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           focus={focus}
           clickPoint={clickPoint}
           onView={setView}
+          travelDest={travelDest}
         />
         <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />
         {baseFailed && (
@@ -157,7 +159,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           )}
           {OVERLAYS.filter((o) => overlays[o.id] && o.ramp).map((o) => (
             <div key={o.id}>
-              <b>{t(o.th, o.en)}</b>
+              <b>{t(o.th, o.en)}{o.id === "travel" && `: ${(() => { const d = TRAVEL_DESTS.find((x) => x.id === travelDest)!; return t(d.th, d.en); })()}`}</b>
               <div className="ramp">{o.ramp!.map((c) => <i key={c} style={{ background: c }} />)}</div>
               <div className="ends"><span>&lt;{num(o.breaks![0])}</span><span>{num(o.breaks![3])}+ {t(o.unitTh!, o.unitEn!)}</span></div>
             </div>

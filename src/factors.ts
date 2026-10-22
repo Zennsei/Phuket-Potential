@@ -1,4 +1,13 @@
-import type { FactorKey, TambonProps, Weights } from "./types";
+import type { FactorKey, FactorSetting, TambonProps, TravelDest, Weights } from "./types";
+
+export const TRAVEL_DESTS: { id: TravelDest; th: string; en: string; key: "a" | "o" | "h" | "s" | "p" }[] = [
+  { id: "oldtown", th: "ย่านเมืองเก่า (ถนนถลาง)", en: "Old town (Thalang Rd)", key: "o" },
+  { id: "airport", th: "สนามบินภูเก็ต", en: "Phuket airport", key: "a" },
+  { id: "hospital", th: "โรงพยาบาลที่ใกล้ที่สุด", en: "Nearest hospital", key: "h" },
+  { id: "school", th: "โรงเรียนที่ใกล้ที่สุด", en: "Nearest school", key: "s" },
+  { id: "pier", th: "ท่าเรือที่ใกล้ที่สุด", en: "Nearest pier", key: "p" },
+];
+export const travelMinutes = (p: TambonProps, dest: TravelDest = "oldtown") => p[`tt_${dest}_min`];
 
 export interface FactorDef {
   key: FactorKey;
@@ -6,8 +15,8 @@ export interface FactorDef {
   en: string;
   unitTh: string;
   unitEn: string;
-  /** raw value used for scoring */
-  value: (p: TambonProps) => number | null;
+  /** raw value used for scoring (the setting matters only for the travel factor) */
+  value: (p: TambonProps, s?: FactorSetting) => number | null;
   /** higher raw value is "better" when direction = +1; road distance is reversed */
   higherIsBetter: boolean;
   sourceTh: string;
@@ -102,6 +111,18 @@ export const FACTORS: FactorDef[] = [
     sourceEn: "DOPA civil registry 2016, 2025",
     color: "#8a4f7d",
   },
+  {
+    key: "travel",
+    th: "เวลาเดินทางถึงปลายทาง",
+    en: "Travel time to a destination",
+    unitTh: "นาที (ค่ากลาง จากอาคารถึงปลายทาง)",
+    unitEn: "min (median, building → destination)",
+    value: (p, s) => travelMinutes(p, s?.dest),
+    higherIsBetter: false,
+    sourceTh: "โครงข่ายถนน OpenStreetMap (ต.ค. 2569) + อาคาร GISTDA",
+    sourceEn: "OpenStreetMap road network (Oct 2026) + GISTDA buildings",
+    color: "#4b5aa8",
+  },
 ];
 
 export const FACTOR_BY_KEY = Object.fromEntries(FACTORS.map((f) => [f.key, f])) as Record<FactorKey, FactorDef>;
@@ -115,7 +136,7 @@ export interface Preset {
   weights: Weights;
 }
 
-const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -1 | 0 = 1, d = 0, g = 0): Weights => ({
+const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -1 | 0 = 1, d = 0, g = 0, t = 0, dest: TravelDest = "oldtown"): Weights => ({
   buildings: { weight: b, direction: b ? 1 : 0 },
   road: { weight: r, direction: r ? 1 : 0 },
   services: { weight: s, direction: s ? 1 : 0 },
@@ -123,6 +144,7 @@ const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -
   land: { weight: l, direction: l ? landDir : 0 },
   developable: { weight: d, direction: d ? 1 : 0 },
   growth: { weight: g, direction: g ? 1 : 0 },
+  travel: { weight: t, direction: t ? 1 : 0, dest },
 });
 
 export const PRESETS: Preset[] = [
@@ -146,9 +168,9 @@ export const PRESETS: Preset[] = [
     id: "people",
     th: "เน้นคุณภาพชีวิตประชาชน",
     en: "Residents first",
-    descTh: "ให้น้ำหนักกับสถานที่บริการและประชากร ไม่สนราคาที่ดิน",
-    descEn: "Weights services and population, ignores land price",
-    weights: w(15, 25, 35, 25, 0),
+    descTh: "ให้น้ำหนักกับสถานที่บริการ ประชากร และเวลาเดินทางถึงโรงพยาบาล ไม่สนราคาที่ดิน",
+    descEn: "Weights services, population and travel time to a hospital; ignores land price",
+    weights: w(15, 25, 35, 25, 0, 1, 0, 0, 20, "hospital"),
   },
 ];
 

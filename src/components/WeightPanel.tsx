@@ -1,7 +1,7 @@
-import { FACTORS, PRESETS } from "../factors";
+import { FACTORS, PRESETS, TRAVEL_DESTS } from "../factors";
 import { useI18n } from "../i18n";
 import { effectiveShare } from "../scoring";
-import type { Direction, FactorKey, Weights } from "../types";
+import type { Direction, FactorKey, TravelDest, Weights } from "../types";
 
 interface Props {
   weights: Weights;
@@ -56,6 +56,16 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
               disabled={s.direction === 0}
               onChange={(e) => set(f.key, { weight: Number(e.target.value) })}
             />
+            {f.key === "travel" && (
+              <select
+                aria-label={t("ปลายทาง", "Destination")}
+                value={s.dest ?? "oldtown"}
+                onChange={(e) => set("travel", { dest: e.target.value as TravelDest })}
+                style={{ gridColumn: "1 / -1", fontSize: 13 }}
+              >
+                {TRAVEL_DESTS.map((d) => <option key={d.id} value={d.id}>{t(`ปลายทาง: ${d.th}`, `To: ${d.en}`)}</option>)}
+              </select>
+            )}
             <div className="dir" role="group" aria-label={t("ทิศทาง", "Direction")} style={{ gridColumn: "1 / -1" }}>
               {dirs.map((d) => (
                 <button

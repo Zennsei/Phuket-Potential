@@ -47,11 +47,19 @@ export interface TambonProps {
   house_growth_pct: number;
   /** Kontur 2566 estimate ÷ registered 2565: people living there per registered person */
   unreg_ratio: number;
+  /** road travel time, median minutes over the sub-district's buildings (OSM network) */
+  tt_airport_min: number;
+  tt_oldtown_min: number;
+  tt_hospital_min: number;
+  tt_school_min: number;
+  tt_pier_min: number;
 }
 
 export type TambonCollection = FeatureCollection<Polygon | MultiPolygon, TambonProps>;
 
-export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable" | "growth";
+export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable" | "growth" | "travel";
+
+export type TravelDest = "airport" | "oldtown" | "hospital" | "school" | "pier";
 
 /** +1 = higher value is better, -1 = lower value is better, 0 = factor switched off */
 export type Direction = 1 | -1 | 0;
@@ -59,6 +67,8 @@ export type Direction = 1 | -1 | 0;
 export interface FactorSetting {
   weight: number; // 0..100 (relative)
   direction: Direction;
+  /** travel factor only: which destination */
+  dest?: TravelDest;
 }
 
 export type Weights = Record<FactorKey, FactorSetting>;

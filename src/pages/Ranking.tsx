@@ -27,14 +27,14 @@ export default function Ranking({ scored, weights }: PageProps) {
     const val = (s: Scored): number | string => {
       if (sort.k === "rank") return s.rank;
       if (sort.k === "name") return lang === "th" ? s.props.tambon_th : s.props.tambon_en;
-      return FACTORS.find((f) => f.key === sort.k)!.value(s.props) ?? -Infinity;
+      return FACTORS.find((f) => f.key === sort.k)!.value(s.props, weights[sort.k]) ?? -Infinity;
     };
     return [...r].sort((a, b) => {
       const x = val(a), y = val(b);
       const c = typeof x === "string" ? x.localeCompare(String(y), lang) : (x as number) - (y as number);
       return sort.desc ? -c : c;
     });
-  }, [scored, q, sort, lang]);
+  }, [scored, q, sort, lang, weights]);
 
   const head = (k: SortKey, label: string, right = false) => (
     <th className={right ? "num" : ""} aria-sort={sort.k === k ? (sort.desc ? "descending" : "ascending") : undefined}>
@@ -64,6 +64,8 @@ export default function Ranking({ scored, weights }: PageProps) {
       reg_pop_2568: s.props.reg_pop_2568,
       reg_pop_growth_pct: s.props.reg_pop_growth_pct,
       unreg_ratio: s.props.unreg_ratio,
+      travel_dest: weights.travel.dest ?? "oldtown",
+      travel_min: FACTORS.find((f) => f.key === "travel")!.value(s.props, weights.travel),
     }));
 
   const exportCsv = () => {
@@ -146,10 +148,10 @@ export default function Ranking({ scored, weights }: PageProps) {
                     })()}
                   </td>
                   {FACTORS.map((f) => {
-                    const v = f.value(s.props);
+                    const v = f.value(s.props, weights[f.key]);
                     return (
                       <td key={f.key} className="num">
-                        {v == null ? "–" : num(v, f.key === "services" ? 1 : 0)}
+                        {v == null ? "–" : num(v, f.key === "services" || f.key === "travel" ? 1 : 0)}
                         <div className="small muted">{num(s.parts[f.key])}/100</div>
                       </td>
                     );
