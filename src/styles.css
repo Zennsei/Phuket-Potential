@@ -16,6 +16,10 @@
   --font-display: "Chakra Petch", "Noto Sans Thai", system-ui, sans-serif;
   --font-body: "Noto Sans Thai", "Leelawadee UI", system-ui, sans-serif;
   --radius: 4px;
+  --cat-promote: #133d66;
+  --cat-upgrade: #2c7a98;
+  --cat-prepare: #a3741b;
+  --cat-maintain: #7d8a86;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -31,6 +35,10 @@
     --ok: #6cc48f;
     --warn: #e2a24f;
     --bad: #ef7b6c;
+    --cat-promote: #8cc4f0;
+    --cat-upgrade: #5cc0d0;
+    --cat-prepare: #e2a24f;
+    --cat-maintain: #a3b0ac;
     color-scheme: dark;
   }
 }
@@ -206,3 +214,12 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
   .rankbars .rb { grid-template-columns: 92px minmax(0, 1fr) 42px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+.matrix { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); }
+.rule-box { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+.rule-box dt { font-weight: 600; }
+.rule-box dd { margin: 0; }
+.matrix-wrap { overflow-x: auto; }
+.matrix-wrap .matrix { min-width: 560px; display: block; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 24px; }
+.grid2 > .card { border: 0; border-top: 2px solid var(--ink); border-radius: 0; background: transparent; padding: 12px 0 8px; }

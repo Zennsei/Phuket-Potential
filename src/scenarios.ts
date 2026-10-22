@@ -1,0 +1,42 @@
+import type { TambonProps, Weights } from "./types";
+
+/** A stress test: change the rule (weights) and/or the data (rows), then score again. */
+export interface Scenario {
+  id: string;
+  th: string;
+  en: string;
+  descTh: string;
+  descEn: string;
+  apply: (w: Weights) => Weights;
+  rows?: (p: TambonProps) => TambonProps;
+}
+
+export const SCENARIOS: Scenario[] = [
+  {
+    id: "no-road", th: "ถนนสายหลักถูกตัด", en: "Main road cut off",
+    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ข้อมูลการเข้าถึงถนนไม่ได้ ปัจจัยถนนถูกปิด",
+    descEn: "A flood or landslide makes road access unreliable, so the road factor is switched off",
+    apply: (w) => ({ ...w, road: { ...w.road, direction: 0 } }),
+  },
+  {
+    id: "no-land", th: "ข้อมูลราคาที่ดินไม่ครบ", en: "Land price data missing",
+    descTh: "ไม่มีข้อมูลราคาประเมิน ต้องตัดสินใจจากปัจจัยที่เหลือ",
+    descEn: "No appraisal data is available, so the decision uses the remaining factors",
+    apply: (w) => ({ ...w, land: { ...w.land, direction: 0 } }),
+  },
+  {
+    id: "decentralise", th: "นโยบายลดความแออัด", en: "Decongestion policy",
+    descTh: "จังหวัดไม่ส่งเสริมพื้นที่ที่อาคารหนาแน่นอยู่แล้ว ความหนาแน่นอาคารยิ่งน้อยยิ่งได้คะแนน",
+    descEn: "The province stops promoting already dense areas: lower building density now scores higher",
+    apply: (w) => ({ ...w, buildings: { weight: w.buildings.weight || 20, direction: -1 } }),
+  },
+  {
+    id: "registry-pop", th: "ใช้ประชากรตามทะเบียนแทนแบบจำลอง", en: "Registered population instead of the model",
+    descTh: "เปลี่ยนแหล่งข้อมูลประชากรจาก Kontur (รวมประชากรแฝง) เป็นทะเบียนราษฎร์ปี 2568 ดูว่าคำตอบขึ้นกับแหล่งข้อมูลแค่ไหน",
+    descEn: "Swap the population source from Kontur (includes unregistered residents) to the 2025 civil registry, to see how much the answer depends on the data source",
+    apply: (w) => w,
+    rows: (p) => ({ ...p, pop_per_km2: p.reg_pop_per_km2 }),
+  },
+];
+
+export const applyScenarioRows = (rows: TambonProps[], sc: Scenario) => (sc.rows ? rows.map(sc.rows) : rows);
