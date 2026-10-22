@@ -16,59 +16,63 @@ export interface Overlay {
   unitTh?: string;
   unitEn?: string;
   swatch: string;
+  /** credit shown in the map's attribution box while the layer is loaded */
+  attr: string;
 }
+
+const OSM = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>';
 
 export const OVERLAYS: Overlay[] = [
   {
     id: "landuse", file: "data/landuse_2563.geojson",
     th: "การใช้ที่ดิน ปี 2563", en: "Land use 2020 (2563)",
     sourceTh: "กรมพัฒนาที่ดิน", sourceEn: "LDD",
-    swatch: "#5c8a3a",
+    swatch: "#5c8a3a", attr: "การใช้ที่ดิน: กรมพัฒนาที่ดิน",
   },
   {
     id: "buildings", file: "data/buildings_grid500.geojson",
     th: "ความหนาแน่นอาคาร (ช่อง 500 ม.)", en: "Building density (500 m cells)",
     sourceTh: "GISTDA", sourceEn: "GISTDA", gistda: true,
     prop: "n", breaks: [10, 35, 100, 200], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
-    unitTh: "หลังต่อช่อง", unitEn: "bldgs per cell", swatch: "#c4512e",
+    unitTh: "หลังต่อช่อง", unitEn: "bldgs per cell", swatch: "#c4512e", attr: "อาคาร: GISTDA",
   },
   {
     id: "population", file: "data/population_h3.geojson",
     th: "ความหนาแน่นประชากร (หกเหลี่ยม H3)", en: "Population density (H3 hexagons)",
     sourceTh: "Kontur Population 2566", sourceEn: "Kontur Population 2023",
     prop: "density", breaks: [500, 1500, 3000, 6000], ramp: ["#dcefea", "#a3d6cc", "#62b4a8", "#2b8a80", "#0b5d57"],
-    unitTh: "คน/ตร.กม.", unitEn: "people/km²", swatch: "#2b8a80",
+    unitTh: "คน/ตร.กม.", unitEn: "people/km²", swatch: "#2b8a80", attr: "ประชากร: Kontur (CC BY 4.0)",
   },
   {
     id: "land", file: "data/land_value_1km.geojson",
     th: "ราคาประเมินที่ดิน (ช่อง 1 กม.)", en: "Land appraisal (1 km cells)",
     sourceTh: "กรมธนารักษ์", sourceEn: "Treasury Dept.",
     prop: "median_price", breaks: [4000, 8000, 16000, 32000], ramp: ["#f6edd0", "#e7cf86", "#cfa649", "#a3741b", "#6b4a0c"],
-    unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah", swatch: "#a3741b",
+    unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah", swatch: "#a3741b", attr: "ราคาประเมิน: กรมธนารักษ์",
   },
   {
     id: "travel", file: "data/travel_grid500.geojson",
     th: "เวลาเดินทาง (ช่อง 500 ม.)", en: "Travel time (500 m cells)",
     sourceTh: "OSM + อาคาร GISTDA", sourceEn: "OSM + GISTDA buildings",
     prop: "o", breaks: [5, 10, 20, 30], ramp: ["#2a2f6e", "#4b5aa8", "#8391cc", "#c3cbe8", "#eef0f8"],
-    unitTh: "นาที", unitEn: "min", swatch: "#4b5aa8",
+    unitTh: "นาที", unitEn: "min", swatch: "#4b5aa8", attr: `เวลาเดินทาง: คำนวณจากถนน ${OSM} และอาคาร GISTDA`,
   },
   {
     id: "height3d", file: "data/height_grid500.geojson",
     th: "อาคาร 3 มิติ: พื้นที่ใช้สอย (ช่อง 500 ม.)", en: "3D: building floor area (500 m cells)",
     sourceTh: "GISTDA 2567", sourceEn: "GISTDA 2024", gistda: true,
     prop: "h_mean", breaks: [5, 6.5, 8, 10], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
-    unitTh: "ม. สูงเฉลี่ย", unitEn: "m mean height", swatch: "#e08a45",
+    unitTh: "ม. สูงเฉลี่ย", unitEn: "m mean height", swatch: "#e08a45", attr: `อาคาร 3 มิติ: GISTDA (รูปอาคารจาก Global Building Atlas: ${OSM}, Google Open Buildings)`,
   },
   {
     id: "roads", file: "data/roads_main.geojson",
     th: "ถนนสายหลัก", en: "Main roads",
-    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#c4511c",
+    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#c4511c", attr: OSM,
   },
   {
     id: "pois", file: "data/pois.geojson",
     th: "สถานที่บริการและท่องเที่ยว", en: "Services & tourism places",
-    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#7a5aa6",
+    sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#7a5aa6", attr: OSM,
   },
 ];
 

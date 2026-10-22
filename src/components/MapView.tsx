@@ -113,7 +113,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY }));
+      OVERLAYS.forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
