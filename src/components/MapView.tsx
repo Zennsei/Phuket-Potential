@@ -7,7 +7,8 @@ import type { Feature, MultiPolygon, Polygon } from "geojson";
 import { BASEMAPS } from "../sphere";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
-import type { TambonCollection, TambonProps } from "../types";
+import type { TambonCollection, TambonProps, TravelDest } from "../types";
+import { TRAVEL_DESTS } from "../factors";
 
 interface Props {
   tambons: TambonCollection;
@@ -31,6 +32,8 @@ interface Props {
   clickPoint?: { lon: number; lat: number };
   /** reports the visible area so the collar can draw coordinate ticks */
   onView?: (v: MapViewport) => void;
+  /** destination shown by the travel-time layer */
+  travelDest?: TravelDest;
 }
 
 export interface MapViewport {
@@ -122,6 +125,7 @@ export default function MapView(p: Props) {
           paint: { "fill-color": step(o.prop!, o.breaks!, o.ramp!), "fill-opacity": 0.72 } });
       };
       fillOverlay("land");
+      fillOverlay("travel");
       fillOverlay("population");
       fillOverlay("buildings");
 
@@ -186,6 +190,11 @@ export default function MapView(p: Props) {
         if (pop) row(label("population"), th ? `<b>${nf(Number(pop.population))}</b> คน หนาแน่น ${nf(Number(pop.density))} คน/ตร.กม.` : `<b>${nf(Number(pop.population))}</b> people, ${nf(Number(pop.density))} per km²`);
         const lv = first("overlay-land");
         if (lv) row(label("land"), th ? `ค่ากลาง <b>${nf(Number(lv.median_price))}</b> บาท/ตร.ว. จาก ${nf(Number(lv.parcels))} แปลง` : `median <b>${nf(Number(lv.median_price))}</b> THB/sq.wah from ${nf(Number(lv.parcels))} parcels`);
+        const tv = first("overlay-travel");
+        if (tv) {
+          const d = TRAVEL_DESTS.find((x) => x.id === (latest.current.travelDest ?? "oldtown"))!;
+          row(label("travel"), th ? `ประมาณ <b>${tv[d.key]}</b> นาที ถึง${d.th}` : `about <b>${tv[d.key]}</b> min to ${d.en.toLowerCase()}`);
+        }
         const lu = first("overlay-landuse");
         if (lu) row(label("landuse"), `<b>${escapeHtml(String(th ? lu.th : lu.en))}</b>`);
 
@@ -265,6 +274,15 @@ export default function MapView(p: Props) {
       m.setLayoutProperty(`overlay-${o.id}`, "visibility", on ? "visible" : "none");
     }
   }, [ready, p.overlays]);
+
+  // travel layer: colour by the chosen destination
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m || !m.getLayer("overlay-travel")) return;
+    const o = OVERLAYS.find((x) => x.id === "travel")!;
+    const key = TRAVEL_DESTS.find((d) => d.id === (p.travelDest ?? "oldtown"))!.key;
+    m.setPaintProperty("overlay-travel", "fill-color", step(key, o.breaks!, o.ramp!));
+  }, [ready, p.travelDest]);
 
   // selection
   useEffect(() => {

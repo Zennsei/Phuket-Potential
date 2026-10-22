@@ -9,7 +9,7 @@ import type { FactorKey, Scored, TambonProps, Weights } from "./types";
 export function scoreTambons(rows: TambonProps[], weights: Weights): Scored[] {
   const ranges = Object.fromEntries(
     FACTORS.map((f) => {
-      const vals = rows.map(f.value).filter((v): v is number => v != null);
+      const vals = rows.map((r) => f.value(r, weights[f.key])).filter((v): v is number => v != null);
       return [f.key, { min: Math.min(...vals), max: Math.max(...vals) }];
     }),
   ) as Record<FactorKey, { min: number; max: number }>;
@@ -23,7 +23,7 @@ export function scoreTambons(rows: TambonProps[], weights: Weights): Scored[] {
     const parts = {} as Record<FactorKey, number>;
     let sum = 0;
     for (const f of FACTORS) {
-      const raw = f.value(props);
+      const raw = f.value(props, weights[f.key]);
       const { min, max } = ranges[f.key];
       let n = raw == null || max === min ? 50 : ((raw - min) / (max - min)) * 100;
       if (!f.higherIsBetter) n = 100 - n;

@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "buildings" | "population" | "land" | "roads" | "pois";
+export type OverlayId = "landuse" | "buildings" | "population" | "land" | "travel" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -45,6 +45,13 @@ export const OVERLAYS: Overlay[] = [
     sourceTh: "กรมธนารักษ์", sourceEn: "Treasury Dept.",
     prop: "median_price", breaks: [4000, 8000, 16000, 32000], ramp: ["#f6edd0", "#e7cf86", "#cfa649", "#a3741b", "#6b4a0c"],
     unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah", swatch: "#a3741b",
+  },
+  {
+    id: "travel", file: "data/travel_grid500.geojson",
+    th: "เวลาเดินทาง (ช่อง 500 ม.)", en: "Travel time (500 m cells)",
+    sourceTh: "OSM + อาคาร GISTDA", sourceEn: "OSM + GISTDA buildings",
+    prop: "o", breaks: [5, 10, 20, 30], ramp: ["#2a2f6e", "#4b5aa8", "#8391cc", "#c3cbe8", "#eef0f8"],
+    unitTh: "นาที", unitEn: "min", swatch: "#4b5aa8",
   },
   {
     id: "roads", file: "data/roads_main.geojson",

@@ -1,4 +1,4 @@
-import { FACTORS } from "../factors";
+import { FACTORS, TRAVEL_DESTS, travelMinutes } from "../factors";
 import { LANDUSE_COLORS } from "../layers";
 import { useI18n } from "../i18n";
 import { href } from "../router";
@@ -15,7 +15,9 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
     land: p.land_median == null ? "–" : num(p.land_median),
     developable: num(p.developable_pct, 1),
     growth: num(p.house_growth_pct, 1),
+    travel: num(travelMinutes(p, weights.travel.dest), 1),
   };
+  const dest = TRAVEL_DESTS.find((d) => d.id === (weights.travel.dest ?? "oldtown"))!;
   const lu = [
     { k: "U1", v: p.lu_urban_pct, th: "พื้นที่ชุมชนและสิ่งปลูกสร้าง", en: "Built-up" },
     { k: "A", v: p.lu_agri_pct, th: "เกษตรกรรม", en: "Agriculture" },
@@ -45,7 +47,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
               </div>
               <div className="bar"><i style={{ width: `${s.parts[f.key]}%`, background: f.color }} /></div>
               <div className="small muted">
-                {raw[f.key]} {t(f.unitTh, f.unitEn)}
+                {raw[f.key]} {t(f.unitTh, f.unitEn)}{f.key === "travel" && ` · ${t(dest.th, dest.en)}`}
               </div>
             </div>
           );
