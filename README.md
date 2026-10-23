@@ -28,12 +28,16 @@
 ไฟล์ `.env` เก็บ API key ของ Sphere (`VITE_SPHERE_KEY=...`) ดูตัวอย่างได้ที่ `.env.example`
 
 ## วิธีเอาขึ้นเว็บ (ฟรี)
-**Vercel หรือ Netlify** ทำได้แบบเดียวกัน:
-1. เอาโฟลเดอร์นี้ขึ้น GitHub (ไม่ต้องเอา `node_modules` และ `.env` ขึ้น)
-2. สมัคร Vercel ด้วยบัญชี GitHub แล้วกด Import โปรเจกต์
-3. Build command: `npm run build` · Output directory: `dist`
-4. ใน Environment Variables ใส่ `VITE_SPHERE_KEY` = key ของทีม
-5. เมื่อได้โดเมนแล้ว ไปตั้งค่า key ใน Sphere ให้ใช้ได้เฉพาะโดเมนนั้น
+เว็บที่ build แล้ว (`dist/`) มีขนาดประมาณ 6.5 MB 19 ไฟล์ จึงไม่ติดขีดจำกัดของ Netlify หรือ Vercel
+
+**แบบที่แนะนำ: เชื่อม GitHub** (merge PR แล้วเว็บอัปเดตเอง)
+1. สมัคร Netlify (หรือ Vercel) ด้วยบัญชี GitHub แล้วเลือก Import จาก repo `Zennsei/Phuket-Potential`
+2. Netlify อ่านค่าจาก `netlify.toml` เอง (build `npm run build`, โฟลเดอร์ `dist`, Node 22) ส่วน Vercel ตรวจเจอว่าเป็น Vite เอง
+3. ใส่ Environment Variable **`VITE_SPHERE_KEY`** = key ของ Sphere (ไม่ต้องใส่ `GISTDA_API_KEY` เพราะใช้แค่ในสคริปต์บนเครื่อง)
+4. กด Deploy แล้วจะได้โดเมน เช่น `ชื่อ.netlify.app`
+5. ไปตั้งค่า key ใน Sphere ให้ใช้ได้เฉพาะโดเมนนั้น (และ `localhost` ถ้ายังทดสอบในเครื่อง)
+
+**แบบลากวาง (Netlify Drop):** รัน `npm run build` ในเครื่องก่อน แล้วลาก **เฉพาะโฟลเดอร์ `dist`** ไปวาง ห้ามลากทั้งโปรเจกต์ (มี `node_modules` หลายร้อย MB และ `.env`) แบบนี้ key จาก `.env` ในเครื่องจะติดไปกับไฟล์ที่ build และต้องลากใหม่ทุกครั้งที่แก้
 
 ## อัปเดตข้อมูล
 สคริปต์อยู่ใน `data-prep/` (Python: geopandas, pyogrio, osmium)
