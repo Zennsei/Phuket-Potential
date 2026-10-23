@@ -112,7 +112,7 @@ export const POI_COLORS: Record<string, { c: string; th: string; en: string }> =
 
 /** classes drawn in terrain.png (data-prep/terrain_prep.py), in the order of precedence used there */
 export const TERRAIN_CLASSES: { rgb: [number, number, number]; c: string; th: string; en: string }[] = [
-  { rgb: [233, 178, 92], c: "rgba(233,178,92,.67)", th: "ชัน 20–35% (ฉบับ 2560: บ้านเดี่ยวขนาดเล็กเท่านั้น)", en: "Slope 20–35 % (2017 rules: small single houses only)" },
-  { rgb: [150, 98, 60], c: "rgba(150,98,60,.75)", th: "สูง 80 ม. ขึ้นไป (ฉบับ 2560: ห้ามก่อสร้าง · ฉบับ 2567 ผ่อนให้บ้านเดี่ยวช่วง 80–140 ม.)", en: "80 m or higher (2017: no building · 2024 version allows single houses at 80–140 m)" },
-  { rgb: [122, 36, 24], c: "rgba(122,36,24,.82)", th: "ชันเกิน 35% (ฉบับ 2560: ห้ามปรับพื้นที่หรือก่อสร้าง)", en: "Slope over 35 % (2017 rules: no grading or building)" },
+  { rgb: [233, 178, 92], c: "rgba(233,178,92,.67)", th: "ลาดเชิงเขา ชัน 20–35%: สร้างได้เฉพาะบ้านเดี่ยว สูงไม่เกิน 6–12 ม. คลุมดินไม่เกิน 90 ตร.ม.", en: "Hillside, slope 20–35 %: single houses only, 6–12 m high, footprint up to 90 m²" },
+  { rgb: [150, 98, 60], c: "rgba(150,98,60,.75)", th: "สูงเกิน 80 ม. (บริเวณที่ 6): ห้ามก่อสร้าง ยกเว้นบ้านเดี่ยวสูงไม่เกิน 6 ม. บนที่ดินที่ครอบครองก่อนปี 2560 ช่วง 80–140 ม.", en: "Above 80 m (zone 6): no building, except a 6 m single house on land held before 2017, at 80–140 m only" },
+  { rgb: [122, 36, 24], c: "rgba(122,36,24,.82)", th: "ชันเกิน 35%: ลาดเชิงเขา และห้ามขุดดิน หิน ทรายเพื่อการค้า", en: "Slope over 35 %: hillside, and no commercial digging of soil, rock or sand" },
 ];

@@ -239,7 +239,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               {TERRAIN_CLASSES.map((c) => (
                 <div key={c.th} className="row small" style={{ gap: 6, flexWrap: "nowrap" }}><i style={{ width: 10, height: 10, background: c.c, display: "inline-block", flex: "none" }} />{t(c.th, c.en)}</div>
               ))}
-              <div className="small muted">{t("เกณฑ์จากประกาศเขตคุ้มครองสิ่งแวดล้อมภูเก็ต ต้องตรวจกับประกาศฉบับ 2567 · Copernicus DEM 30 ม.", "Thresholds from Phuket's environmental protection announcements; check against the 2024 text · Copernicus DEM 30 m")}</div>
+              <div className="small muted">{t("ประกาศกระทรวงทรัพยากรฯ เขตคุ้มครองสิ่งแวดล้อมภูเก็ต พ.ศ. 2567 · ประกาศไม่ได้ระบุ % ของ \"ลาดเชิงเขา\" จึงใช้ 20% ตามฉบับ 2560 · Copernicus DEM 30 ม.", "Phuket environmental protection announcement 2024 · it does not give a slope % for \"hillside\", so 20 % from the 2017 version is used · Copernicus DEM 30 m")}</div>
             </div>
           )}
           {overlays.landuse && (
