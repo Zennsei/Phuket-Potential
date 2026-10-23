@@ -62,6 +62,13 @@ export interface TambonProps {
   highrise: number;
   /** total floor area (footprint × storeys) ÷ land area, % */
   floor_to_land_pct: number;
+  /** Copernicus DEM GLO-30: mean height, % of land at ≥80 m, % with slope 20–35 % and >35 % */
+  elev_mean_m: number;
+  elev_80_pct: number;
+  slope_20_35_pct: number;
+  slope_35_pct: number;
+  /** agriculture + misc. land that is also below 80 m and flatter than 20 %, % of land */
+  developable_flat_pct: number;
   /** registered population / houses for every year in REG_YEARS (DOPA, December) */
   [k: `reg_pop_${number}`]: number;
   [k: `reg_house_${number}`]: number;
@@ -75,6 +82,9 @@ export type TravelDest = "airport" | "oldtown" | "hospital" | "school" | "pier";
 
 export type BuildingMeasure = "count" | "floor";
 
+/** developable land: all agriculture + misc. land, or only the part on gentle, low terrain */
+export type LandBasis = "flat" | "all";
+
 /** +1 = higher value is better, -1 = lower value is better, 0 = factor switched off */
 export type Direction = 1 | -1 | 0;
 
@@ -85,6 +95,8 @@ export interface FactorSetting {
   dest?: TravelDest;
   /** building factor only: count of buildings (2565) or floor area with height (2567) */
   measure?: BuildingMeasure;
+  /** developable-land factor only (default "flat") */
+  landBasis?: LandBasis;
 }
 
 export type Weights = Record<FactorKey, FactorSetting>;

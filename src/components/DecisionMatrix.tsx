@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { CATEGORIES, CATEGORY_ORDER, UNREG_FLAG, decide, type Decision, type Thresholds } from "../decision";
 import { SCENARIOS } from "../scenarios";
 import { useI18n } from "../i18n";
+import { developableOf, landBasis } from "../factors";
 import type { TambonProps, Weights } from "../types";
 
 interface Props {
@@ -32,7 +33,7 @@ export default function DecisionMatrix({ rows, weights, th, setTh, selectedId, o
     const boxes: { x0: number; y0: number; x1: number; y1: number }[] = [];
     // dots and the four quadrant titles are obstacles too
     for (const d of decisions) {
-      const cx = x(d.s.props.developable_pct), cy = y(d.s.score);
+      const cx = x(developableOf(d.s.props, weights.developable)), cy = y(d.s.score);
       boxes.push({ x0: cx - 7, y0: cy - 7, x1: cx + 7, y1: cy + 7 });
     }
     for (const c of ["promote", "upgrade", "prepare", "maintain"] as const) {
@@ -46,7 +47,7 @@ export default function DecisionMatrix({ rows, weights, th, setTh, selectedId, o
     return sorted.map((d) => {
       const name = t(d.s.props.tambon_th, d.s.props.tambon_en);
       const w = name.length * 6.6 + 4, h = 13;
-      const cx = x(d.s.props.developable_pct), cy = y(d.s.score);
+      const cx = x(developableOf(d.s.props, weights.developable)), cy = y(d.s.score);
       const tries: [number, number, "start" | "end" | "middle"][] = [
         [cx + 9, cy + 4, "start"], [cx - 9, cy + 4, "end"], [cx, cy - 10, "middle"], [cx, cy + 18, "middle"],
         [cx + 9, cy + 16, "start"], [cx + 9, cy - 8, "start"], [cx - 9, cy - 8, "end"], [cx - 9, cy + 16, "end"],
@@ -126,7 +127,7 @@ export default function DecisionMatrix({ rows, weights, th, setTh, selectedId, o
           <text key={`x${v}`} x={x(v)} y={H - M.b + 16} textAnchor="middle" fontSize={11} fill="var(--muted)">{v}%</text>
         ))}
         <text x={(M.l + W - M.r) / 2} y={H - 6} textAnchor="middle" fontSize={12} fill="var(--ink)">
-          {t("ที่ดินที่ยังพัฒนาได้ (% ของพื้นที่ตำบล, กรมพัฒนาที่ดิน 2563)", "Developable land (% of sub-district, LDD 2020)")}
+          {t(`ที่ดินที่ยังพัฒนาได้: ${landBasis(weights.developable).th} (% ของพื้นที่ตำบล)`, `Developable land: ${landBasis(weights.developable).en} (% of sub-district)`)}
         </text>
         <text transform={`translate(12 ${(M.t + H - M.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize={12} fill="var(--ink)">
           {t("คะแนนศักยภาพ", "Potential score")}
@@ -139,8 +140,8 @@ export default function DecisionMatrix({ rows, weights, th, setTh, selectedId, o
           const sel = d.s.props.id === selectedId;
           return (
             <g key={d.s.props.id} style={{ cursor: onSelect ? "pointer" : undefined }} onClick={() => onSelect?.(d.s.props.id)}>
-              <title>{`${t(d.s.props.tambon_th, d.s.props.tambon_en)}: ${num(d.s.score, 1)} / ${num(d.s.props.developable_pct, 1)}%`}</title>
-              <circle cx={x(d.s.props.developable_pct)} cy={y(d.s.score)} r={sel ? 8 : 6}
+              <title>{`${t(d.s.props.tambon_th, d.s.props.tambon_en)}: ${num(d.s.score, 1)} / ${num(developableOf(d.s.props, weights.developable), 1)}%`}</title>
+              <circle cx={x(developableOf(d.s.props, weights.developable))} cy={y(d.s.score)} r={sel ? 8 : 6}
                 fill={`var(--cat-${d.category})`} stroke={sel ? "var(--overprint)" : "var(--sheet)"} strokeWidth={sel ? 3 : 1.5}
                 strokeDasharray={d.changesUnder.length && !sel ? "2 2" : undefined} />
             </g>

@@ -7,7 +7,7 @@ import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
 import SphereNearby from "../components/SphereNearby";
 import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
-import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
+import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
@@ -20,7 +20,7 @@ import type { FactorKey } from "../types";
 type ColorBy = "score" | FactorKey | "reg_pop" | "reg_house";
 
 const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
-  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "buildings", "height3d"] },
+  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d"] },
   { th: "ประชากร", en: "People", ids: ["population"] },
   { th: "การเดินทาง", en: "Getting around", ids: ["travel", "roads", "pois"] },
   { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
@@ -31,7 +31,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, buildings: false, population: false, land: false, travel: false, height3d: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   const [labels, setLabels] = useState(true);
   const [tambonFill, setTambonFill] = useState(true);
@@ -98,7 +98,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     };
   }, [colorBy, scored, t, num, weights, year]);
 
-  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d;
+  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d || overlays.terrain;
   const layersOn = OVERLAYS.filter((o) => overlays[o.id]).length;
   const travelDest = weights.travel.dest ?? "oldtown";
   const selected = scored.find((s) => s.props.id === selectedId);
@@ -233,6 +233,15 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}
             </div>
           ))}
+          {overlays.terrain && (
+            <div>
+              <b>{t("ภูเขาและที่ลาดชัน", "Hills & steep land")}</b>
+              {TERRAIN_CLASSES.map((c) => (
+                <div key={c.th} className="row small" style={{ gap: 6, flexWrap: "nowrap" }}><i style={{ width: 10, height: 10, background: c.c, display: "inline-block", flex: "none" }} />{t(c.th, c.en)}</div>
+              ))}
+              <div className="small muted">{t("เกณฑ์จากประกาศเขตคุ้มครองสิ่งแวดล้อมภูเก็ต ต้องตรวจกับประกาศฉบับ 2567 · Copernicus DEM 30 ม.", "Thresholds from Phuket's environmental protection announcements; check against the 2024 text · Copernicus DEM 30 m")}</div>
+            </div>
+          )}
           {overlays.landuse && (
             <div>
               <b>{t("การใช้ที่ดิน ปี 2563", "Land use 2020")}</b>

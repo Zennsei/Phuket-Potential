@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { BUILDING_MEASURES, FACTORS, PRESETS, TRAVEL_DESTS, buildingMeasure } from "../factors";
+import { BUILDING_MEASURES, FACTORS, LAND_BASES, PRESETS, TRAVEL_DESTS, buildingMeasure, landBasis } from "../factors";
 import { useI18n } from "../i18n";
 import { effectiveShare } from "../scoring";
-import type { BuildingMeasure, Direction, FactorKey, TravelDest, Weights } from "../types";
+import type { BuildingMeasure, Direction, FactorKey, LandBasis, TravelDest, Weights } from "../types";
 
 interface Props {
   weights: Weights;
@@ -33,6 +33,10 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
     if (key === "buildings") {
       const m = buildingMeasure(s);
       return t(`วัดจาก: ${m.th}`, `measure: ${m.en}`);
+    }
+    if (key === "developable") {
+      const b = landBasis(s);
+      return t(`นับ: ${b.th}`, `counts: ${b.en}`);
     }
     return null;
   };
@@ -96,6 +100,16 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
                 style={{ gridColumn: "1 / -1", fontSize: 13 }}
               >
                 {BUILDING_MEASURES.map((m) => <option key={m.id} value={m.id}>{t(`วัดจาก: ${m.th}`, `Measure: ${m.en}`)}</option>)}
+              </select>
+            )}
+            {advanced && f.key === "developable" && (
+              <select
+                aria-label={t("นับที่ดินแบบไหน", "Which land counts")}
+                value={s.landBasis ?? "flat"}
+                onChange={(e) => set("developable", { landBasis: e.target.value as LandBasis })}
+                style={{ gridColumn: "1 / -1", fontSize: 13 }}
+              >
+                {LAND_BASES.map((b) => <option key={b.id} value={b.id}>{t(`นับ: ${b.th}`, `Count: ${b.en}`)}</option>)}
               </select>
             )}
             {advanced && f.key === "travel" && (

@@ -5,7 +5,7 @@ import type { GeoJSONSource, StyleSpecification } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import { BASEMAPS } from "../sphere";
-import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, type OverlayId } from "../layers";
+import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
 import { TRAVEL_DESTS } from "../factors";
@@ -83,6 +83,7 @@ export default function MapView(p: Props) {
   const markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const latest = useRef(p);
+  const terrainPixels = useRef<TerrainPixels | null>(null);
   latest.current = p;
   const langRef = useRef(lang);
   langRef.current = lang;
@@ -113,7 +114,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
+      OVERLAYS.filter((o) => o.id !== "terrain").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
@@ -209,6 +210,11 @@ export default function MapView(p: Props) {
         if (h3) row(label("height3d"), th
           ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
           : `<b>${nf(Number(h3.n))}</b> buildings, mean height ${h3.h_mean} m (max ${h3.h_max} m), floor area ${h3.far_pct}% of the cell`);
+        const tp = terrainPixels.current;
+        if (tp && m.getLayer("overlay-terrain") && m.getLayoutProperty("overlay-terrain", "visibility") !== "none") {
+          const cls = terrainAt(tp, e.lngLat.lng, e.lngLat.lat);
+          row(label("terrain"), cls ? `<b>${escapeHtml(th ? cls.th : cls.en)}</b>` : (th ? "ไม่ชันและต่ำกว่า 80 ม." : "gentle and below 80 m"));
+        }
         const lu = first("overlay-landuse");
         if (lu) row(label("landuse"), `<b>${escapeHtml(String(th ? lu.th : lu.en))}</b>`);
 
@@ -278,6 +284,14 @@ export default function MapView(p: Props) {
     if (!ready || !m) return;
     for (const o of OVERLAYS) {
       const on = p.overlays[o.id];
+      if (o.id === "terrain") {
+        if (on && !loaded.current.has("terrain")) {
+          loaded.current.add("terrain");
+          loadTerrain(m, terrainPixels).catch(() => loaded.current.delete("terrain"));
+        }
+        if (m.getLayer("overlay-terrain")) m.setLayoutProperty("overlay-terrain", "visibility", on ? "visible" : "none");
+        continue;
+      }
       if (on && !loaded.current.has(o.id)) {
         loaded.current.add(o.id);
         fetch(o.file)
@@ -381,3 +395,39 @@ export default function MapView(p: Props) {
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
+
+interface TerrainPixels { data: Uint8ClampedArray; w: number; h: number; west: number; north: number; east: number; south: number }
+
+/** add the terrain image (built by data-prep/terrain_prep.py) under the sub-district fill, and keep its pixels for click look-ups */
+async function loadTerrain(m: maplibregl.Map, store: { current: TerrainPixels | null }) {
+  const meta = (await (await fetch("data/terrain.json")).json()) as { coordinates: [number, number][] };
+  const c = meta.coordinates as [[number, number], [number, number], [number, number], [number, number]];
+  if (!m.getSource("terrain-img")) {
+    m.addSource("terrain-img", { type: "image", url: "data/terrain.png", coordinates: c });
+    m.addLayer({ id: "overlay-terrain", type: "raster", source: "terrain-img", paint: { "raster-opacity": 0.9, "raster-resampling": "nearest" } }, "tambon-fill");
+  }
+  const img = new Image();
+  img.src = "data/terrain.png";
+  await img.decode();
+  const cv = document.createElement("canvas");
+  cv.width = img.naturalWidth;
+  cv.height = img.naturalHeight;
+  const ctx = cv.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0);
+  store.current = { data: ctx.getImageData(0, 0, cv.width, cv.height).data, w: cv.width, h: cv.height, west: c[0][0], north: c[0][1], east: c[2][0], south: c[2][1] };
+}
+
+function terrainAt(t: TerrainPixels, lon: number, lat: number) {
+  const x = Math.floor(((lon - t.west) / (t.east - t.west)) * t.w);
+  const y = Math.floor(((t.north - lat) / (t.north - t.south)) * t.h);
+  if (x < 0 || y < 0 || x >= t.w || y >= t.h) return undefined;
+  const i = (y * t.w + x) * 4;
+  if (t.data[i + 3] === 0) return undefined;
+  let best = TERRAIN_CLASSES[0], bd = Infinity;
+  for (const k of TERRAIN_CLASSES) {
+    const d = Math.abs(k.rgb[0] - t.data[i]) + Math.abs(k.rgb[1] - t.data[i + 1]) + Math.abs(k.rgb[2] - t.data[i + 2]);
+    if (d < bd) { bd = d; best = k; }
+  }
+  return best;
+}
+

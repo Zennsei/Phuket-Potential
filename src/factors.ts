@@ -1,4 +1,14 @@
-import type { BuildingMeasure, FactorKey, FactorSetting, TambonProps, TravelDest, Weights } from "./types";
+import type { BuildingMeasure, FactorKey, FactorSetting, LandBasis, TambonProps, TravelDest, Weights } from "./types";
+
+export const LAND_BASES: { id: LandBasis; th: string; en: string; unitTh: string; unitEn: string }[] = [
+  { id: "flat", th: "เฉพาะที่ราบ (ชันไม่เกิน 20% และต่ำกว่า 80 ม.)", en: "Gentle, low land only (slope < 20 %, below 80 m)",
+    unitTh: "% ของพื้นที่ (เกษตร + เบ็ดเตล็ด บนที่ราบ)", unitEn: "% of land (agri. + misc. on gentle, low land)" },
+  { id: "all", th: "ทั้งหมด (ไม่สนความชันและความสูง)", en: "All of it (ignore slope and height)",
+    unitTh: "% ของพื้นที่ (เกษตร + เบ็ดเตล็ด)", unitEn: "% of land (agriculture + misc.)" },
+];
+export const landBasis = (s?: FactorSetting) => LAND_BASES.find((b) => b.id === (s?.landBasis ?? "flat"))!;
+/** developable land under the chosen basis (default: gentle, low land only) */
+export const developableOf = (p: TambonProps, s?: FactorSetting) => ((s?.landBasis ?? "flat") === "all" ? p.developable_pct : p.developable_flat_pct);
 
 export const BUILDING_MEASURES: { id: BuildingMeasure; th: string; en: string; unitTh: string; unitEn: string; sourceTh: string; sourceEn: string }[] = [
   { id: "count", th: "จำนวนอาคารต่อพื้นที่", en: "Buildings per area", unitTh: "หลัง/ตร.กม.", unitEn: "bldg/km²",
@@ -101,10 +111,10 @@ export const FACTORS: FactorDef[] = [
     en: "Developable land",
     unitTh: "% ของพื้นที่ (เกษตร + เบ็ดเตล็ด)",
     unitEn: "% of land (agriculture + misc.)",
-    value: (p) => p.developable_pct,
+    value: (p, s) => developableOf(p, s),
     higherIsBetter: true,
-    sourceTh: "การใช้ที่ดิน กรมพัฒนาที่ดิน ปี 2563",
-    sourceEn: "LDD land use 2020 (2563)",
+    sourceTh: "การใช้ที่ดิน กรมพัฒนาที่ดิน ปี 2563 + ความสูงและความชันจาก Copernicus DEM",
+    sourceEn: "LDD land use 2020 + height and slope from the Copernicus DEM",
     color: "#5c8a3a",
   },
   {
@@ -189,6 +199,10 @@ export function unitOf(f: FactorDef, s?: FactorSetting): { th: string; en: strin
   if (f.key === "buildings") {
     const m = buildingMeasure(s);
     return { th: m.unitTh, en: m.unitEn };
+  }
+  if (f.key === "developable") {
+    const b = landBasis(s);
+    return { th: b.unitTh, en: b.unitEn };
   }
   return { th: f.unitTh, en: f.unitEn };
 }
