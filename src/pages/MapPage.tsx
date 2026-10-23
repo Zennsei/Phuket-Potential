@@ -9,6 +9,7 @@ import SphereNearby from "../components/SphereNearby";
 import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
+import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
 import { useI18n } from "../i18n";
@@ -33,6 +34,11 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [playing, setPlaying] = useState(false);
   const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
+  // GISTDA yearly imagery: the slider moves `imgIdx` at once, the picture follows when the slider rests (each new picture costs credits)
+  const [imgLayer, setImgLayer] = useState(DEFAULT_IMAGERY);
+  const [imgIdx, setImgIdx] = useState(() => IMAGERY_YEARS.findIndex((y) => y.layer === DEFAULT_IMAGERY));
+  const [compareOn, setCompareOn] = useState(false);
+  const [cmpLayer, setCmpLayer] = useState(DEFAULT_IMAGERY);
   const [labels, setLabels] = useState(true);
   const [tambonFill, setTambonFill] = useState(true);
   const [view, setView] = useState<MapViewport>();
@@ -41,6 +47,32 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [pins, setPins] = useState<SpherePlace[]>([]);
   const [focus, setFocus] = useState<{ key: string; lon: number; lat: number; zoom: number }>();
   const yearly = colorBy === "reg_pop" || colorBy === "reg_house";
+  const baseChoices = GISTDA_IMAGERY ? [...BASEMAPS, ...GISTDA_BASEMAPS] : BASEMAPS;
+  const onYears = GISTDA_IMAGERY && basemap === "gistda_years";
+  const baseId = onYears ? `gistda_years:${imgLayer}` : basemap;
+  const baseIsGistdaApi = baseChoices.find((b) => b.id === basemap)?.gistdaApi ?? false;
+  const yearName = (layer: string) => { const y = IMAGERY_YEARS.find((x) => x.layer === layer)!; return t(y.th, y.en); };
+
+  useEffect(() => {
+    const layer = IMAGERY_YEARS[imgIdx]?.layer;
+    if (!layer || layer === imgLayer) return;
+    const id = window.setTimeout(() => setImgLayer(layer), 450);
+    return () => window.clearTimeout(id);
+  }, [imgIdx, imgLayer]);
+  const stepYear = (d: number) => {
+    const i = Math.min(IMAGERY_YEARS.length - 1, Math.max(0, imgIdx + d));
+    setImgIdx(i);
+    setImgLayer(IMAGERY_YEARS[i].layer);
+  };
+  const toggleCompare = (on: boolean) => {
+    // the left side starts at an early clear picture, so the change is easy to see
+    if (on && imgLayer === cmpLayer) {
+      const i = IMAGERY_YEARS.findIndex((y) => y.layer === "thailand_sat_1990");
+      setImgIdx(i);
+      setImgLayer(IMAGERY_YEARS[i].layer);
+    }
+    setCompareOn(on);
+  };
 
   // play through the years
   useEffect(() => {
@@ -178,12 +210,44 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           )}
           {!tambonFill && <span className="small" style={{ color: "var(--warn)" }}>{t("เปิด \"สีตำบล\" ในชั้นข้อมูลเพื่อดูสี", "Turn on \"Sub-district colours\" under layers to see this")}</span>}
         </Fold>
-        <Fold title={t("แผนที่พื้นหลัง", "Base map")} hint={(() => { const b = BASEMAPS.find((x) => x.id === basemap)!; return t(b.th, b.en); })()}>
+        <Fold title={t("แผนที่พื้นหลัง", "Base map")} hint={onYears ? t(`ภาพดาวเทียม ${yearName(imgLayer)}`, `Imagery ${yearName(imgLayer)}`) : (() => { const b = baseChoices.find((x) => x.id === basemap)!; return t(b.th, b.en); })()} open={GISTDA_IMAGERY}>
           <select value={basemap} onChange={(e) => setBasemap(e.target.value)} aria-label={t("แผนที่พื้นหลัง", "Base map")}>
-            {BASEMAPS.map((b) => (
-              <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? " (GISTDA)" : ""}</option>
+            {baseChoices.map((b) => (
+              <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? (b.gistdaApi ? " (GISTDA API)" : " (GISTDA)") : ""}</option>
             ))}
           </select>
+          {onYears && (
+            <div className="imgyears">
+              <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+                <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(-1)} disabled={imgIdx === 0} aria-label={t("ปีก่อนหน้า", "Previous year")}>◀</button>
+                <span className="yr" aria-live="polite">{t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)}</span>
+                <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(1)} disabled={imgIdx === IMAGERY_YEARS.length - 1} aria-label={t("ปีถัดไป", "Next year")}>▶</button>
+              </div>
+              <input type="range" min={0} max={IMAGERY_YEARS.length - 1} step={1} value={imgIdx} onChange={(e) => setImgIdx(Number(e.target.value))}
+                aria-label={t("ปีของภาพดาวเทียม", "Imagery year")} aria-valuetext={t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)} />
+              <div className="row small muted" style={{ justifyContent: "space-between" }}><span>{t("2515", "1972")}</span><span>{t("2568 + ภาพ 2 ม.", "2025 + 2 m mosaics")}</span></div>
+              <label className="row small" style={{ gap: 6 }}>
+                <input type="checkbox" checked={compareOn} onChange={(e) => toggleCompare(e.target.checked)} />
+                {t("เทียบ 2 ปี (เลื่อนเส้นแบ่งบนแผนที่)", "Compare 2 years (drag the divider on the map)")}
+              </label>
+              {compareOn && (
+                <label className="small" style={{ display: "grid", gap: 2 }}>
+                  {t("ภาพด้านขวาของเส้นแบ่ง", "Picture right of the divider")}
+                  <select value={cmpLayer} onChange={(e) => setCmpLayer(e.target.value)}>
+                    {IMAGERY_YEARS.map((y) => <option key={y.layer} value={y.layer}>{t(y.th, y.en)}</option>)}
+                  </select>
+                </label>
+              )}
+              <span className="small muted">{t(
+                "ปี 2515–2522 มีเมฆและริ้ว ตั้งแต่ 2533 ชัดเจน ภาพปีเก่าซูมใกล้จะเบลอ ซูมดูเมืองใช้ภาพ 2 ม. (2563–64, 2567)",
+                "1972–1979 have clouds and stripes; from 1990 they are clear. Older years blur when zoomed in; use the 2 m mosaics (2020–21, 2024) for close-ups.")}</span>
+            </div>
+          )}
+          {GISTDA_IMAGERY && (
+            <span className="small" style={{ color: "var(--warn)" }}>{t(
+              "ภาพจาก GISTDA API Gateway (Copyrighted by GISTDA) ใช้ประเมินภายในทีม ยังไม่ได้รับอนุญาตให้เผยแพร่ · ภาพแต่ละช่องที่เปิดครั้งแรกใช้เครดิต key ทีม 1 ครั้ง",
+              "Pictures from the GISTDA API Gateway (Copyrighted by GISTDA) are for team evaluation, not yet cleared for publishing · each tile seen for the first time uses 1 credit of the team key")}</span>
+          )}
         </Fold>
       </aside>
 
@@ -194,7 +258,8 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           tambonOpacity={anyFillOverlay ? 0.12 : 0.72}
           showTambonFill={tambonFill}
           overlays={overlays}
-          basemap={basemap}
+          basemap={baseId}
+          compare={onYears && compareOn ? { basemap: `gistda_years:${cmpLayer}`, leftLabel: yearName(imgLayer), rightLabel: yearName(cmpLayer) } : undefined}
           showLabels={labels}
           selectedId={selectedId}
           onMapClick={onMapClick}
@@ -208,8 +273,11 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
         {!overlays.height3d && <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />}
         {baseFailed && (
           <div className="notice" role="status">
-            {t("โหลดแผนที่พื้นหลังไม่สำเร็จ (อาจเป็นเพราะ API key หรือเครดิตของ Sphere) ข้อมูลวิเคราะห์ยังใช้ได้ตามปกติ ",
-               "The base map did not load (possibly the Sphere API key or credits). The analysis layers still work. ")}
+            {baseIsGistdaApi
+              ? t("โหลดภาพจาก GISTDA API Gateway ไม่สำเร็จ (ตรวจว่ามี GISTDA_API_KEY ใน .env แล้วเปิด npm run dev ใหม่ หรือตั้งใน Netlify และเครดิตของ key ยังเหลือ) ข้อมูลวิเคราะห์ยังใช้ได้ตามปกติ ",
+                  "The GISTDA API Gateway pictures did not load (check GISTDA_API_KEY in .env and restart npm run dev, or set it on Netlify, and that the key has credits left). The analysis layers still work. ")
+              : t("โหลดแผนที่พื้นหลังไม่สำเร็จ (อาจเป็นเพราะ API key หรือเครดิตของ Sphere) ข้อมูลวิเคราะห์ยังใช้ได้ตามปกติ ",
+                  "The base map did not load (possibly the Sphere API key or credits). The analysis layers still work. ")}
             {basemap !== "carto" && (
               <button className="btn ghost" style={{ padding: "1px 8px", fontSize: 12 }} onClick={() => setBasemap("carto")}>
                 {t("ใช้แผนที่สำรอง", "Use backup map")}

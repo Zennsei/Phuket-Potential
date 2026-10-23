@@ -18,6 +18,12 @@ export interface Basemap {
   tiles: string[];
   attribution: string;
   gistda?: boolean;
+  /** tiles come through our GISTDA API Gateway proxy (/gistda/…), see src/gistda.ts */
+  gistdaApi?: boolean;
+  /** only ask for tiles inside [west, south, east, north] */
+  bounds?: [number, number, number, number];
+  /** highest zoom with its own tiles (default 19) */
+  maxzoom?: number;
 }
 
 // Sphere's terms ask for the GISTDA sphere credit and for third-party data inside it (OpenStreetMap, ODbL) to be credited too.
