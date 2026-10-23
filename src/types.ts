@@ -64,6 +64,7 @@ export interface TambonProps {
   floor_to_land_pct: number;
   /** Copernicus DEM GLO-30: mean height, % of land at ≥80 m, % with slope 20–35 % and >35 % */
   elev_mean_m: number;
+  elev_40_80_pct: number;
   elev_80_pct: number;
   slope_20_35_pct: number;
   slope_35_pct: number;

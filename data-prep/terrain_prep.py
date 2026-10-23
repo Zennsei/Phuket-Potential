@@ -4,13 +4,20 @@ Usage: python terrain_prep.py <Copernicus_DSM_COG_10_N07_00_E098_00_DEM.tif> <Co
        tiles: https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N0{7,8}_00_E098_00_DEM/...
 Needs : numpy, rasterio, Pillow (rasterio is only used here)
 Output: new columns in public/data/tambons.geojson + phuket_tambon_factors.csv:
-          elev_mean_m, elev_80_pct (land at 80 m or higher), slope_20_35_pct, slope_35_pct (land steeper than 35%),
+          elev_mean_m, elev_40_80_pct, elev_80_pct (land at 80 m or higher), slope_20_35_pct, slope_35_pct (land steeper than 35%),
           developable_flat_pct (agriculture + misc. land that is also below 80 m and flatter than 20%)
         public/data/terrain.png + terrain.json (map overlay of the restricted terrain classes and its corners)
 
-Classes follow the thresholds of Phuket's environmental protection announcements (MNRE 2560: no building above
-80 m, small single houses only on 20–35 % slopes, nothing on slopes over 35 %; the 2567 version relaxes the
-80–140 m band for single houses). They describe the terrain; the legal text decides what is actually allowed.
+Thresholds come from Phuket's environmental protection announcement (MNRE, Royal Gazette 13 Dec 2567, in force
+14 Dec 2567 for 5 years):
+  * zone 5 = 40–80 m above mean sea level: buildings up to 8 m
+  * zone 6 = above 80 m: no building, except public utilities/security/conservation; on private land held before
+    the 2560 announcement, at 80–140 m only, one single house up to 6 m and 90 m² footprint
+  * hillside land (ลาดเชิงเขา): single houses only (6 or 12 m by zone, footprint 70–90 m²); the announcement leaves
+    the slope definition to the Department of Public Works and Town & Country Planning standard, so 20 % is used
+    here (the threshold of the 2560 version)
+  * slope over 35 % and land above 80 m: no commercial digging of soil, rock or sand
+They describe the terrain; the legal text decides what is actually allowed on a plot.
 
 Notes: GLO-30 is a surface model (it includes trees and buildings). A 3 × 3 mean is applied before the slope is
 computed to damp edges of tree crowns and roofs. Areas are counted on land pixels inside each sub-district.
@@ -60,6 +67,7 @@ for i, tid_ in enumerate(ids, start=1):
     n = m.sum()
     res_rows[tid_] = {
         "elev_mean_m": round(float(dem[m].mean()), 1),
+        "elev_40_80_pct": round(float(((dem[m] >= 40) & (dem[m] < ELEV_HIGH)).mean() * 100), 1),
         "elev_80_pct": round(float((dem[m] >= ELEV_HIGH).mean() * 100), 1),
         "slope_20_35_pct": round(float(((slope[m] >= SLOPE_A) & (slope <= SLOPE_B)[m]).mean() * 100), 1),
         "slope_35_pct": round(float((slope[m] > SLOPE_B).mean() * 100), 1),

@@ -16,6 +16,8 @@
 
 `gistda_buildings_api.py` ดึงอาคารพร้อมความสูง ปี 2567 จาก GISTDA API Gateway รันบนเครื่องของทีมเท่านั้น (ต้องมี `GISTDA_API_KEY` ใน `.env`) ผลอยู่ใน `data-prep/out/` ซึ่งไม่ถูก commit
 
+`gistda_api_probe2.py` ทดสอบรอบสอง (ไล่ลิงก์ THEOS-1/PLEIADES, ขอรายชื่อชั้นภาพดาวเทียม, น้ำท่วมซ้ำซากหลายจุด) ได้ `out/gistda_api_probe2.txt`
+
 `gistda_api_probe.py` ทดสอบบริการ GISTDA ที่น่าสนใจ (น้ำท่วมซ้ำซาก THEOS-1 ภาพดาวเทียมรายปี ฯลฯ) รันบนเครื่องทีม ได้รายงานที่ไม่มี key
 
 `terrain_prep.py` ความสูงและความชันจาก Copernicus DEM 30 ม. (ต้องติดตั้ง `rasterio`) ดาวน์โหลด 2 ไฟล์จาก `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N07_00_E098_00_DEM/Copernicus_DSM_COG_10_N07_00_E098_00_DEM.tif` และ `..._N08_00_E098_00_...`

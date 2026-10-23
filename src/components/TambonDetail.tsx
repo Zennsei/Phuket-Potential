@@ -114,13 +114,14 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
         <Fold title={t("ภูมิประเทศ: ความสูงและความชัน", "Terrain: height & slope")} hint={t(`ชันเกิน 35% ${num(p.slope_35_pct, 0)}%`, `${num(p.slope_35_pct, 0)}% over 35 %`)}>
           <dl className="kv">
             <dt>{t("ความสูงเฉลี่ยจากระดับน้ำทะเล", "Mean height above sea level")}</dt><dd>{num(p.elev_mean_m)} {t("ม.", "m")}</dd>
-            <dt>{t("พื้นที่สูง 80 ม. ขึ้นไป", "Land at 80 m or higher")}</dt><dd>{num(p.elev_80_pct, 1)}%</dd>
+            <dt>{t("สูง 40–80 ม. (อาคารสูงไม่เกิน 8 ม.)", "40–80 m (buildings up to 8 m)")}</dt><dd>{num(p.elev_40_80_pct, 1)}%</dd>
+            <dt>{t("สูงเกิน 80 ม. (ห้ามก่อสร้าง)", "Above 80 m (no building)")}</dt><dd>{num(p.elev_80_pct, 1)}%</dd>
             <dt>{t("ความชัน 20–35%", "Slope 20–35 %")}</dt><dd>{num(p.slope_20_35_pct, 1)}%</dd>
             <dt>{t("ความชันเกิน 35%", "Slope over 35 %")}</dt><dd>{num(p.slope_35_pct, 1)}%</dd>
             <dt>{t("เกษตร + เบ็ดเตล็ด ทั้งหมด", "Agri. + misc., all")}</dt><dd>{num(p.developable_pct, 1)}%</dd>
             <dt>{t("เกษตร + เบ็ดเตล็ด บนที่ราบ", "Agri. + misc., gentle & low")}</dt><dd>{num(p.developable_flat_pct, 1)}%</dd>
           </dl>
-          <span className="small muted">{t("ที่ราบ = ชันไม่เกิน 20% และต่ำกว่า 80 ม. ตามเกณฑ์ประกาศเขตคุ้มครองสิ่งแวดล้อมภูเก็ต (ฉบับ 2560) · Copernicus DEM 30 ม.", "Gentle & low = slope under 20 % and below 80 m, following Phuket's environmental protection thresholds (2017 version) · Copernicus DEM 30 m")}</span>
+          <span className="small muted">{t("ที่ราบ = ชันไม่เกิน 20% และต่ำกว่า 80 ม. ตามประกาศเขตคุ้มครองสิ่งแวดล้อมภูเก็ต พ.ศ. 2567 (เกิน 80 ม. ห้ามก่อสร้าง, ลาดเชิงเขาสร้างได้เฉพาะบ้านเดี่ยว) · Copernicus DEM 30 ม.", "Gentle & low = slope under 20 % and below 80 m, following Phuket's 2024 environmental protection announcement (no building above 80 m, single houses only on hillsides) · Copernicus DEM 30 m")}</span>
         </Fold>
 
         <Fold title={t("อาคารและความสูง", "Buildings & height")} hint="GISTDA">
