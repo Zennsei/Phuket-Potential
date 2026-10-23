@@ -31,6 +31,12 @@ export const SCENARIOS: Scenario[] = [
     apply: (w) => ({ ...w, buildings: { weight: w.buildings.weight || 20, direction: -1 } }),
   },
   {
+    id: "slope-ok", th: "นับที่ลาดชันเป็นที่พัฒนาได้", en: "Count steep land as developable",
+    descTh: "ถ้าไม่สนความชันและความสูง (เช่น เทคโนโลยีก่อสร้างหรือกฎหมายเปลี่ยน) ที่ดินเกษตรบนเขาจะนับเป็นที่พัฒนาได้ทั้งหมด",
+    descEn: "If slope and height are ignored (for example new building methods or rules), farmland on hills counts as developable too",
+    apply: (w) => ({ ...w, developable: { ...w.developable, landBasis: "all" } }),
+  },
+  {
     id: "registry-pop", th: "ใช้ประชากรตามทะเบียนแทนแบบจำลอง", en: "Registered population instead of the model",
     descTh: "เปลี่ยนแหล่งข้อมูลประชากรจาก Kontur (รวมประชากรแฝง) เป็นทะเบียนราษฎร์ปี 2568 ดูว่าคำตอบขึ้นกับแหล่งข้อมูลแค่ไหน",
     descEn: "Swap the population source from Kontur (includes unregistered residents) to the 2025 civil registry, to see how much the answer depends on the data source",

@@ -1,6 +1,7 @@
 import { scoreTambons } from "./scoring";
 import { SCENARIOS, applyScenarioRows } from "./scenarios";
-import type { Scored, TambonProps, Weights } from "./types";
+import { developableOf } from "./factors";
+import type { FactorSetting, Scored, TambonProps, Weights } from "./types";
 
 /**
  * Logic matrix (the decision rule after scoring):
@@ -60,9 +61,9 @@ export const CATEGORIES: Record<Category, CategoryDef> = {
 
 export const CATEGORY_ORDER: Category[] = ["promote", "upgrade", "prepare", "maintain"];
 
-export function categoryOf(score: number, p: TambonProps, th: Thresholds): Category {
+export function categoryOf(score: number, p: TambonProps, th: Thresholds, s?: FactorSetting): Category {
   const high = score >= th.score;
-  const land = p.developable_pct >= th.land;
+  const land = developableOf(p, s) >= th.land;
   return high ? (land ? "promote" : "upgrade") : land ? "prepare" : "maintain";
 }
 
@@ -78,10 +79,10 @@ export function decide(rows: TambonProps[], weights: Weights, th: Thresholds): D
   const base = scoreTambons(rows, weights);
   const alt = SCENARIOS.map((sc) => ({
     id: sc.id,
-    cat: new Map(scoreTambons(applyScenarioRows(rows, sc), sc.apply(weights)).map((s) => [s.props.id, categoryOf(s.score, s.props, th)])),
+    cat: new Map(scoreTambons(applyScenarioRows(rows, sc), sc.apply(weights)).map((s) => [s.props.id, categoryOf(s.score, s.props, th, sc.apply(weights).developable)])),
   }));
   return base.map((s) => {
-    const category = categoryOf(s.score, s.props, th);
+    const category = categoryOf(s.score, s.props, th, weights.developable);
     return {
       s,
       category,

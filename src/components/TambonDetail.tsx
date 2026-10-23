@@ -1,5 +1,5 @@
 import Fold from "./Fold";
-import { FACTORS, TRAVEL_DESTS, travelMinutes, unitOf } from "../factors";
+import { FACTORS, TRAVEL_DESTS, developableOf, travelMinutes, unitOf } from "../factors";
 import { CATEGORIES, DEFAULT_THRESHOLDS, categoryOf } from "../decision";
 import { LANDUSE_COLORS } from "../layers";
 import { REG_YEARS, regHouse, regPop } from "../years";
@@ -17,12 +17,12 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
     services: num(p.services_per_km2, 1),
     population: num(p.pop_per_km2),
     land: p.land_median == null ? "–" : num(p.land_median),
-    developable: num(p.developable_pct, 1),
+    developable: num(developableOf(p, weights.developable), 1),
     growth: num(p.house_growth_pct, 1),
     travel: num(travelMinutes(p, weights.travel.dest), 1),
   };
   const dest = TRAVEL_DESTS.find((d) => d.id === (weights.travel.dest ?? "oldtown"))!;
-  const cat = CATEGORIES[categoryOf(s.score, p, DEFAULT_THRESHOLDS)];
+  const cat = CATEGORIES[categoryOf(s.score, p, DEFAULT_THRESHOLDS, weights.developable)];
   const on = FACTORS.filter((f) => weights[f.key].direction !== 0);
   const off = FACTORS.filter((f) => weights[f.key].direction === 0);
   const lu = [
@@ -109,6 +109,18 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
             ))}
           </div>
           <span className="small muted">{t("กรมพัฒนาที่ดิน", "Land Development Department")}</span>
+        </Fold>
+
+        <Fold title={t("ภูมิประเทศ: ความสูงและความชัน", "Terrain: height & slope")} hint={t(`ชันเกิน 35% ${num(p.slope_35_pct, 0)}%`, `${num(p.slope_35_pct, 0)}% over 35 %`)}>
+          <dl className="kv">
+            <dt>{t("ความสูงเฉลี่ยจากระดับน้ำทะเล", "Mean height above sea level")}</dt><dd>{num(p.elev_mean_m)} {t("ม.", "m")}</dd>
+            <dt>{t("พื้นที่สูง 80 ม. ขึ้นไป", "Land at 80 m or higher")}</dt><dd>{num(p.elev_80_pct, 1)}%</dd>
+            <dt>{t("ความชัน 20–35%", "Slope 20–35 %")}</dt><dd>{num(p.slope_20_35_pct, 1)}%</dd>
+            <dt>{t("ความชันเกิน 35%", "Slope over 35 %")}</dt><dd>{num(p.slope_35_pct, 1)}%</dd>
+            <dt>{t("เกษตร + เบ็ดเตล็ด ทั้งหมด", "Agri. + misc., all")}</dt><dd>{num(p.developable_pct, 1)}%</dd>
+            <dt>{t("เกษตร + เบ็ดเตล็ด บนที่ราบ", "Agri. + misc., gentle & low")}</dt><dd>{num(p.developable_flat_pct, 1)}%</dd>
+          </dl>
+          <span className="small muted">{t("ที่ราบ = ชันไม่เกิน 20% และต่ำกว่า 80 ม. ตามเกณฑ์ประกาศเขตคุ้มครองสิ่งแวดล้อมภูเก็ต (ฉบับ 2560) · Copernicus DEM 30 ม.", "Gentle & low = slope under 20 % and below 80 m, following Phuket's environmental protection thresholds (2017 version) · Copernicus DEM 30 m")}</span>
         </Fold>
 
         <Fold title={t("อาคารและความสูง", "Buildings & height")} hint="GISTDA">

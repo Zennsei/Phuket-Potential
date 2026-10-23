@@ -18,6 +18,8 @@
 
 `gistda_api_probe.py` ทดสอบบริการ GISTDA ที่น่าสนใจ (น้ำท่วมซ้ำซาก THEOS-1 ภาพดาวเทียมรายปี ฯลฯ) รันบนเครื่องทีม ได้รายงานที่ไม่มี key
 
+`terrain_prep.py` ความสูงและความชันจาก Copernicus DEM 30 ม. (ต้องติดตั้ง `rasterio`) ดาวน์โหลด 2 ไฟล์จาก `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N07_00_E098_00_DEM/Copernicus_DSM_COG_10_N07_00_E098_00_DEM.tif` และ `..._N08_00_E098_00_...`
+
 `check_heights.py` เทียบความสูงอาคาร GISTDA 2567 กับ Overture/OSM และสร้างรายการตรวจด้วยตา `checks/height_spotcheck.csv`
 
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`

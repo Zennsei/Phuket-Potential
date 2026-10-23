@@ -3,7 +3,7 @@ import WeightPanel from "../components/WeightPanel";
 import DecisionMatrix from "../components/DecisionMatrix";
 import { CATEGORIES, DEFAULT_THRESHOLDS, categoryOf, type Thresholds } from "../decision";
 import { SCENARIOS, applyScenarioRows } from "../scenarios";
-import { DEFAULT_WEIGHTS, FACTORS, TRAVEL_DESTS } from "../factors";
+import { DEFAULT_WEIGHTS, FACTORS, TRAVEL_DESTS, developableOf } from "../factors";
 import { scoreTambons } from "../scoring";
 import { scoreColor } from "../color";
 import { useI18n } from "../i18n";
@@ -46,13 +46,13 @@ export default function Mission({ data }: PageProps) {
       SCENARIOS.map((sc) => {
         const r = scoreTambons(applyScenarioRows(rows, sc), sc.apply(weights));
         const me = r.find((s) => s.props.id === choice);
-        return { sc, rank: me?.rank ?? 0, top: r[0], cat: me ? categoryOf(me.score, me.props, th) : null };
+        return { sc, rank: me?.rank ?? 0, top: r[0], cat: me ? categoryOf(me.score, me.props, th, sc.apply(weights).developable) : null };
       }),
     [rows, weights, choice, th],
   );
   const roleDef = ROLES.find((r) => r.id === role);
   const robust = stress.filter((s) => s.rank <= 5).length;
-  const chosenCat = chosen ? categoryOf(chosen.score, chosen.props, th) : null;
+  const chosenCat = chosen ? categoryOf(chosen.score, chosen.props, th, weights.developable) : null;
   const sameCat = stress.filter((s) => s.cat === chosenCat).length;
 
   const summary = chosen
@@ -63,7 +63,7 @@ export default function Mission({ data }: PageProps) {
           .map((f) => `${t(f.th, f.en)}${f.key === "travel" ? ` (${(() => { const d = TRAVEL_DESTS.find((x) => x.id === (weights.travel.dest ?? "oldtown"))!; return t(d.th, d.en); })()})` : ""} ${weights[f.key].weight}${weights[f.key].direction === -1 ? t(" (กลับด้าน)", " (reversed)") : ""}`)
           .join(", ")}`,
         `${t("Logic Matrix", "Logic matrix")}: ${t(`คะแนน ≥ ${th.score} และที่ดินที่ยังพัฒนาได้ ≥ ${th.land}%`, `score ≥ ${th.score} and developable land ≥ ${th.land}%`)}`,
-        `${t("ตำบลที่เลือก", "Chosen")}: ${t(chosen.props.tambon_th, chosen.props.tambon_en)} (${t("อันดับ", "rank")} ${chosen.rank}, ${num(chosen.score, 1)}, ${t("ที่ดินพัฒนาได้", "developable")} ${num(chosen.props.developable_pct, 1)}%)`,
+        `${t("ตำบลที่เลือก", "Chosen")}: ${t(chosen.props.tambon_th, chosen.props.tambon_en)} (${t("อันดับ", "rank")} ${chosen.rank}, ${num(chosen.score, 1)}, ${t("ที่ดินพัฒนาได้", "developable")} ${num(developableOf(chosen.props, weights.developable), 1)}%)`,
         `${t("กลุ่มการตัดสินใจ", "Decision")}: ${chosenCat ? t(CATEGORIES[chosenCat].th, CATEGORIES[chosenCat].en) : "-"}`,
         `${t("เหตุผล", "Reason")}: ${reason || "-"}`,
         ...stress.map((s) => `Stress test – ${t(s.sc.th, s.sc.en)}: ${t("อันดับ", "rank")} ${s.rank}, ${s.cat ? t(CATEGORIES[s.cat].th, CATEGORIES[s.cat].en) : "-"}`),
@@ -111,6 +111,7 @@ export default function Mission({ data }: PageProps) {
               { th: "อาคารกระจุกตัวที่ไหน และตำบลไหนยังมีที่ว่างเยอะ", en: "Where are buildings concentrated, and which sub-districts still have open land?", l: "GISTDA" },
               { th: "ถนนสายหลักผ่านตำบลไหนบ้าง ตำบลไหนอยู่ไกลถนน", en: "Which sub-districts do the main roads pass through, and which are far from them?", l: "OpenStreetMap" },
               { th: "ราคาที่ดินแพงที่สุดอยู่ตรงไหน สอดคล้องกับความหนาแน่นอาคารไหม", en: "Where is land most expensive, and does it match building density?", l: t("กรมธนารักษ์", "Treasury") },
+              { th: "เปิดชั้นภูเขาและที่ลาดชัน ที่ดินเกษตรในตำบลไหนอยู่บนเขาจนสร้างจริงได้ยาก", en: "Turn on the hills & steep land layer: in which sub-districts is the farmland mostly on hills, where building is hard?", l: "Copernicus DEM" },
               { th: "เปิดชั้นอาคาร 3 มิติ ย่านไหนพัฒนาในแนวสูงแล้ว และย่านไหนยังเป็นอาคารเตี้ยกระจาย", en: "Turn on the 3D building layer: which areas already build upwards, and which are still low and spread out?", l: "GISTDA 2567" },
               { th: "เปิดชั้นเวลาเดินทาง แล้วเปลี่ยนปลายทางในหลักเกณฑ์ (สนามบิน เมืองเก่า โรงพยาบาล โรงเรียน ท่าเรือ) พื้นที่ไหนไกลทุกอย่าง", en: "Turn on the travel-time layer and switch the destination in the rule (airport, old town, hospital, school, pier): which areas are far from everything?", l: "OpenStreetMap" },
               { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur, OSM" },

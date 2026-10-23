@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "buildings" | "population" | "land" | "travel" | "height3d" | "roads" | "pois";
+export type OverlayId = "landuse" | "terrain" | "buildings" | "population" | "land" | "travel" | "height3d" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -28,6 +28,13 @@ export const OVERLAYS: Overlay[] = [
     th: "การใช้ที่ดิน ปี 2563", en: "Land use 2020 (2563)",
     sourceTh: "กรมพัฒนาที่ดิน", sourceEn: "LDD",
     swatch: "#5c8a3a", attr: "การใช้ที่ดิน: กรมพัฒนาที่ดิน",
+  },
+  {
+    id: "terrain", file: "data/terrain.json",
+    th: "ภูเขาและที่ลาดชัน", en: "Hills & steep land",
+    sourceTh: "Copernicus DEM 30 ม.", sourceEn: "Copernicus DEM 30 m",
+    swatch: "#96623c",
+    attr: "ความสูง: Copernicus DEM GLO-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA",
   },
   {
     id: "buildings", file: "data/buildings_grid500.geojson",
@@ -102,3 +109,10 @@ export const POI_COLORS: Record<string, { c: string; th: string; en: string }> =
   lodging: { c: "#8a8f98", th: "ที่พัก", en: "Lodging" },
   attraction: { c: "#e07b39", th: "แหล่งท่องเที่ยว", en: "Attraction" },
 };
+
+/** classes drawn in terrain.png (data-prep/terrain_prep.py), in the order of precedence used there */
+export const TERRAIN_CLASSES: { rgb: [number, number, number]; c: string; th: string; en: string }[] = [
+  { rgb: [233, 178, 92], c: "rgba(233,178,92,.67)", th: "ชัน 20–35% (ฉบับ 2560: บ้านเดี่ยวขนาดเล็กเท่านั้น)", en: "Slope 20–35 % (2017 rules: small single houses only)" },
+  { rgb: [150, 98, 60], c: "rgba(150,98,60,.75)", th: "สูง 80 ม. ขึ้นไป (ฉบับ 2560: ห้ามก่อสร้าง · ฉบับ 2567 ผ่อนให้บ้านเดี่ยวช่วง 80–140 ม.)", en: "80 m or higher (2017: no building · 2024 version allows single houses at 80–140 m)" },
+  { rgb: [122, 36, 24], c: "rgba(122,36,24,.82)", th: "ชันเกิน 35% (ฉบับ 2560: ห้ามปรับพื้นที่หรือก่อสร้าง)", en: "Slope over 35 % (2017 rules: no grading or building)" },
+];
