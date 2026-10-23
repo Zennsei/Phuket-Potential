@@ -393,6 +393,23 @@
 | 7 | ภาพ PLEIADES (STAC) | `/stac/PLEIADES` | ภาพละเอียดสูงของพื้นที่ตัวอย่าง |
 | 8 | GI Basemap, Land feature collections, UHI | `/tiles/basemap_latest/…`, `/features/land/collections`, `/tiles/vector/uhi/…` | ดูว่ามีข้อมูลภูเก็ตไหม |
 
+**ผลทดสอบรอบ 1–2 (23 ต.ค. 2569)**
+
+| บริการ | ผล | จะใช้ไหม |
+|---|---|---|
+| ภาพถ่ายดาวเทียมรายปี (`/gfms/service/`) | ✅ เป็น WMS/WMTS มีชั้น `thailand_sat_1972`, `thailand_sat_1973`, … ระบุ "Copyrighted by GISTDA, Fees: Yes" | **น่าใช้มาก** ตัวเลื่อนปีของภาพดาวเทียม ต้องดูคุณภาพภาพภูเก็ตก่อน (รอบ 3) |
+| PLEIADES (STAC) | ✅ เข้าได้ผ่าน gateway คอลเลกชันแยกตามวันถ่าย ปี 2013–2015, 2021–2024 สิทธิ์ `proprietary` | ดูว่ามีภาพภูเก็ตไหม (รอบ 3) |
+| THEOS-1 (STAC) | ⚠️ หน้าแรกเข้าได้ แต่ลิงก์ย่อยชี้ไป `nsdc.gistda.or.th` ซึ่ง key ของเราใช้ไม่ได้ (401) และทางผ่าน gateway ได้ 404 | ต้องถาม GISTDA วิธีเข้าถึง |
+| Landtrendr-all | ✅ TileJSON ภาพ PNG ครอบคลุมทั้งประเทศ | ดูภาพภูเก็ตก่อน (รอบ 3) |
+| Hillshade | ✅ TileJSON ภาพ webp ทั่วโลก ซูมได้ถึง 12 | ใช้ตกแต่งได้ ข้อมูลวิเคราะห์ใช้ Copernicus DEM แล้ว |
+| GI Basemap | ✅ ได้ภาพ PNG | เทียบกับ Sphere (รอบ 3) |
+| Land feature collections | ✅ 117,613 ชุด ส่วนใหญ่เป็นงานภายใน (Dragonfly, Sentinel-2 grid) มีชุด "slop" ครอบภูเก็ตพอดี, "Administrator Tambon", "Population" | ดูข้อมูลข้างใน (รอบ 3) |
+| น้ำท่วมซ้ำซาก | ตอบ `"not found"` ทั้ง 6 จุดที่ลุ่ม รับแค่ lat/lon | ทดสอบตาราง 33 จุด (รอบ 3) ถ้าไม่พบเลย แปลว่าไม่มีพื้นที่น้ำท่วมซ้ำซากบันทึกไว้ในภูเก็ต |
+| UHI | 204 ไม่มีข้อมูลที่ภูเก็ต (ซูม 8, 10, 12) | ไม่ใช้ |
+| น้ำท่วม 1 วัน | 404 | ไม่ใช้ |
+
+- ถ้าจะแสดงภาพหรือ tile ของ GISTDA บนเว็บ ต้องส่ง key ไปกับทุกคำขอ ทางที่ key ไม่หลุดคือให้ Netlify Function เป็นตัวกลางเติม key ให้ (ยังไม่ได้ทำ)
+
 - ทดสอบด้วย `data-prep/gistda_api_probe.py` (รันบนเครื่องทีม ใช้ประมาณ 15 ครั้ง) ได้รายงาน `data-prep/out/gistda_api_probe.txt` ที่ไม่มี key
 - **THEOS-2:** ซื้อภาพได้ที่ awagad.gistda.or.th (ยังไม่ทราบราคาและพื้นที่ขั้นต่ำ) ตัดสินใจหลังทดสอบ THEOS-1 และสอบถามผู้จัดการแข่งขันว่ามีภาพให้ใช้หรือไม่
 

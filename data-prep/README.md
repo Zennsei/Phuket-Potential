@@ -16,6 +16,8 @@
 
 `gistda_buildings_api.py` ดึงอาคารพร้อมความสูง ปี 2567 จาก GISTDA API Gateway รันบนเครื่องของทีมเท่านั้น (ต้องมี `GISTDA_API_KEY` ใน `.env`) ผลอยู่ใน `data-prep/out/` ซึ่งไม่ถูก commit
 
+`gistda_api_probe3.py` ทดสอบรอบสาม: ดึงภาพตัวอย่างของภูเก็ต (ภาพรายปี, Landtrendr, Hillshade, GI Basemap) และหา PLEIADES ที่ครอบภูเก็ต ภาพเป็นลิขสิทธิ์ GISTDA ใช้ประเมินเท่านั้น
+
 `gistda_api_probe2.py` ทดสอบรอบสอง (ไล่ลิงก์ THEOS-1/PLEIADES, ขอรายชื่อชั้นภาพดาวเทียม, น้ำท่วมซ้ำซากหลายจุด) ได้ `out/gistda_api_probe2.txt`
 
 `gistda_api_probe.py` ทดสอบบริการ GISTDA ที่น่าสนใจ (น้ำท่วมซ้ำซาก THEOS-1 ภาพดาวเทียมรายปี ฯลฯ) รันบนเครื่องทีม ได้รายงานที่ไม่มี key
