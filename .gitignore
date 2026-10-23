@@ -4,3 +4,4 @@ dist
 .env.local
 *.tsbuildinfo
 data-prep/out/
+raw-data/
