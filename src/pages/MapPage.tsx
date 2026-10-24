@@ -10,7 +10,7 @@ import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
-import type { BuildingStatus } from "../buildings3d";
+import { BLDG_INFO, BLDG_SOURCES, BUILDING_LOD, OUTLINE_COLOR, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
 import { useI18n } from "../i18n";
@@ -22,8 +22,8 @@ import type { FactorKey } from "../types";
 type ColorBy = "score" | FactorKey | "reg_pop" | "reg_house";
 
 const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
-  // "bldg3d" is loaded live from the GISTDA API Gateway, so it is listed only for the team (VITE_GISTDA_IMAGERY=1)
-  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d", ...(GISTDA_IMAGERY ? ["bldg3d" as const] : [])] },
+  // "bldg3d": Overture for everyone, GISTDA (live API) only for the team (VITE_GISTDA_IMAGERY=1), see src/buildings3d.ts
+  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d", "bldg3d"] },
   { th: "ประชากร", en: "People", ids: ["population"] },
   { th: "การเดินทาง", en: "Getting around", ids: ["travel", "roads", "pois"] },
   { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
@@ -46,6 +46,8 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [view, setView] = useState<MapViewport>();
   const [baseFailed, setBaseFailed] = useState(false);
   const [bldg, setBldg] = useState<BuildingStatus>();
+  const [bldgSource, setBldgSource] = useState<BldgSource>(BLDG_SOURCES[0]);
+  const [bldgOutline, setBldgOutline] = useState(false);
   const [clickPoint, setClickPoint] = useState<{ lon: number; lat: number }>();
   const [pins, setPins] = useState<SpherePlace[]>([]);
   const [focus, setFocus] = useState<{ key: string; lon: number; lat: number; zoom: number }>();
@@ -166,14 +168,36 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               <p className="group-label">{t(g.th, g.en)}</p>
               {g.ids.map((id) => {
                 const o = OVERLAYS.find((x) => x.id === id)!;
+                const other = BLDG_SOURCES.find((x) => x !== bldgSource);
                 return (
-                  <label key={o.id} className="check">
-                    <input type="checkbox" checked={overlays[o.id]} onChange={(e) => setOverlays({ ...overlays, [o.id]: e.target.checked })} />
-                    <span className="sw" style={{ background: o.swatch }} />
-                    <span>
-                      {t(o.th, o.en)} <span className={`pill ${o.gistda ? "gistda" : "muted"}`} style={{ fontSize: 10, padding: "0 6px" }}>{t(o.sourceTh, o.sourceEn)}</span>
-                    </span>
-                  </label>
+                  <div key={o.id}>
+                    <label className="check">
+                      <input type="checkbox" checked={overlays[o.id]} onChange={(e) => setOverlays({ ...overlays, [o.id]: e.target.checked })} />
+                      <span className="sw" style={{ background: o.swatch }} />
+                      <span>
+                        {t(o.th, o.en)} <span className={`pill ${o.gistda && (o.id !== "bldg3d" || bldgSource === "gistda") ? "gistda" : "muted"}`} style={{ fontSize: 10, padding: "0 6px" }}>{o.id === "bldg3d" ? (bldgSource === "gistda" ? "GISTDA API 2567" : "Overture") : t(o.sourceTh, o.sourceEn)}</span>
+                      </span>
+                    </label>
+                    {o.id === "bldg3d" && overlays.bldg3d && (
+                      <div className="subopts">
+                        {BLDG_SOURCES.length > 1 && (
+                          <label className="small" style={{ display: "grid", gap: 2 }}>
+                            {t("ข้อมูลอาคาร", "Building data")}
+                            <select value={bldgSource} onChange={(e) => setBldgSource(e.target.value as BldgSource)}>
+                              {BLDG_SOURCES.map((src) => <option key={src} value={src}>{t(BLDG_INFO[src].th, BLDG_INFO[src].en)}</option>)}
+                            </select>
+                          </label>
+                        )}
+                        {other && (
+                          <label className="check small">
+                            <input type="checkbox" checked={bldgOutline} onChange={(e) => setBldgOutline(e.target.checked)} />
+                            <span className="sw" style={{ background: "transparent", border: `2px solid ${OUTLINE_COLOR[other]}` }} />
+                            <span>{t(`ขอบอาคาร ${other === "overture" ? "Overture" : "GISTDA"} ซ้อน (เทียบตำแหน่ง)`, `${other === "overture" ? "Overture" : "GISTDA"} outlines on top (compare positions)`)}</span>
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -273,6 +297,8 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           onView={setView}
           travelDest={travelDest}
           onBldgStatus={setBldg}
+          bldgSource={bldgSource}
+          bldgOutline={bldgOutline}
         />
         {/* the edge coordinates only line up on a flat map, so the collar is hidden while the map is tilted */}
         {!overlays.height3d && (view?.pitch ?? 0) < 1 && <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />}
@@ -307,11 +333,14 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
                 <div className="small muted">
                   {!bldg?.zoomOk
                     ? t("ซูมเข้าใกล้ (ระดับ 15 ขึ้นไป) เพื่อดูอาคารรายหลัง", "Zoom in (level 15+) to see each building")
-                    : bldg.loading > 0
-                      ? t(`กำลังโหลดอาคาร… อีก ${bldg.loading} แผ่น`, `Loading buildings… ${bldg.loading} tiles left`)
-                      : t(`ประมาณ ${num(bldg.buildings)} หลังในมุมนี้`, `About ${num(bldg.buildings)} buildings in view`)}
-                  {bldg && bldg.failed > 0 && <span style={{ color: "var(--warn)" }}>{t(` · โหลดไม่ได้ ${bldg.failed} แผ่น (ตรวจ GISTDA_API_KEY)`, ` · ${bldg.failed} tiles failed (check GISTDA_API_KEY)`)}</span>}
-                  <br />{t("ความสูงจากแบบจำลองของ GISTDA มักเกินจริงราว 1 ชั้น คลิกอาคารเพื่อดูค่า", "Heights are GISTDA model estimates, often about one storey too high. Click a building for its values.")}
+                    : bldg.loading
+                      ? t("กำลังโหลดอาคาร…", "Loading buildings…")
+                      : t(`ซูม 15–16 เฉพาะหลัง ≥ ${BUILDING_LOD.minAreaM2} ตร.ม. หรือ ≥ ${BUILDING_LOD.minHeightM} ม. · 16+ ครบทุกหลัง`, `Zoom 15–16: ${BUILDING_LOD.minAreaM2} m²+ or ${BUILDING_LOD.minHeightM} m+ only · 16+: all`)}
+                  {bldg?.failed && bldgSource === "gistda" && <span style={{ color: "var(--warn)" }}>{t(" · โหลดอาคาร GISTDA ไม่ได้บางแผ่น (ตรวจ GISTDA_API_KEY)", " · some GISTDA tiles failed (check GISTDA_API_KEY)")}</span>}
+                  <br />{bldgSource === "gistda"
+                    ? t("ความสูงจากแบบจำลอง GISTDA มักเกินราว 1 ชั้น", "GISTDA model heights, often ~1 storey high")
+                    : t("สีเทา = Overture ไม่มีความสูง (แสดง 1 ชั้น)", "Grey = no height in Overture (drawn as 1 storey)")}
+                  {bldgOutline && <><br /><span style={{ color: OUTLINE_COLOR[BLDG_SOURCES.find((x) => x !== bldgSource) ?? "overture"] }}>{t("เส้นขอบ = อาคารจากอีกแหล่ง", "Outlines = buildings from the other source")}</span></>}
                 </div>
               )}
               {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}

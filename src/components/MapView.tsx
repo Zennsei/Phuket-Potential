@@ -6,7 +6,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { Basemap } from "../sphere";
 import { resolveBasemap } from "../gistda";
-import { BLDG_MIN_ZOOM, BuildingLoader, tilesFor, type BuildingStatus } from "../buildings3d";
+import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OUTLINE_COLOR, bldgSourceSpec, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
@@ -38,6 +38,10 @@ interface Props {
   travelDest?: TravelDest;
   /** loading state of the building-by-building 3D layer */
   onBldgStatus?: (s: BuildingStatus) => void;
+  /** which buildings are drawn as 3D boxes */
+  bldgSource?: BldgSource;
+  /** also draw the other source's footprints as outlines (to compare positions) */
+  bldgOutline?: boolean;
   /** swipe comparison: this base map is shown right of the divider, `basemap` left of it */
   compare?: { basemap: string; leftLabel: string; rightLabel: string };
 }
@@ -134,7 +138,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.filter((o) => o.id !== "terrain").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
+      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "bldg3d").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
@@ -177,17 +181,24 @@ export default function MapView(p: Props) {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 14, 6],
           "circle-stroke-color": "#ffffff", "circle-stroke-width": 0.8,
         } });
-      {
-        // one box per building, drawn last so it stands above the flat layers
-        const o = OVERLAYS.find((x) => x.id === "bldg3d")!;
-        m.addLayer({ id: "overlay-bldg3d", type: "fill-extrusion", source: "ov-bldg3d", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
+      // one box per building (vector tiles, see src/buildings3d.ts), drawn last so it stands above the flat layers.
+      // A source loads nothing until one of its layers is shown.
+      for (const src of BLDG_SOURCES) {
+        m.addSource(`bldg-${src}`, bldgSourceSpec(src));
+        m.addLayer({ id: `bldg-${src}-3d`, type: "fill-extrusion", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM,
+          // o = 1: the tile that holds the building's centre, so a building on a tile edge is drawn once
+          filter: ["==", ["get", "o"], 1], layout: { visibility: "none" },
           paint: {
-            "fill-extrusion-color": ["case", ["==", ["get", "h"], null], "#d9d4c7", step(o.prop!, o.breaks!, o.ramp!)] as maplibregl.ExpressionSpecification,
-            "fill-extrusion-height": ["coalesce", ["get", "h"], 3],
+            "fill-extrusion-color": ["case", ["has", "h"], step("h", BLDG_BREAKS, BLDG_RAMP), BLDG_NO_HEIGHT] as maplibregl.ExpressionSpecification,
+            "fill-extrusion-height": ["coalesce", ["get", "h"], 3.5],
             "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.92,
+            // fade in instead of popping up at zoom 15
+            "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.4, 0.92],
           } });
       }
+      for (const src of BLDG_SOURCES)
+        m.addLayer({ id: `bldg-${src}-line`, type: "line", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
+          paint: { "line-color": OUTLINE_COLOR[src], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18, 2] } });
 
       // labels as HTML markers (no font server needed)
       markers.current = latest.current.tambons.features.map((f) => {
@@ -241,10 +252,16 @@ export default function MapView(p: Props) {
         if (h3) row(label("height3d"), th
           ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
           : `<b>${nf(Number(h3.n))}</b> buildings, mean height ${h3.h_mean} m (max ${h3.h_max} m), floor area ${h3.far_pct}% of the cell`);
-        const bl = first("overlay-bldg3d");
-        if (bl) row(label("bldg3d"), th
-          ? `สูง <b>${bl.h ?? "–"}</b> ม. · <b>${bl.s ?? "–"}</b> ชั้น <span class="pp-muted">(แบบจำลอง GISTDA 2567)</span>`
-          : `<b>${bl.h ?? "–"}</b> m tall · <b>${bl.s ?? "–"}</b> storeys <span class="pp-muted">(GISTDA model, 2024)</span>`);
+        for (const src of BLDG_SOURCES) {
+          const bl = first(`bldg-${src}-3d`);
+          if (!bl) continue;
+          const by = src === "gistda" ? (th ? "แบบจำลอง GISTDA 2567" : "GISTDA model, 2024") : `Overture · ${escapeHtml(String(bl.d ?? ""))}`;
+          const hasH = bl.h !== undefined && bl.h !== null;
+          row(label("bldg3d"), hasH
+            ? (th ? `สูง <b>${bl.h}</b> ม.${bl.s != null ? ` · <b>${bl.s}</b> ชั้น` : ""} <span class="pp-muted">(${by})</span>`
+                  : `<b>${bl.h}</b> m tall${bl.s != null ? ` · <b>${bl.s}</b> storeys` : ""} <span class="pp-muted">(${by})</span>`)
+            : (th ? `ไม่มีข้อมูลความสูง แสดงเป็น 1 ชั้น <span class="pp-muted">(${by})</span>` : `no height in the data, drawn as 1 storey <span class="pp-muted">(${by})</span>`));
+        }
         const tp = terrainPixels.current;
         if (tp && m.getLayer("overlay-terrain") && m.getLayoutProperty("overlay-terrain", "visibility") !== "none") {
           const cls = terrainAt(tp, e.lngLat.lng, e.lngLat.lat);
@@ -263,7 +280,7 @@ export default function MapView(p: Props) {
         });
       });
       m.on("mousemove", (e) => {
-        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`)].filter((l) => m.getLayer(l));
+        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`), ...BLDG_SOURCES.map((s) => `bldg-${s}-3d`)].filter((l) => m.getLayer(l));
         const hit = m.queryRenderedFeatures(e.point, { layers }).length > 0;
         m.getCanvas().style.cursor = hit ? "pointer" : "";
       });
@@ -320,10 +337,7 @@ export default function MapView(p: Props) {
     if (!ready || !m) return;
     for (const o of OVERLAYS) {
       const on = p.overlays[o.id];
-      if (o.id === "bldg3d") {
-        m.setLayoutProperty("overlay-bldg3d", "visibility", on ? "visible" : "none");
-        continue;
-      }
+      if (o.id === "bldg3d") continue; // its layers are set by the building effect below
       if (o.id === "terrain") {
         if (on && !loaded.current.has("terrain")) {
           loaded.current.add("terrain");
@@ -356,27 +370,42 @@ export default function MapView(p: Props) {
   }, [ready, p.overlays]);
   const prevOverlays = useRef(p.overlays);
 
-  // building-by-building 3D: load the tiles in view after each move while the layer is on
-  const bldgLoader = useRef<BuildingLoader | null>(null);
+  // building-by-building 3D: which source is drawn as boxes, and the other one as outlines
   const bldgOn = !!p.overlays.bldg3d;
+  const bldgSource: BldgSource = p.bldgSource && BLDG_SOURCES.includes(p.bldgSource) ? p.bldgSource : BLDG_SOURCES[0];
+  const bldgOutline = !!p.bldgOutline;
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    for (const src of BLDG_SOURCES) {
+      m.setLayoutProperty(`bldg-${src}-3d`, "visibility", bldgOn && src === bldgSource ? "visible" : "none");
+      m.setLayoutProperty(`bldg-${src}-line`, "visibility", bldgOn && bldgOutline && src !== bldgSource ? "visible" : "none");
+    }
+  }, [ready, bldgOn, bldgSource, bldgOutline]);
+  // loading state for the legend (tiles are loaded by MapLibre itself)
   useEffect(() => {
     const m = map.current;
     if (!ready || !m || !bldgOn) return;
-    if (!bldgLoader.current)
-      bldgLoader.current = new BuildingLoader(
-        (fc) => (m.getSource("ov-bldg3d") as GeoJSONSource | undefined)?.setData(fc),
-        (s) => latest.current.onBldgStatus?.(s),
-      );
-    const update = () => {
+    const st: BuildingStatus = { zoomOk: m.getZoom() >= BLDG_MIN_ZOOM, loading: false, failed: false };
+    const emit = () => latest.current.onBldgStatus?.({ ...st });
+    const id = `bldg-${bldgSource}`;
+    // ask the building source itself (the map's "idle" event also waits for the base map, which may be failing)
+    const check = () => {
       const zoomOk = m.getZoom() >= BLDG_MIN_ZOOM;
-      const b = m.getBounds();
-      const c = m.getCenter();
-      bldgLoader.current!.show(zoomOk ? tilesFor({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }, [c.lng, c.lat]) : [], zoomOk);
+      const loading = zoomOk && !m.isSourceLoaded(id);
+      if (zoomOk !== st.zoomOk || loading !== st.loading) { st.zoomOk = zoomOk; st.loading = loading; emit(); }
     };
-    update();
-    m.on("moveend", update);
-    return () => { m.off("moveend", update); };
-  }, [ready, bldgOn]);
+    const onData = (e: unknown) => { if ((e as { sourceId?: string }).sourceId === id) check(); };
+    // only the live GISTDA tiles count as failures; a missing Overture tile is just sea with no buildings
+    const onError = (e: unknown) => { if ((e as { sourceId?: string }).sourceId === "bldg-gistda" && !st.failed) { st.failed = true; emit(); } };
+    emit();
+    m.on("zoomend", check);
+    m.on("moveend", check);
+    m.on("sourcedata", onData);
+    m.on("sourcedataloading", onData);
+    m.on("error", onError);
+    return () => { m.off("zoomend", check); m.off("moveend", check); m.off("sourcedata", onData); m.off("sourcedataloading", onData); m.off("error", onError); };
+  }, [ready, bldgOn, bldgSource]);
 
   // travel layer: colour by the chosen destination
   useEffect(() => {

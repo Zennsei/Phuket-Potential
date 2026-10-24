@@ -38,6 +38,9 @@ export const BASEMAPS: Basemap[] = [
     tiles: [`${TILES}/sphere_streets/EPSG3857/{z}/{x}/{y}.png?key=${SPHERE_KEY}`],
     attribution: SPHERE_ATTR,
     gistda: true,
+    // level-18 street tiles come back blank white (seen by the team on 24 Oct 2026 at map zoom 17),
+    // so stop at 17 and let MapLibre enlarge those tiles when zooming in further
+    maxzoom: 17,
   },
   {
     // same layer as sphere.Layers.IMAGES in the Sphere map library
