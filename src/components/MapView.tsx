@@ -106,9 +106,18 @@ export default function MapView(p: Props) {
         { id: "base", type: "raster", source: "base" },
       ],
     };
-    const m = new maplibregl.Map({ container: box.current!, style, center: [98.34, 7.95], zoom: 9.6, attributionControl: { compact: true } });
+    const m = new maplibregl.Map({
+      container: box.current!, style, center: [98.34, 7.95], zoom: 9.6, attributionControl: { compact: true },
+      // right-drag (or Ctrl + drag): the same sideways drag always turns the map the same way and by the same amount,
+      // wherever it starts (MapLibre's default turns around the centre, so the result depended on where you clicked),
+      // and more slowly than the default 0.8° bearing / 0.5° tilt per pixel
+      aroundCenter: false,
+      rotateSpeed: 0.35,
+      pitchSpeed: -0.25,
+    });
     map.current = m;
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    // the compass shows how far the map is turned and tilted; clicking it turns the map back to north
+    m.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
 
     m.on("error", (e) => {

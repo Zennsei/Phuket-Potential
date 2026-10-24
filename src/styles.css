@@ -228,8 +228,14 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .fold { border-bottom: 1px solid var(--rule); }
 .fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 0; font-family: var(--font-display); font-weight: 600; font-size: 15px; }
 .fold > summary::-webkit-details-marker { display: none; }
-.fold > summary::after { content: "+"; margin-left: 8px; width: 18px; text-align: center; color: var(--muted); font-weight: 400; font-size: 18px; line-height: 1; }
-.fold[open] > summary::after { content: "−"; }
+/* +/− icon drawn with two bars: the upright bar turns flat when the section opens */
+.fold-icon { position: relative; flex: none; width: 12px; height: 12px; margin: 0 3px 0 auto; color: var(--muted); }
+.fold > summary .hint + .fold-icon { margin-left: 8px; }
+.fold-icon::before, .fold-icon::after { content: ""; position: absolute; left: 0; top: 5px; width: 12px; height: 2px; background: currentColor; border-radius: 1px; transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.fold-icon::after { transform: rotate(90deg); }
+.fold[data-expanded="true"] .fold-icon::after { transform: rotate(0deg); }
+.fold > summary:hover .fold-icon { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .fold-icon::before, .fold-icon::after { transition: none; } }
 .fold > summary .hint { margin-left: auto; font-family: var(--font-body); font-weight: 400; font-size: 12px; color: var(--muted); }
 .fold > summary:focus-visible { outline: 2px solid var(--overprint); outline-offset: 2px; }
 .fold-body { padding: 0 0 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
