@@ -10,6 +10,7 @@ import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
+import type { BuildingStatus } from "../buildings3d";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
 import { useI18n } from "../i18n";
@@ -21,7 +22,8 @@ import type { FactorKey } from "../types";
 type ColorBy = "score" | FactorKey | "reg_pop" | "reg_house";
 
 const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
-  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d"] },
+  // "bldg3d" is loaded live from the GISTDA API Gateway, so it is listed only for the team (VITE_GISTDA_IMAGERY=1)
+  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d", ...(GISTDA_IMAGERY ? ["bldg3d" as const] : [])] },
   { th: "ประชากร", en: "People", ids: ["population"] },
   { th: "การเดินทาง", en: "Getting around", ids: ["travel", "roads", "pois"] },
   { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
@@ -32,7 +34,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   // GISTDA yearly imagery: the slider moves `imgIdx` at once, the picture follows when the slider rests (each new picture costs credits)
   const [imgLayer, setImgLayer] = useState(DEFAULT_IMAGERY);
@@ -43,6 +45,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [tambonFill, setTambonFill] = useState(true);
   const [view, setView] = useState<MapViewport>();
   const [baseFailed, setBaseFailed] = useState(false);
+  const [bldg, setBldg] = useState<BuildingStatus>();
   const [clickPoint, setClickPoint] = useState<{ lon: number; lat: number }>();
   const [pins, setPins] = useState<SpherePlace[]>([]);
   const [focus, setFocus] = useState<{ key: string; lon: number; lat: number; zoom: number }>();
@@ -269,8 +272,10 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           clickPoint={clickPoint}
           onView={setView}
           travelDest={travelDest}
+          onBldgStatus={setBldg}
         />
-        {!overlays.height3d && <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />}
+        {/* the edge coordinates only line up on a flat map, so the collar is hidden while the map is tilted */}
+        {!overlays.height3d && (view?.pitch ?? 0) < 1 && <Collar view={view} note={t("ระวางอ้างอิง 4624 I และ 4625 II (WGS 84)", "Reference sheets 4624 I and 4625 II (WGS 84)")} />}
         {baseFailed && (
           <div className="notice" role="status">
             {baseIsGistdaApi
@@ -298,6 +303,17 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               <b>{t(o.th, o.en)}{o.id === "travel" && `: ${(() => { const d = TRAVEL_DESTS.find((x) => x.id === travelDest)!; return t(d.th, d.en); })()}`}</b>
               <div className="ramp">{o.ramp!.map((c) => <i key={c} style={{ background: c }} />)}</div>
               <div className="ends"><span>&lt;{num(o.breaks![0])}</span><span>{num(o.breaks![3])}+ {t(o.unitTh!, o.unitEn!)}</span></div>
+              {o.id === "bldg3d" && (
+                <div className="small muted">
+                  {!bldg?.zoomOk
+                    ? t("ซูมเข้าใกล้ (ระดับ 15 ขึ้นไป) เพื่อดูอาคารรายหลัง", "Zoom in (level 15+) to see each building")
+                    : bldg.loading > 0
+                      ? t(`กำลังโหลดอาคาร… อีก ${bldg.loading} แผ่น`, `Loading buildings… ${bldg.loading} tiles left`)
+                      : t(`ประมาณ ${num(bldg.buildings)} หลังในมุมนี้`, `About ${num(bldg.buildings)} buildings in view`)}
+                  {bldg && bldg.failed > 0 && <span style={{ color: "var(--warn)" }}>{t(` · โหลดไม่ได้ ${bldg.failed} แผ่น (ตรวจ GISTDA_API_KEY)`, ` · ${bldg.failed} tiles failed (check GISTDA_API_KEY)`)}</span>}
+                  <br />{t("ความสูงจากแบบจำลองของ GISTDA มักเกินจริงราว 1 ชั้น คลิกอาคารเพื่อดูค่า", "Heights are GISTDA model estimates, often about one storey too high. Click a building for its values.")}
+                </div>
+              )}
               {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}
             </div>
           ))}

@@ -6,9 +6,11 @@
  *   - `npm run dev` / `npm run preview`  ->  middleware ใน vite.config.ts (อ่าน key จาก .env)
  *   - Netlify                              ->  netlify/functions/gistda.mjs (อ่าน key จาก Environment variables ของ Netlify)
  *
- * ยอมให้ผ่านเฉพาะ 2 อย่าง และต้องอยู่ในกรอบภูเก็ตเท่านั้น เพื่อไม่ให้คนอื่นใช้เครดิตของ key ทีมไปขอภาพที่อื่น:
+ * ยอมให้ผ่านเฉพาะ 3 อย่าง และต้องอยู่ในกรอบภูเก็ตเท่านั้น เพื่อไม่ให้คนอื่นใช้เครดิตของ key ทีมไปขอข้อมูลที่อื่น:
  *   1. ภาพถ่ายดาวเทียมรายปี  /gfms/service/?SERVICE=WMS&REQUEST=GetMap&LAYERS=<ชั้นในรายการ>&CRS=EPSG:3857&BBOX=...
  *   2. GI Basemap            /tiles/basemap_latest/{z}/{x}/{y}.png
+ *   3. อาคารรายหลัง 3 มิติ    /buildings/16/{x}/{y}.json  -> features/thailand-buildings-footprint/items?bbox=<แผ่นนั้น>
+ *      ตัวกลางสร้าง GeoJSON ใหม่ที่มีแค่รูปอาคาร ความสูง จำนวนชั้น (ไม่ส่งผลดิบต่อ เพราะผลดิบมี key อยู่ใน "links")
  *
  * ผลที่ไม่ใช่ภาพ (เช่น ข้อความ error) จะไม่ถูกส่งต่อ เพราะ GISTDA เคยใส่ key ไว้ในผลลัพธ์ (ดู PROJECT_REPORT.md หัวข้อ 7)
  * ไม่ต้องติดตั้ง package เพิ่ม ใช้ fetch / Request / Response ของ Node 22
@@ -47,6 +49,12 @@ function tileBounds(z, x, y) {
  * @param {URLSearchParams} q
  * @returns {{ ok: true, upstreamPath: string, kind: "imagery" | "basemap" } | { ok: false, status: number, reason: string }}
  */
+/** แผ่นของอาคาร 3 มิติใช้ซูม 16 อย่างเดียว (ประมาณ 600 × 600 ม. ส่วนใหญ่ไม่เกิน 1,000 หลัง = 1 คำขอ) */
+export const BUILDING_TILE_Z = 16;
+const BUILDINGS_PATH = "/features/thailand-buildings-footprint/items";
+const BUILDING_PAGE = 1000;
+const BUILDING_MAX_PAGES = 5;
+
 export function checkGistdaRequest(path, q) {
   if (path === "/gfms/service" || path === "/gfms/service/") {
     const get = (k) => {
@@ -77,7 +85,50 @@ export function checkGistdaRequest(path, q) {
     if (!overlaps(b.west, b.south, b.east, b.north, AREA)) return { ok: false, status: 403, reason: "outside Phuket" };
     return { ok: true, kind: "basemap", upstreamPath: `/tiles/basemap_latest/${z}/${x}/${y}.png` };
   }
+  const bm = /^\/buildings\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})\.json$/.exec(path);
+  if (bm) {
+    const [z, x, y] = bm.slice(1).map(Number);
+    if (z !== BUILDING_TILE_Z || x >= 2 ** z || y >= 2 ** z) return { ok: false, status: 400, reason: "bad tile" };
+    const b = tileBounds(z, x, y);
+    if (!overlaps(b.west, b.south, b.east, b.north, AREA)) return { ok: false, status: 403, reason: "outside Phuket" };
+    const bbox = [b.west, b.south, b.east, b.north].map((v) => v.toFixed(6)).join(",");
+    return { ok: true, kind: "buildings", upstreamPath: `${BUILDINGS_PATH}?bbox=${bbox}&limit=${BUILDING_PAGE}` };
+  }
   return { ok: false, status: 403, reason: "path not allowed" };
+}
+
+const r6 = (v) => Math.round(v * 1e6) / 1e6;
+const roundCoords = (c) => (typeof c[0] === "number" ? [r6(c[0]), r6(c[1])] : c.map(roundCoords));
+
+/** keep only what the map draws: footprint, height, storeys (no links, no other fields) */
+function slimBuilding(f) {
+  const g = f && f.geometry;
+  if (!g || (g.type !== "Polygon" && g.type !== "MultiPolygon") || !Array.isArray(g.coordinates)) return null;
+  const p = f.properties || {};
+  const h = Number(p.BL_HEIGHT), s = Number(p.BL_NSTOREY);
+  return {
+    type: "Feature",
+    geometry: { type: g.type, coordinates: roundCoords(g.coordinates) },
+    properties: { id: String(p.globalId ?? f.id ?? ""), h: Number.isFinite(h) ? Math.round(h * 10) / 10 : null, s: Number.isFinite(s) ? s : null },
+  };
+}
+
+async function fetchBuildings(base, upstreamPath, key, fetchImpl) {
+  const page = async (offset) => {
+    const r = await fetchImpl(`${base}${upstreamPath}&offset=${offset}`, {
+      headers: { "API-Key": key, Accept: "application/geo+json" }, signal: AbortSignal.timeout(25000),
+    });
+    if (!r.ok) throw new Error(`GISTDA answered ${r.status}`);
+    return r.json();
+  };
+  const first = await page(0);
+  const pages = [first];
+  const total = Number(first.numberMatched);
+  const extra = Number.isFinite(total) ? Math.min(BUILDING_MAX_PAGES, Math.ceil(total / BUILDING_PAGE)) - 1 : 0;
+  // a dense tile needs more than one page: ask for the rest at the same time
+  if (extra > 0) pages.push(...(await Promise.all(Array.from({ length: extra }, (_, i) => page((i + 1) * BUILDING_PAGE)))));
+  const features = pages.flatMap((d) => (Array.isArray(d.features) ? d.features : [])).map(slimBuilding).filter(Boolean);
+  return { type: "FeatureCollection", features, truncated: Number.isFinite(total) && total > BUILDING_MAX_PAGES * BUILDING_PAGE };
 }
 
 const text = (status, msg) =>
@@ -92,6 +143,23 @@ export async function proxyGistda({ path, search, key, base = GISTDA_BASE, fetch
   if (!key) return text(503, "GISTDA_API_KEY is not set on the server");
   const c = checkGistdaRequest(path, new URLSearchParams(search));
   if (!c.ok) return text(c.status, c.reason);
+  if (c.kind === "buildings") {
+    let fc;
+    try {
+      fc = await fetchBuildings(base, c.upstreamPath, key, fetchImpl);
+    } catch {
+      return text(502, "GISTDA buildings request failed");
+    }
+    return new Response(JSON.stringify(fc), {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "public, max-age=604800",
+        "netlify-cdn-cache-control": "public, durable, s-maxage=2592000",
+        "x-gistda-kind": "buildings",
+      },
+    });
+  }
   let res;
   try {
     res = await fetchImpl(base + c.upstreamPath, { headers: { "API-Key": key }, signal: AbortSignal.timeout(25000) });

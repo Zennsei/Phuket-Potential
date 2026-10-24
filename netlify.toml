@@ -8,7 +8,7 @@
   NODE_VERSION = "22"
   # VITE_SPHERE_KEY is NOT set here: add it in Netlify > Site configuration > Environment variables
 
-# /gistda/* -> netlify/functions/gistda.mjs adds the GISTDA API Gateway key to imagery tiles (the key never reaches the browser).
+# /gistda/* -> netlify/functions/gistda.mjs adds the GISTDA API Gateway key to imagery tiles and 3D building tiles (the key never reaches the browser).
 # Needs GISTDA_API_KEY in Netlify > Site configuration > Environment variables (without VITE_).
 # The menu that uses it only appears when VITE_GISTDA_IMAGERY=1: do not set that on Netlify until GISTDA allows public use.
 [functions]
