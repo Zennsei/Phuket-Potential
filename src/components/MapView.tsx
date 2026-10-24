@@ -6,6 +6,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { Basemap } from "../sphere";
 import { resolveBasemap } from "../gistda";
+import { BLDG_MIN_ZOOM, BuildingLoader, tilesFor, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
@@ -35,6 +36,8 @@ interface Props {
   onView?: (v: MapViewport) => void;
   /** destination shown by the travel-time layer */
   travelDest?: TravelDest;
+  /** loading state of the building-by-building 3D layer */
+  onBldgStatus?: (s: BuildingStatus) => void;
   /** swipe comparison: this base map is shown right of the divider, `basemap` left of it */
   compare?: { basemap: string; leftLabel: string; rightLabel: string };
 }
@@ -50,6 +53,8 @@ export interface MapViewport {
   ox: number;
   oy: number;
   project: (lng: number, lat: number) => { x: number; y: number };
+  /** tilt in degrees (the coordinate collar is hidden while the map is tilted) */
+  pitch: number;
 }
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -172,6 +177,17 @@ export default function MapView(p: Props) {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 14, 6],
           "circle-stroke-color": "#ffffff", "circle-stroke-width": 0.8,
         } });
+      {
+        // one box per building, drawn last so it stands above the flat layers
+        const o = OVERLAYS.find((x) => x.id === "bldg3d")!;
+        m.addLayer({ id: "overlay-bldg3d", type: "fill-extrusion", source: "ov-bldg3d", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
+          paint: {
+            "fill-extrusion-color": ["case", ["==", ["get", "h"], null], "#d9d4c7", step(o.prop!, o.breaks!, o.ramp!)] as maplibregl.ExpressionSpecification,
+            "fill-extrusion-height": ["coalesce", ["get", "h"], 3],
+            "fill-extrusion-base": 0,
+            "fill-extrusion-opacity": 0.92,
+          } });
+      }
 
       // labels as HTML markers (no font server needed)
       markers.current = latest.current.tambons.features.map((f) => {
@@ -225,6 +241,10 @@ export default function MapView(p: Props) {
         if (h3) row(label("height3d"), th
           ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
           : `<b>${nf(Number(h3.n))}</b> buildings, mean height ${h3.h_mean} m (max ${h3.h_max} m), floor area ${h3.far_pct}% of the cell`);
+        const bl = first("overlay-bldg3d");
+        if (bl) row(label("bldg3d"), th
+          ? `สูง <b>${bl.h ?? "–"}</b> ม. · <b>${bl.s ?? "–"}</b> ชั้น <span class="pp-muted">(แบบจำลอง GISTDA 2567)</span>`
+          : `<b>${bl.h ?? "–"}</b> m tall · <b>${bl.s ?? "–"}</b> storeys <span class="pp-muted">(GISTDA model, 2024)</span>`);
         const tp = terrainPixels.current;
         if (tp && m.getLayer("overlay-terrain") && m.getLayoutProperty("overlay-terrain", "visibility") !== "none") {
           const cls = terrainAt(tp, e.lngLat.lng, e.lngLat.lat);
@@ -259,6 +279,7 @@ export default function MapView(p: Props) {
             width: c.clientWidth, height: c.clientHeight,
             ox: box.current?.offsetLeft ?? 0, oy: box.current?.offsetTop ?? 0,
             project: (lng, lat) => m.project([lng, lat]),
+            pitch: m.getPitch(),
           });
         });
       };
@@ -299,6 +320,10 @@ export default function MapView(p: Props) {
     if (!ready || !m) return;
     for (const o of OVERLAYS) {
       const on = p.overlays[o.id];
+      if (o.id === "bldg3d") {
+        m.setLayoutProperty("overlay-bldg3d", "visibility", on ? "visible" : "none");
+        continue;
+      }
       if (o.id === "terrain") {
         if (on && !loaded.current.has("terrain")) {
           loaded.current.add("terrain");
@@ -316,13 +341,42 @@ export default function MapView(p: Props) {
       }
       m.setLayoutProperty(`overlay-${o.id}`, "visibility", on ? "visible" : "none");
     }
-    // tilt the map for the 3D layer, flatten it again when the layer is off
-    const want = p.overlays.height3d ? 55 : 0;
-    if (Math.abs(m.getPitch() - want) > 1)
-      m.easeTo(p.overlays.height3d
-        ? { pitch: want, bearing: -15, zoom: Math.max(m.getZoom(), 10.6), center: [98.36, 7.9], duration: 900 }
-        : { pitch: 0, bearing: 0, duration: 800 });
+    // move the camera only when a 3D layer is switched on or off, so a tilt the user made by hand stays
+    const was = prevOverlays.current;
+    prevOverlays.current = p.overlays;
+    if (p.overlays.height3d && !was.height3d) {
+      m.easeTo({ pitch: 55, bearing: -15, zoom: Math.max(m.getZoom(), 10.6), center: [98.36, 7.9], duration: 900 });
+    } else if (p.overlays.bldg3d && !was.bldg3d) {
+      // buildings only show close up: go to the old town unless already zoomed in
+      if (m.getZoom() < BLDG_MIN_ZOOM) m.easeTo({ center: [98.3875, 7.8845], zoom: 16.3, pitch: 60, bearing: -25, duration: 1400 });
+      else if (m.getPitch() < 30) m.easeTo({ pitch: 55, duration: 700 });
+    } else if (!p.overlays.height3d && !p.overlays.bldg3d && (was.height3d || was.bldg3d)) {
+      m.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+    }
   }, [ready, p.overlays]);
+  const prevOverlays = useRef(p.overlays);
+
+  // building-by-building 3D: load the tiles in view after each move while the layer is on
+  const bldgLoader = useRef<BuildingLoader | null>(null);
+  const bldgOn = !!p.overlays.bldg3d;
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m || !bldgOn) return;
+    if (!bldgLoader.current)
+      bldgLoader.current = new BuildingLoader(
+        (fc) => (m.getSource("ov-bldg3d") as GeoJSONSource | undefined)?.setData(fc),
+        (s) => latest.current.onBldgStatus?.(s),
+      );
+    const update = () => {
+      const zoomOk = m.getZoom() >= BLDG_MIN_ZOOM;
+      const b = m.getBounds();
+      const c = m.getCenter();
+      bldgLoader.current!.show(zoomOk ? tilesFor({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }, [c.lng, c.lat]) : [], zoomOk);
+    };
+    update();
+    m.on("moveend", update);
+    return () => { m.off("moveend", update); };
+  }, [ready, bldgOn]);
 
   // travel layer: colour by the chosen destination
   useEffect(() => {

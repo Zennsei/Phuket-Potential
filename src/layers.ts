@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "terrain" | "buildings" | "population" | "land" | "travel" | "height3d" | "roads" | "pois";
+export type OverlayId = "landuse" | "terrain" | "buildings" | "population" | "land" | "travel" | "height3d" | "bldg3d" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -70,6 +70,15 @@ export const OVERLAYS: Overlay[] = [
     sourceTh: "GISTDA 2567", sourceEn: "GISTDA 2024", gistda: true,
     prop: "h_mean", breaks: [5, 6.5, 8, 10], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
     unitTh: "ม. สูงเฉลี่ย", unitEn: "m mean height", swatch: "#e08a45", attr: `อาคาร 3 มิติ: GISTDA (รูปอาคารจาก Global Building Atlas: ${OSM}, Google Open Buildings)`,
+  },
+  {
+    // loaded live from the GISTDA API Gateway while zoomed in (src/buildings3d.ts); team only (VITE_GISTDA_IMAGERY=1)
+    id: "bldg3d", file: "",
+    th: "อาคาร 3 มิติรายหลัง (ซูมใกล้)", en: "3D buildings, one by one (zoom in)",
+    sourceTh: "GISTDA API 2567", sourceEn: "GISTDA API 2024", gistda: true,
+    prop: "h", breaks: [6, 12, 20, 40], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
+    unitTh: "ม. (ความสูง)", unitEn: "m (height)", swatch: "#c4512e",
+    attr: `อาคารรายหลัง: GISTDA API Gateway 2567 · ใช้ภายในทีม (รูปอาคารจาก Global Building Atlas: ${OSM}, Google Open Buildings · ความสูงจากแบบจำลอง)`,
   },
   {
     id: "roads", file: "data/roads_main.geojson",
