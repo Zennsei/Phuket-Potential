@@ -1,7 +1,7 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 
-const EASE = "cubic-bezier(0.2, 0.7, 0.2, 1)";
+const EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
 /** taller sections take a little longer, so the speed looks the same */
 const duration = (px: number) => Math.round(Math.min(320, Math.max(160, 120 + px * 0.3)));
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -24,13 +24,16 @@ export default function Fold({ title, hint, open = false, children }: { title: R
     el.style.overflow = "hidden";
     const a = el.animate(
       [{ height: `${from}px`, opacity: from === 0 ? 0 : 1 }, { height: `${to}px`, opacity: to === 0 ? 0 : 1 }],
-      { duration: duration(Math.abs(to - from)), easing: EASE },
+      // "forwards" keeps the last frame (height 0) until the section has really closed; without it the
+      // full body showed again for one frame before disappearing (the flicker seen when closing)
+      { duration: duration(Math.abs(to - from)), easing: EASE, fill: "forwards" },
     );
     anim.current = a;
     a.onfinish = () => {
+      done?.();                 // closing: flushSync closes the <details> now, in this same frame
+      a.cancel();               // then drop the held frame; the section is already closed or fully open
       el.style.overflow = "";
-      anim.current = null;
-      done?.();
+      if (anim.current === a) anim.current = null;
     };
     a.oncancel = () => { el.style.overflow = ""; };
   };
@@ -56,7 +59,7 @@ export default function Fold({ title, hint, open = false, children }: { title: R
       closing.current = true;
       run(el, from, 0, () => {
         closing.current = false;
-        setOpen(false);
+        flushSync(() => setOpen(false));
       });
     }
   };
