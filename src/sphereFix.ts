@@ -5,7 +5,9 @@
  * tile with an almost empty picture: background colour and maybe a land-cover edge, but none of the roads that
  * the next tile up still shows. The street map's tiles therefore go through this "spherefix://" protocol:
  * a tile from zoom 15 up with almost no detail is compared with the same spot in the tile one and two levels up,
- * and when that one clearly has more detail, the matching quarter of it is enlarged and used instead.
+ * and the matching part of that tile is enlarged and used instead when it clearly has more detail, or when the
+ * empty tile is one flat colour and the tile above shows a different one there (a forest or a lake drawn above,
+ * plain background below: the team saw these as pale patches, colour 237,245,245, in forests and lakes).
  * Tiles with detail, and all tiles below zoom 15, are passed on untouched. Ancestor tiles are fetched once and kept.
  */
 import * as maplibregl from "maplibre-gl";
@@ -17,6 +19,10 @@ const S = 128;
 const EDGE = 8;
 /** a tile with fewer edges than this share of neighbouring pixel pairs is "almost empty" */
 const EMPTY = 0.01;
+/** a flat tile: brightness spread (standard deviation, 0–255) below this */
+const FLAT = 4;
+/** colours further apart than this (RGB distance) count as "a different colour" */
+const OTHER_COLOUR = 18;
 const MIN_Z = 15;
 const LEVELS_UP = 2;
 
@@ -28,13 +34,21 @@ function canvas(w: number, h: number): { c: OffscreenCanvas | HTMLCanvasElement;
   return { c, ctx };
 }
 
-/** share of neighbouring pixel pairs that differ by more than EDGE, for a region of an image drawn at S × S */
-function detail(img: ImageBitmap, sx: number, sy: number, sw: number, sh: number): number {
+interface Look { detail: number; spread: number; mean: [number, number, number] }
+
+/** for a region of an image drawn at S × S: share of neighbouring pixel pairs that differ by more than EDGE,
+ *  brightness spread, and mean colour */
+function look(img: ImageBitmap, sx: number, sy: number, sw: number, sh: number): Look {
   const { ctx } = canvas(S, S);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, S, S);
   const d = ctx.getImageData(0, 0, S, S).data;
   const lum = new Float32Array(S * S);
-  for (let i = 0; i < S * S; i++) lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  let r = 0, g = 0, b = 0, sum = 0, sq = 0;
+  for (let i = 0; i < S * S; i++) {
+    lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    r += d[i * 4]; g += d[i * 4 + 1]; b += d[i * 4 + 2]; sum += lum[i]; sq += lum[i] * lum[i];
+  }
+  const n = S * S, m = sum / n;
   let edges = 0;
   for (let y = 0; y < S; y++)
     for (let x = 0; x < S; x++) {
@@ -42,8 +56,10 @@ function detail(img: ImageBitmap, sx: number, sy: number, sw: number, sh: number
       if (x + 1 < S && Math.abs(v - lum[y * S + x + 1]) > EDGE) edges++;
       if (y + 1 < S && Math.abs(v - lum[(y + 1) * S + x]) > EDGE) edges++;
     }
-  return edges / (2 * S * (S - 1));
+  return { detail: edges / (2 * S * (S - 1)), spread: Math.sqrt(Math.max(0, sq / n - m * m)), mean: [r / n, g / n, b / n] };
 }
+
+const colourGap = (a: Look, b: Look) => Math.hypot(a.mean[0] - b.mean[0], a.mean[1] - b.mean[1], a.mean[2] - b.mean[2]);
 
 const kept = new Map<string, Promise<ImageBitmap | null>>();
 function ancestor(url: string): Promise<ImageBitmap | null> {
@@ -75,15 +91,17 @@ export function registerSphereFix() {
     const [z, x, y] = m.slice(1).map(Number);
     try {
       const img = await createImageBitmap(new Blob([buf]));
-      const own = detail(img, 0, 0, img.width, img.height);
-      if (own >= EMPTY) return { data: buf };
+      const own = look(img, 0, 0, img.width, img.height);
+      if (own.detail >= EMPTY) return { data: buf };
       for (let k = 1; k <= LEVELS_UP; k++) {
         const f = 2 ** k, ax = x >> k, ay = y >> k;
         const anc = await ancestor(url.replace(`/${z}/${x}/${y}.png`, `/${z - k}/${ax}/${ay}.png`));
         if (!anc) continue;
         const sw = anc.width / f, sh = anc.height / f, sx = (x - ax * f) * sw, sy = (y - ay * f) * sh;
-        const d = detail(anc, sx, sy, sw, sh);
-        if (d >= EMPTY && d > own * 2) {
+        const up = look(anc, sx, sy, sw, sh);
+        const moreDetail = up.detail >= EMPTY && up.detail > own.detail * 2;
+        const flatButOtherColour = own.spread < FLAT && colourGap(own, up) > OTHER_COLOUR;
+        if (moreDetail || flatButOtherColour) {
           const { c, ctx } = canvas(img.width, img.height);
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(anc, sx, sy, sw, sh, 0, 0, img.width, img.height);
