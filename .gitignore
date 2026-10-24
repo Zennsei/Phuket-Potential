@@ -5,3 +5,4 @@ dist
 *.tsbuildinfo
 data-prep/out/
 raw-data/
+__pycache__/
