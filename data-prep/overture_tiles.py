@@ -12,123 +12,22 @@ Same tiles and rules as the GISTDA proxy (netlify/gistda-proxy.mjs + netlify/mvt
 Overture has a height for only 0.2 % and storeys for 1.8 % of Phuket buildings (24 Oct 2026): the map draws the
 others as 1-storey grey boxes.
 """
-import math, os, struct, sys
+import os, sys
 import numpy as np, pyarrow.parquet as pq, shapely
 
 SRC = sys.argv[1]
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "data", "bldg_overture")
 ZOOMS = (15, 16)
 LOD = {"min_area_m2": 100, "min_height_m": 12}
-EXTENT = 4096
+# footprints larger than this are mapping errors, not buildings (24 Oct 2026: a 106,384 m2 "house" and a 73,199 m2
+# outline near the old town drew as huge flat slabs); the largest real one, a mall, is about 40,000 m2
+MAX_AREA_M2 = 50_000
 SHORT = {"OpenStreetMap": "OSM", "Google Open Buildings": "Google", "Microsoft ML Buildings": "Microsoft"}
 
 
-# ---------- minimal MVT writer (same rules as netlify/mvt.mjs) ----------
-def varint(v):
-    out = bytearray()
-    while v > 0x7F:
-        out.append((v & 0x7F) | 0x80)
-        v >>= 7
-    out.append(v)
-    return bytes(out)
-
-
-def key(field, wire):
-    return varint(field * 8 + wire)
-
-
-def msg(field, payload):
-    return key(field, 2) + varint(len(payload)) + payload
-
-
-def packed(field, values):
-    return msg(field, b"".join(varint(v) for v in values))
-
-
-def zz(n):
-    return (n << 1) ^ (n >> 31)
-
-
-def project(lon, lat, z, x, y):
-    n = 2 ** z
-    s = np.sin(np.radians(lat))
-    px = ((lon + 180) / 360 * n - x) * EXTENT
-    py = ((0.5 - np.log((1 + s) / (1 - s)) / (4 * np.pi)) * n - y) * EXTENT
-    return np.rint(px).astype(np.int64), np.rint(py).astype(np.int64)
-
-
-def ring_cmds(coords, z, x, y, exterior, cursor):
-    px, py = project(coords[:, 0], coords[:, 1], z, x, y)
-    pts = []
-    for a, b in zip(px.tolist(), py.tolist()):
-        if not pts or pts[-1] != (a, b):
-            pts.append((a, b))
-    if len(pts) > 1 and pts[0] == pts[-1]:
-        pts.pop()
-    if len(pts) < 3:
-        return []
-    area = sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts)))
-    if area == 0:
-        return []
-    if (area > 0) != exterior:
-        pts.reverse()
-    cx, cy = cursor
-    cmd = [9, zz(pts[0][0] - cx), zz(pts[0][1] - cy)]
-    cx, cy = pts[0]
-    cmd.append(2 | ((len(pts) - 1) << 3))
-    for a, b in pts[1:]:
-        cmd += [zz(a - cx), zz(b - cy)]
-        cx, cy = a, b
-    cmd.append(15)
-    cursor[:] = [cx, cy]
-    return cmd
-
-
-def encode_tile(features, z, x, y):
-    keys, kidx, vals, vidx, feats = [], {}, [], {}, []
-    for geom, props in features:
-        cursor, cmd = [0, 0], []
-        polys = geom.geoms if geom.geom_type == "MultiPolygon" else [geom]
-        for p in polys:
-            cmd += ring_cmds(np.asarray(p.exterior.coords), z, x, y, True, cursor)
-            for hole in p.interiors:
-                cmd += ring_cmds(np.asarray(hole.coords), z, x, y, False, cursor)
-        if not cmd:
-            continue
-        tags = []
-        for k, v in props.items():
-            if v is None:
-                continue
-            if k not in kidx:
-                kidx[k] = len(keys); keys.append(k)
-            vk = (type(v).__name__, v)
-            if vk not in vidx:
-                vidx[vk] = len(vals); vals.append(v)
-            tags += [kidx[k], vidx[vk]]
-        feats.append(msg(2, (packed(2, tags) if tags else b"") + key(3, 0) + varint(3) + packed(4, cmd)))
-    if not feats:
-        return b""
-    layer = key(15, 0) + varint(2) + msg(1, b"buildings") + b"".join(feats)
-    layer += b"".join(msg(3, k.encode()) for k in keys)
-    for v in vals:
-        if isinstance(v, str):
-            layer += msg(4, msg(1, v.encode()))
-        elif isinstance(v, int) and v >= 0:
-            layer += msg(4, key(5, 0) + varint(v))
-        else:
-            layer += msg(4, key(2, 5) + struct.pack("<f", float(v)))
-    layer += key(5, 0) + varint(EXTENT)
-    return msg(3, layer)
-
-
-# ---------- buildings ----------
-def lon2x(lon, z):
-    return np.floor((np.asarray(lon) + 180) / 360 * 2 ** z).astype(int)
-
-
-def lat2y(lat, z):
-    r = np.radians(np.asarray(lat))
-    return np.floor((1 - np.log(np.tan(r) + 1 / np.cos(r)) / np.pi) / 2 * 2 ** z).astype(int)
+# the MVT writer is shared with roads_tiles.py (data-prep/mvt.py, same rules as netlify/mvt.mjs)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mvt import encode_tile, lat2y, lon2x  # noqa: E402
 
 
 t = pq.read_table(SRC, columns=["geometry", "height", "num_floors", "sources"])
@@ -137,12 +36,13 @@ height = t.column("height").to_pylist()
 floors = t.column("num_floors").to_pylist()
 srcs = [SHORT.get(s[0]["dataset"], s[0]["dataset"]) if s else None for s in t.column("sources").to_pylist()]
 keep = np.array([g is not None and g.geom_type in ("Polygon", "MultiPolygon") and not g.is_empty for g in geoms])
-print(f"{len(geoms)} buildings, {keep.sum()} polygons")
 
 cent = shapely.centroid(geoms)
 clon, clat = shapely.get_x(cent), shapely.get_y(cent)
 kx = 111320 * np.cos(np.radians(clat))
 area = shapely.area(geoms) * kx * 110540          # degrees² -> m² near each building
+keep &= area <= MAX_AREA_M2
+print(f"{len(geoms)} buildings, {keep.sum()} drawn ({int((area > MAX_AREA_M2).sum())} over {MAX_AREA_M2:,} m² left out)")
 b = shapely.bounds(geoms)                           # minx, miny, maxx, maxy
 
 props = []
@@ -163,7 +63,7 @@ for z in ZOOMS:
             for ty in range(y0[i], y1[i] + 1):
                 tiles.setdefault((tx, ty), []).append((geoms[i], {**props[i], "o": int(tx == ox[i] and ty == oy[i])}))
     for (tx, ty), feats in tiles.items():
-        data = encode_tile(feats, z, tx, ty)
+        data = encode_tile(feats, z, tx, ty, "buildings")
         if not data:
             continue
         d = os.path.join(OUT, str(z), str(tx))

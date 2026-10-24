@@ -59,6 +59,8 @@ function tileBounds(z, x, y) {
 export const BUILDING_TILE_ZOOMS = [15, 16];
 /** zoom 15 keeps buildings with a footprint of at least 100 m² or at least 12 m tall: about 47 % of buildings, 84 % of roof area */
 export const BUILDING_LOD = { minAreaM2: 100, minHeightM: 12 };
+/** footprints larger than this are mapping errors (whole compounds drawn as one "building"), not drawn */
+const BUILDING_MAX_AREA_M2 = 50_000;
 const BUILDINGS_PATH = "/features/thailand-buildings-footprint/items";
 const BUILDING_PAGE = 1000;
 const BUILDING_MAX_PAGES = { 15: 10, 16: 5 };
@@ -160,6 +162,7 @@ export function buildingsTile(apiFeatures, t) {
     if (!polygons[0] || !polygons[0][0] || polygons[0][0].length < 4) continue;
     const h = Number(p.BL_HEIGHT), s = Number(p.BL_NSTOREY);
     const c = areaAndCentre(polygons);
+    if (c.area > BUILDING_MAX_AREA_M2) continue;
     if (t.z < 16 && !(c.area >= BUILDING_LOD.minAreaM2 || h >= BUILDING_LOD.minHeightM)) continue;
     const own = c.lon >= t.west && c.lon < t.east && c.lat > t.south && c.lat <= t.north ? 1 : 0;
     out.push({ polygons, props: { h: Number.isFinite(h) ? Math.round(h * 10) / 10 : null, s: Number.isInteger(s) && s >= 0 ? s : null, o: own } });

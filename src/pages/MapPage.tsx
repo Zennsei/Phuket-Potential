@@ -25,7 +25,7 @@ const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
   // "bldg3d": Overture for everyone, GISTDA (live API) only for the team (VITE_GISTDA_IMAGERY=1), see src/buildings3d.ts
   { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d", "bldg3d"] },
   { th: "ประชากร", en: "People", ids: ["population"] },
-  { th: "การเดินทาง", en: "Getting around", ids: ["travel", "roads", "pois"] },
+  { th: "การเดินทาง", en: "Getting around", ids: ["travel", "streets", "roads", "pois"] },
   { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
 ];
 
@@ -34,7 +34,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, streets: true, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   // GISTDA yearly imagery: the slider moves `imgIdx` at once, the picture follows when the slider rests (each new picture costs credits)
   const [imgLayer, setImgLayer] = useState(DEFAULT_IMAGERY);

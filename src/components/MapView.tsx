@@ -6,6 +6,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { Basemap } from "../sphere";
 import { resolveBasemap } from "../gistda";
+import { registerSphereFix } from "../sphereFix";
 import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OUTLINE_COLOR, bldgSourceSpec, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
@@ -62,6 +63,20 @@ export interface MapViewport {
 }
 
 maplibregl.setWorkerUrl(workerUrl);
+registerSphereFix();
+
+/** classes in data/roads_all (data-prep/roads_tiles.py): fill colour and width (px) at zoom 14 and 18 */
+const STREET_STYLE: Record<string, { fill: string; w14: number; w18: number }> = {
+  major: { fill: "#fbe3a6", w14: 3, w18: 14 },
+  tertiary: { fill: "#fff2cc", w14: 2.4, w18: 11 },
+  minor: { fill: "#ffffff", w14: 1.6, w18: 8 },
+  service: { fill: "#ffffff", w14: 0.9, w18: 4.5 },
+};
+const streetWidth = (extra: number): maplibregl.ExpressionSpecification => [
+  "interpolate", ["exponential", 1.6], ["zoom"],
+  14, ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.w14 + extra]), 1],
+  18, ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.w18 + extra]), 3],
+] as unknown as maplibregl.ExpressionSpecification;
 
 const BEFORE_BASE = "overlay-landuse";
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -138,7 +153,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "bldg3d").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
+      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "bldg3d" && o.id !== "streets").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
@@ -169,6 +184,21 @@ export default function MapView(p: Props) {
       m.addLayer({ id: "tambon-line", type: "line", source: "tambons", paint: { "line-color": "#ffffff", "line-width": 1 } });
       m.addLayer({ id: "tambon-sel", type: "line", source: "tambons", filter: ["==", ["get", "id"], ""], paint: { "line-color": "#b0186e", "line-width": 3 } });
 
+      // every OSM road as vector tiles from zoom 14 (one tile level, enlarged for closer zooms): casing, then fill
+      m.addSource("streets", {
+        type: "vector", tiles: [`${new URL("data/", document.baseURI).href}roads_all/{z}/{x}/{y}.pbf`],
+        minzoom: 14, maxzoom: 14, bounds: [98.2, 7.55, 98.55, 8.25], attribution: OVERLAYS.find((o) => o.id === "streets")!.attr,
+      });
+      const fade: maplibregl.ExpressionSpecification = ["interpolate", ["linear"], ["zoom"], 14, 0, 14.4, 1];
+      m.addLayer({ id: "streets-track", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["==", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round" },
+        paint: { "line-color": "#a07a4a", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.8, 18, 2.5], "line-dasharray": [2, 1.5], "line-opacity": fade } });
+      m.addLayer({ id: "streets-casing", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["!=", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#9aa6a4", "line-width": streetWidth(1.6), "line-opacity": fade } });
+      m.addLayer({ id: "streets-fill", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["!=", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.fill]), "#ffffff"] as unknown as maplibregl.ExpressionSpecification, "line-width": streetWidth(0), "line-opacity": fade } });
       m.addLayer({ id: "overlay-roads", type: "line", source: "ov-roads", layout: { visibility: "none", "line-cap": "round" },
         paint: {
           // topographic-map road colours: they stay readable over the blue score colours
@@ -237,6 +267,12 @@ export default function MapView(p: Props) {
           const name = [road.name, road.ref ? `(${road.ref})` : ""].filter(Boolean).join(" ") || (th ? "ไม่มีชื่อ" : "unnamed");
           row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
+        const st = !road ? first("streets-fill", box) ?? first("streets-track", box) : undefined;
+        if (st) {
+          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนท้องถิ่น", "local road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
+          const c = cls[String(st.c)] ?? [String(st.c), String(st.c)];
+          row(label("streets"), `<b>${escapeHtml(String(st.n ?? (th ? "ไม่มีชื่อใน OSM" : "no name in OSM")))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
+        }
         const b = first("overlay-buildings");
         if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings, roofs cover ${b.cover}% of the cell`);
         const pop = first("overlay-population");
@@ -280,7 +316,7 @@ export default function MapView(p: Props) {
         });
       });
       m.on("mousemove", (e) => {
-        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`), ...BLDG_SOURCES.map((s) => `bldg-${s}-3d`)].filter((l) => m.getLayer(l));
+        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`), ...BLDG_SOURCES.map((s) => `bldg-${s}-3d`), "streets-fill"].filter((l) => m.getLayer(l));
         const hit = m.queryRenderedFeatures(e.point, { layers }).length > 0;
         m.getCanvas().style.cursor = hit ? "pointer" : "";
       });
@@ -338,6 +374,10 @@ export default function MapView(p: Props) {
     for (const o of OVERLAYS) {
       const on = p.overlays[o.id];
       if (o.id === "bldg3d") continue; // its layers are set by the building effect below
+      if (o.id === "streets") {
+        for (const l of ["streets-track", "streets-casing", "streets-fill"]) m.setLayoutProperty(l, "visibility", on ? "visible" : "none");
+        continue;
+      }
       if (o.id === "terrain") {
         if (on && !loaded.current.has("terrain")) {
           loaded.current.add("terrain");
