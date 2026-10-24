@@ -39,6 +39,9 @@ export interface FactorDef {
   higherIsBetter: boolean;
   sourceTh: string;
   sourceEn: string;
+  /** how the raw value is worked out, in plain words (shown on the method page) */
+  howTh: string;
+  howEn: string;
   gistda?: boolean;
   color: string;
 }
@@ -51,9 +54,11 @@ export const FACTORS: FactorDef[] = [
     unitTh: "หลัง/ตร.กม.",
     unitEn: "bldg/km²",
     value: (p, s) => (s?.measure === "floor" ? p.floor_to_land_pct : p.bldg_per_km2),
+    howTh: "จำนวนอาคาร ÷ พื้นที่ตำบล (หรือเลือกใช้พื้นที่ใช้สอยรวมของอาคารปี 2567 ÷ พื้นที่ตำบล)",
+    howEn: "Number of buildings ÷ sub-district area (or, as an option, total floor area of the 2024 buildings ÷ area)",
     higherIsBetter: true,
-    sourceTh: "ข้อมูลรูปแปลงอาคาร GISTDA (2565)",
-    sourceEn: "GISTDA building footprints (2022)",
+    sourceTh: "ข้อมูลรูปแปลงอาคาร GISTDA (2565) หรืออาคารพร้อมความสูง GISTDA API Gateway (2567)",
+    sourceEn: "GISTDA building footprints (2022) or GISTDA API Gateway buildings with height (2024)",
     gistda: true,
     color: "#c4512e",
   },
@@ -64,6 +69,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "ม. (ค่ากลาง จากอาคารถึงถนน)",
     unitEn: "m (median, building → road)",
     value: (p) => p.road_dist_m,
+    howTh: "ระยะจากอาคารทุกหลังถึงถนนสายหลักที่ใกล้สุด แล้วใช้ค่ากลางของตำบล",
+    howEn: "Distance from every building to the nearest main road, then the sub-district median",
     higherIsBetter: false,
     sourceTh: "OpenStreetMap (ต.ค. 2569)",
     sourceEn: "OpenStreetMap (Oct 2026)",
@@ -76,6 +83,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "แห่ง/ตร.กม.",
     unitEn: "places/km²",
     value: (p) => p.services_per_km2,
+    howTh: "จำนวนโรงเรียน สถานพยาบาล ตลาด ร้านค้า ธนาคาร หน่วยงานรัฐ และจุดคมนาคม ÷ พื้นที่ตำบล",
+    howEn: "Schools, health places, markets, shops, banks, government offices and transport stops ÷ sub-district area",
     higherIsBetter: true,
     sourceTh: "OpenStreetMap (ต.ค. 2569)",
     sourceEn: "OpenStreetMap (Oct 2026)",
@@ -88,6 +97,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "คน/ตร.กม.",
     unitEn: "people/km²",
     value: (p) => p.pop_per_km2,
+    howTh: "รวมคนในช่องหกเหลี่ยมที่อยู่ในตำบล ÷ พื้นที่ตำบล",
+    howEn: "People in the hexagon cells inside the sub-district ÷ its area",
     higherIsBetter: true,
     sourceTh: "Kontur Population (พ.ย. 2566)",
     sourceEn: "Kontur Population (Nov 2023)",
@@ -100,6 +111,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "บาท/ตร.ว. (ค่ากลาง)",
     unitEn: "THB/sq.wah (median)",
     value: (p) => p.land_median,
+    howTh: "หาตำแหน่งแปลงจากเลขระวางแผนที่ แล้วใช้ราคากลางของแปลงในตำบล",
+    howEn: "Parcels placed by their map-sheet number, then the median price of the parcels in the sub-district",
     higherIsBetter: true,
     sourceTh: "กรมธนารักษ์ รอบบัญชี 2566–2569 ผ่าน data.go.th",
     sourceEn: "Treasury Dept., 2023–2026 round, via data.go.th",
@@ -112,6 +125,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "% ของพื้นที่ (เกษตร + เบ็ดเตล็ด)",
     unitEn: "% of land (agriculture + misc.)",
     value: (p, s) => developableOf(p, s),
+    howTh: "พื้นที่เกษตร + เบ็ดเตล็ดที่ชันน้อยกว่า 20% และต่ำกว่า 80 ม. ÷ พื้นที่บก",
+    howEn: "Farm and miscellaneous land with slope under 20 % and below 80 m ÷ land area",
     higherIsBetter: true,
     sourceTh: "การใช้ที่ดิน กรมพัฒนาที่ดิน ปี 2563 + ความสูงและความชันจาก Copernicus DEM",
     sourceEn: "LDD land use 2020 + height and slope from the Copernicus DEM",
@@ -124,6 +139,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "% เพิ่มขึ้น 2559–2568",
     unitEn: "% change 2016–2025",
     value: (p) => p.house_growth_pct,
+    howTh: "(บ้านปี 2568 ÷ บ้านปี 2559 − 1) × 100",
+    howEn: "(houses in 2025 ÷ houses in 2016 − 1) × 100",
     higherIsBetter: true,
     sourceTh: "ทะเบียนราษฎร์ กรมการปกครอง 2559, 2568",
     sourceEn: "DOPA civil registry 2016, 2025",
@@ -136,6 +153,8 @@ export const FACTORS: FactorDef[] = [
     unitTh: "นาที (ค่ากลาง จากอาคารถึงปลายทาง)",
     unitEn: "min (median, building → destination)",
     value: (p, s) => travelMinutes(p, s?.dest),
+    howTh: "เวลาขับรถตามถนนจากอาคารทุกหลังถึงปลายทางที่ใกล้สุด แล้วใช้ค่ากลางของตำบล",
+    howEn: "Driving time along roads from every building to the nearest destination, then the sub-district median",
     higherIsBetter: false,
     sourceTh: "โครงข่ายถนน OpenStreetMap (ต.ค. 2569) + อาคาร GISTDA",
     sourceEn: "OpenStreetMap road network (Oct 2026) + GISTDA buildings",

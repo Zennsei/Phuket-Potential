@@ -10,7 +10,7 @@ interface Census {
 
 const AMPHOE_EN: Record<string, string> = { เมืองภูเก็ต: "Mueang Phuket", กะทู้: "Kathu", ถลาง: "Thalang", รวม: "Whole province" };
 
-type Status = "used" | "ready" | "idea";
+type Status = "used" | "built" | "ready" | "none";
 
 export default function Vision() {
   const { t, num } = useI18n();
@@ -21,21 +21,26 @@ export default function Vision() {
 
   const statusLabel: Record<Status, [string, string, string]> = {
     used: ["ใช้แล้วในเว็บนี้", "In use", "var(--ok)"],
+    built: ["ทำแล้ว รออนุญาตเผยแพร่", "Built, awaiting permission", "var(--warn)"],
     ready: ["มีบริการแล้ว พร้อมต่อยอด", "Service exists, ready to add", "var(--sea)"],
-    idea: ["แนวคิด", "Idea", "var(--muted)"],
+    none: ["ไม่มีข้อมูลภูเก็ต", "No Phuket data", "var(--muted)"],
   };
   const Pill = ({ s }: { s: Status }) => (
-    <span className="pill" style={{ color: statusLabel[s][2] }}>{t(statusLabel[s][0], statusLabel[s][1])}</span>
+    <span className="pill wrap" style={{ color: statusLabel[s][2] }}>{t(statusLabel[s][0], statusLabel[s][1])}</span>
   );
 
   const gistda: { s: Status; th: string; en: string; dth: string; den: string }[] = [
     { s: "used", th: "รูปแปลงอาคาร GISTDA (2565)", en: "GISTDA building footprints (2022)", dth: "ปัจจัยความหนาแน่นอาคาร 130,403 หลัง", den: "Building-density factor, 130,403 buildings" },
+    { s: "used", th: "อาคารพร้อมความสูง GISTDA 2567 (API Gateway)", en: "GISTDA buildings with height, 2024 (API Gateway)", dth: "ตัวเลือก \"พื้นที่ใช้สอยต่อพื้นที่ดิน\" ของปัจจัยอาคาร และชั้นอาคาร 3 มิติช่อง 500 ม. วัดการพัฒนาในแนวดิ่ง ไม่ใช่แค่จำนวนหลัง (239,992 หลัง)", den: "The \"floor area per land area\" option of the building factor and the 500 m 3D layer: measure vertical growth, not just building counts (239,992 buildings)" },
     { s: "used", th: "Sphere: แผนที่ ภาพดาวเทียม ค้นหา ที่อยู่ สถานที่ใกล้เคียง", en: "Sphere: map, imagery, search, address, nearby places", dth: "ใช้แบบสดในหน้าแผนที่", den: "Used live on the map page" },
-    { s: "ready", th: "ภาพ THEOS-2 ความละเอียดสูง", en: "High-resolution THEOS-2 imagery", dth: "ตรวจจับอาคารใหม่ทุกปี แล้วใช้แทนข้อมูลอาคารปี 2565 จะได้ปัจจัย \"อัตราการขยายตัวของเมือง\" ที่เป็นปัจจุบัน", den: "Detect new buildings every year to replace the 2022 layer, giving a current \"urban expansion rate\" factor" },
-    { s: "ready", th: "ภาพถ่ายดาวเทียม ปี 2515–2568 (GISTDA API Gateway)", en: "Satellite imagery 1972–2025 (GISTDA API Gateway)", dth: "ตัวเลื่อนปีและเทียบ 2 ปีแบบเลื่อนเส้นแบ่ง ดูภูเก็ตเปลี่ยนไปอย่างไรในรอบ 50 ปี (ทำแล้ว ใช้ภายในทีม รอ GISTDA อนุญาตให้เผยแพร่)", den: "A year slider and a two-year swipe comparison showing how Phuket changed over 50 years (built; team-only until GISTDA allows publishing)" },
-    { s: "ready", th: "อาคาร 3 มิติรายหลัง (GISTDA API Gateway)", en: "3D buildings one by one (GISTDA API Gateway)", dth: "ความสูงและพื้นที่ใช้สอยของอาคาร วัดการพัฒนาในแนวดิ่ง ไม่ใช่แค่จำนวนหลัง (ทำแล้วเมื่อซูมใกล้ ใช้ภายในทีม รออนุญาต)", den: "Building height and floor area: measure vertical development, not just building counts (built for close zoom; team-only until permission)" },
-    { s: "ready", th: "GI Basemap (GISTDA API Gateway)", en: "GI Basemap (GISTDA API Gateway)", dth: "ภาพดาวเทียมพื้นหลังอีกชุด สลับเทียบกับ Sphere ได้ (ทำแล้ว ใช้ภายในทีม รออนุญาต)", den: "Another satellite base map to compare with Sphere (built; team-only until permission)" },
+    { s: "built", th: "ภาพถ่ายดาวเทียม ปี 2515–2568 (GISTDA API Gateway)", en: "Satellite imagery 1972–2025 (GISTDA API Gateway)", dth: "ตัวเลื่อนปีและเทียบ 2 ปีแบบเลื่อนเส้นแบ่ง ดูภูเก็ตเปลี่ยนไปอย่างไรในรอบ 50 ปี ใช้ภายในทีมไปก่อน ทดสอบแล้วได้ภาพภูเก็ตครบ 45 ชั้น ภาพรายปีตั้งแต่ปี 2533 ชัดและแทบไม่มีเมฆ", den: "A year slider and a two-year swipe comparison showing how Phuket changed over 50 years, team-only for now. All 45 layers cover Phuket; the yearly images from 1990 on are clear with little cloud" },
+    { s: "built", th: "อาคาร 3 มิติรายหลัง (GISTDA API Gateway)", en: "3D buildings one by one (GISTDA API Gateway)", dth: "แสดงความสูงรายหลังเมื่อซูมใกล้ พร้อมเส้นขอบอาคาร Overture ซ้อนเทียบตำแหน่ง (90% ของอาคารมีอาคาร Overture ห่างไม่เกิน 10 ม.)", den: "Each building's height when zoomed in, with Overture outlines on top to check positions (90 % have an Overture building within 10 m)" },
+    { s: "built", th: "GI Basemap (GISTDA API Gateway)", en: "GI Basemap (GISTDA API Gateway)", dth: "ภาพดาวเทียมพื้นหลังอีกชุด สลับเทียบกับ Sphere ได้ คมชัดตั้งแต่ซูม 13", den: "Another satellite base map to compare with Sphere, sharp from zoom 13" },
+    { s: "ready", th: "ภาพ THEOS-2 ความละเอียดสูง", en: "High-resolution THEOS-2 imagery", dth: "ตรวจจับอาคารใหม่ทุกปี แล้วใช้แทนข้อมูลอาคารปี 2565 จะได้ปัจจัย \"อัตราการขยายตัวของเมือง\" ที่เป็นปัจจุบัน (ต้องขอหรือซื้อภาพภูเก็ตจาก GISTDA)", den: "Detect new buildings every year to replace the 2022 layer, giving a current \"urban expansion rate\" factor (Phuket images must be requested or bought from GISTDA)" },
+    { s: "ready", th: "พื้นที่เปลี่ยนแปลงรายปี (Landtrendr, GISTDA API Gateway)", en: "Year of land change (Landtrendr, GISTDA API Gateway)", dth: "สีบอกปีที่พื้นที่เปลี่ยน ช่วยหาบริเวณที่เมืองขยายโดยไม่ต้องรอการใช้ที่ดินปีอื่น ทดสอบแล้วได้ภาพภูเก็ต ต้องหาคำอธิบายสีก่อนใช้", den: "Colours show the year the land changed, to find where the town spread without waiting for more land-use years. Works for Phuket; the colour key is still needed" },
     { s: "ready", th: "Sphere Route API", en: "Sphere Route API", dth: "เวลาเดินทางจริงไปสนามบินและตัวเมือง แทนระยะเส้นตรงถึงถนน", den: "Real travel time to the airport and town instead of straight-line distance to a road" },
+    { s: "none", th: "พื้นที่น้ำท่วมซ้ำซาก (GISTDA)", en: "Recurrent flood areas (GISTDA)", dth: "ทดสอบ 33 จุดทั่วเกาะ บริการตอบว่าไม่พบข้อมูล จึงยังใช้เป็นปัจจัยความเสี่ยงไม่ได้", den: "33 points tested across the island and the service found no records, so it cannot be a risk factor yet" },
+    { s: "none", th: "ภาพ PLEIADES และเกาะความร้อน (UHI)", en: "PLEIADES imagery and urban heat islands (UHI)", dth: "PLEIADES มี 21 ชุดแต่ไม่มีชุดไหนครอบคลุมภูเก็ต · UHI ไม่มีข้อมูลที่ภูเก็ต", den: "21 PLEIADES collections, none over Phuket · no UHI data for Phuket" },
   ];
 
   const uses: { th: string; en: string; dth: string; den: string }[] = [
@@ -103,6 +108,11 @@ export default function Vision() {
             </tbody>
           </table>
         </div>
+        <p className="small muted" style={{ marginTop: 8 }}>
+          {t("ทีมทดสอบบริการของ GISTDA API Gateway 3 รอบ (23–24 ต.ค. 2569 รวมประมาณ 120 คำขอ) ว่าบริการไหนมีข้อมูลภูเก็ต รายละเอียดอยู่ในหน้า",
+             "The team tested GISTDA API Gateway services in 3 rounds (23–24 Oct 2026, about 120 requests) to see which have Phuket data. Details are on the")}{" "}
+          <a href={href("method")}>{t("วิธีคิดและแหล่งข้อมูล", "Method & data page")}</a>
+        </p>
       </section>
 
       <section>
@@ -115,9 +125,11 @@ export default function Vision() {
       </section>
 
       <section className="prose">
-        <h2>{t("ข้อมูลที่กำลังรอ", "Data on the way")}</h2>
+        <h2>{t("ข้อมูลและสิทธิ์ที่กำลังรอ", "Data and permissions on the way")}</h2>
         <p>• {t("การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอแล้ว) เทียบกับปี 2563 ดูว่าพื้นที่เมืองขยายตรงไหนในรอบ 10 ปี", "LDD land use 2009 and 2016 (requested): compared with 2020 to show where built-up land spread over 10 years")}</p>
         <p>• {t("ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) ใช้ตัดพื้นที่ที่กฎหมายไม่ให้พัฒนาออกจากที่ดินที่ยังพัฒนาได้", "Phuket comprehensive plan zoning: removes legally restricted land from the developable-land factor")}</p>
+        <p>• {t("สิทธิ์เผยแพร่ภาพดาวเทียมรายปี GI Basemap และอาคาร 3 มิติรายหลังจาก GISTDA API Gateway บนเว็บสาธารณะ (ภาพระบุ \"Copyrighted by GISTDA, Fees: Yes\")", "Permission to show GISTDA API Gateway yearly imagery, GI Basemap and per-building 3D on the public site (the images say \"Copyrighted by GISTDA, Fees: Yes\")")}</p>
+        <p>• {t("วิธีเข้าถึงภาพ THEOS-1 (ลิงก์ภาพชี้ไปอีกระบบที่ key ของทีมใช้ไม่ได้) และภาพ THEOS-2 ของภูเก็ต", "Access to THEOS-1 images (their links point to another system our key cannot use) and THEOS-2 images of Phuket")}</p>
       </section>
     </div>
   );
