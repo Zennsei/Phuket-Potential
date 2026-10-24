@@ -16,6 +16,8 @@
 
 `gistda_buildings_api.py` ดึงอาคารพร้อมความสูง ปี 2567 จาก GISTDA API Gateway รันบนเครื่องของทีมเท่านั้น (ต้องมี `GISTDA_API_KEY` ใน `.env`) ผลอยู่ใน `data-prep/out/` ซึ่งไม่ถูก commit
 
+`gistda_api_probe5.py` ทดสอบรอบห้า (8 คำขอ): ขอแผ่นเวกเตอร์ของชุดขอบเขตตำบลและประชากรใน Land feature collections แล้วถอดในตัว (ชื่อชั้น จำนวนรูป ช่องข้อมูล) ได้ `out/probe5/report.txt` ที่ลบ key แล้ว ส่วนไฟล์ `.pbf` เป็นข้อมูลของ GISTDA เก็บไว้ในเครื่อง ห้าม commit
+
 `gistda_api_probe4.py` ทดสอบรอบสี่ (ราว 25 คำขอ ไม่มีภาพ): หา path ที่ได้ข้อมูลรายการของ Land feature collections (รอบ 3 ได้ 404) โดยลองหลายทางและบันทึกคำตอบเต็มพร้อม header ได้ `out/probe4/report.txt` ที่ลบ key แล้ว · ตามลิงก์ที่ GISTDA ให้มาเฉพาะเมื่ออยู่บน api-gateway.gistda.or.th เท่านั้น key จึงไม่ถูกส่งไปที่อื่น
 
 `gistda_api_probe3.py` ทดสอบรอบสาม: ดึงภาพตัวอย่างของภูเก็ต (ภาพรายปี, Landtrendr, Hillshade, GI Basemap) และหา PLEIADES ที่ครอบภูเก็ต ภาพเป็นลิขสิทธิ์ GISTDA ใช้ประเมินเท่านั้น
