@@ -1,0 +1,17 @@
+GISTDA 2567 buildings: 239,992 · Overture 2026-09-23 buildings: 223,218
+Nearest Overture building centre to each GISTDA building centre:
+  within  0.5 m: 63.1%
+  within    1 m: 64.1%
+  within    2 m: 67.4%
+  within    5 m: 78.3%
+  within   10 m: 90.1%
+  within   20 m: 97.6%
+  none within 20 m: 2.4%
+Footprint area GISTDA / Overture for matches within 2 m: median 1.000, within ±10 %: 94.8%
+By GISTDA footprint source:
+  GBA_google: 163,709 buildings · within 2 m 53.7% · within 5 m 69.1%
+  GBA_osm: 76,283 buildings · within 2 m 96.9% · within 5 m 98.0%
+Pairs 2–20 m apart: 72,322 · mean offset east -0.01 m, north +0.48 m · median east +0.11 m, north +1.11 m
+  Overture footprint source for those pairs: Microsoft ML Buildings 53,528, Google Open Buildings 10,232, OpenStreetMap 8,562
+Reading: no shared offset (well under 1 m) -> no position error; the 2–20 m pairs are the same buildings
+drawn from different footprint datasets (mostly Google in GISTDA vs Microsoft in Overture).

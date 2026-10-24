@@ -6,7 +6,8 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { Basemap } from "../sphere";
 import { resolveBasemap } from "../gistda";
-import { BLDG_MIN_ZOOM, BuildingLoader, tilesFor, type BuildingStatus } from "../buildings3d";
+import { registerSphereFix } from "../sphereFix";
+import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OUTLINE_COLOR, bldgSourceSpec, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
@@ -38,6 +39,10 @@ interface Props {
   travelDest?: TravelDest;
   /** loading state of the building-by-building 3D layer */
   onBldgStatus?: (s: BuildingStatus) => void;
+  /** which buildings are drawn as 3D boxes */
+  bldgSource?: BldgSource;
+  /** also draw the other source's footprints as outlines (to compare positions) */
+  bldgOutline?: boolean;
   /** swipe comparison: this base map is shown right of the divider, `basemap` left of it */
   compare?: { basemap: string; leftLabel: string; rightLabel: string };
 }
@@ -58,6 +63,20 @@ export interface MapViewport {
 }
 
 maplibregl.setWorkerUrl(workerUrl);
+registerSphereFix();
+
+/** classes in data/roads_all (data-prep/roads_tiles.py): fill colour and width (px) at zoom 14 and 18 */
+const STREET_STYLE: Record<string, { fill: string; w14: number; w18: number }> = {
+  major: { fill: "#fbe3a6", w14: 3, w18: 14 },
+  tertiary: { fill: "#fff2cc", w14: 2.4, w18: 11 },
+  minor: { fill: "#ffffff", w14: 1.6, w18: 8 },
+  service: { fill: "#ffffff", w14: 0.9, w18: 4.5 },
+};
+const streetWidth = (extra: number): maplibregl.ExpressionSpecification => [
+  "interpolate", ["exponential", 1.6], ["zoom"],
+  14, ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.w14 + extra]), 1],
+  18, ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.w18 + extra]), 3],
+] as unknown as maplibregl.ExpressionSpecification;
 
 const BEFORE_BASE = "overlay-landuse";
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -134,7 +153,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.filter((o) => o.id !== "terrain").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
+      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "bldg3d" && o.id !== "streets").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
@@ -165,6 +184,21 @@ export default function MapView(p: Props) {
       m.addLayer({ id: "tambon-line", type: "line", source: "tambons", paint: { "line-color": "#ffffff", "line-width": 1 } });
       m.addLayer({ id: "tambon-sel", type: "line", source: "tambons", filter: ["==", ["get", "id"], ""], paint: { "line-color": "#b0186e", "line-width": 3 } });
 
+      // every OSM road as vector tiles from zoom 14 (one tile level, enlarged for closer zooms): casing, then fill
+      m.addSource("streets", {
+        type: "vector", tiles: [`${new URL("data/", document.baseURI).href}roads_all/{z}/{x}/{y}.pbf`],
+        minzoom: 14, maxzoom: 14, bounds: [98.2, 7.55, 98.55, 8.25], attribution: OVERLAYS.find((o) => o.id === "streets")!.attr,
+      });
+      const fade: maplibregl.ExpressionSpecification = ["interpolate", ["linear"], ["zoom"], 14, 0, 14.4, 1];
+      m.addLayer({ id: "streets-track", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["==", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round" },
+        paint: { "line-color": "#a07a4a", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.8, 18, 2.5], "line-dasharray": [2, 1.5], "line-opacity": fade } });
+      m.addLayer({ id: "streets-casing", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["!=", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#9aa6a4", "line-width": streetWidth(1.6), "line-opacity": fade } });
+      m.addLayer({ id: "streets-fill", type: "line", source: "streets", "source-layer": "roads", minzoom: 14, filter: ["!=", ["get", "c"], "track"],
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["match", ["get", "c"], ...Object.entries(STREET_STYLE).flatMap(([k, v]) => [k, v.fill]), "#ffffff"] as unknown as maplibregl.ExpressionSpecification, "line-width": streetWidth(0), "line-opacity": fade } });
       m.addLayer({ id: "overlay-roads", type: "line", source: "ov-roads", layout: { visibility: "none", "line-cap": "round" },
         paint: {
           // topographic-map road colours: they stay readable over the blue score colours
@@ -177,17 +211,24 @@ export default function MapView(p: Props) {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 14, 6],
           "circle-stroke-color": "#ffffff", "circle-stroke-width": 0.8,
         } });
-      {
-        // one box per building, drawn last so it stands above the flat layers
-        const o = OVERLAYS.find((x) => x.id === "bldg3d")!;
-        m.addLayer({ id: "overlay-bldg3d", type: "fill-extrusion", source: "ov-bldg3d", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
+      // one box per building (vector tiles, see src/buildings3d.ts), drawn last so it stands above the flat layers.
+      // A source loads nothing until one of its layers is shown.
+      for (const src of BLDG_SOURCES) {
+        m.addSource(`bldg-${src}`, bldgSourceSpec(src));
+        m.addLayer({ id: `bldg-${src}-3d`, type: "fill-extrusion", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM,
+          // o = 1: the tile that holds the building's centre, so a building on a tile edge is drawn once
+          filter: ["==", ["get", "o"], 1], layout: { visibility: "none" },
           paint: {
-            "fill-extrusion-color": ["case", ["==", ["get", "h"], null], "#d9d4c7", step(o.prop!, o.breaks!, o.ramp!)] as maplibregl.ExpressionSpecification,
-            "fill-extrusion-height": ["coalesce", ["get", "h"], 3],
+            "fill-extrusion-color": ["case", ["has", "h"], step("h", BLDG_BREAKS, BLDG_RAMP), BLDG_NO_HEIGHT] as maplibregl.ExpressionSpecification,
+            "fill-extrusion-height": ["coalesce", ["get", "h"], 3.5],
             "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.92,
+            // fade in instead of popping up at zoom 15
+            "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.4, 0.92],
           } });
       }
+      for (const src of BLDG_SOURCES)
+        m.addLayer({ id: `bldg-${src}-line`, type: "line", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
+          paint: { "line-color": OUTLINE_COLOR[src], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18, 2] } });
 
       // labels as HTML markers (no font server needed)
       markers.current = latest.current.tambons.features.map((f) => {
@@ -226,6 +267,12 @@ export default function MapView(p: Props) {
           const name = [road.name, road.ref ? `(${road.ref})` : ""].filter(Boolean).join(" ") || (th ? "ไม่มีชื่อ" : "unnamed");
           row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
+        const st = !road ? first("streets-fill", box) ?? first("streets-track", box) : undefined;
+        if (st) {
+          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนท้องถิ่น", "local road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
+          const c = cls[String(st.c)] ?? [String(st.c), String(st.c)];
+          row(label("streets"), `<b>${escapeHtml(String(st.n ?? (th ? "ไม่มีชื่อใน OSM" : "no name in OSM")))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
+        }
         const b = first("overlay-buildings");
         if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings, roofs cover ${b.cover}% of the cell`);
         const pop = first("overlay-population");
@@ -241,10 +288,16 @@ export default function MapView(p: Props) {
         if (h3) row(label("height3d"), th
           ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
           : `<b>${nf(Number(h3.n))}</b> buildings, mean height ${h3.h_mean} m (max ${h3.h_max} m), floor area ${h3.far_pct}% of the cell`);
-        const bl = first("overlay-bldg3d");
-        if (bl) row(label("bldg3d"), th
-          ? `สูง <b>${bl.h ?? "–"}</b> ม. · <b>${bl.s ?? "–"}</b> ชั้น <span class="pp-muted">(แบบจำลอง GISTDA 2567)</span>`
-          : `<b>${bl.h ?? "–"}</b> m tall · <b>${bl.s ?? "–"}</b> storeys <span class="pp-muted">(GISTDA model, 2024)</span>`);
+        for (const src of BLDG_SOURCES) {
+          const bl = first(`bldg-${src}-3d`);
+          if (!bl) continue;
+          const by = src === "gistda" ? (th ? "แบบจำลอง GISTDA 2567" : "GISTDA model, 2024") : `Overture · ${escapeHtml(String(bl.d ?? ""))}`;
+          const hasH = bl.h !== undefined && bl.h !== null;
+          row(label("bldg3d"), hasH
+            ? (th ? `สูง <b>${bl.h}</b> ม.${bl.s != null ? ` · <b>${bl.s}</b> ชั้น` : ""} <span class="pp-muted">(${by})</span>`
+                  : `<b>${bl.h}</b> m tall${bl.s != null ? ` · <b>${bl.s}</b> storeys` : ""} <span class="pp-muted">(${by})</span>`)
+            : (th ? `ไม่มีข้อมูลความสูง แสดงเป็น 1 ชั้น <span class="pp-muted">(${by})</span>` : `no height in the data, drawn as 1 storey <span class="pp-muted">(${by})</span>`));
+        }
         const tp = terrainPixels.current;
         if (tp && m.getLayer("overlay-terrain") && m.getLayoutProperty("overlay-terrain", "visibility") !== "none") {
           const cls = terrainAt(tp, e.lngLat.lng, e.lngLat.lat);
@@ -263,7 +316,7 @@ export default function MapView(p: Props) {
         });
       });
       m.on("mousemove", (e) => {
-        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`)].filter((l) => m.getLayer(l));
+        const layers = ["tambon-fill", ...OVERLAYS.map((o) => `overlay-${o.id}`), ...BLDG_SOURCES.map((s) => `bldg-${s}-3d`), "streets-fill"].filter((l) => m.getLayer(l));
         const hit = m.queryRenderedFeatures(e.point, { layers }).length > 0;
         m.getCanvas().style.cursor = hit ? "pointer" : "";
       });
@@ -320,8 +373,9 @@ export default function MapView(p: Props) {
     if (!ready || !m) return;
     for (const o of OVERLAYS) {
       const on = p.overlays[o.id];
-      if (o.id === "bldg3d") {
-        m.setLayoutProperty("overlay-bldg3d", "visibility", on ? "visible" : "none");
+      if (o.id === "bldg3d") continue; // its layers are set by the building effect below
+      if (o.id === "streets") {
+        for (const l of ["streets-track", "streets-casing", "streets-fill"]) m.setLayoutProperty(l, "visibility", on ? "visible" : "none");
         continue;
       }
       if (o.id === "terrain") {
@@ -356,27 +410,42 @@ export default function MapView(p: Props) {
   }, [ready, p.overlays]);
   const prevOverlays = useRef(p.overlays);
 
-  // building-by-building 3D: load the tiles in view after each move while the layer is on
-  const bldgLoader = useRef<BuildingLoader | null>(null);
+  // building-by-building 3D: which source is drawn as boxes, and the other one as outlines
   const bldgOn = !!p.overlays.bldg3d;
+  const bldgSource: BldgSource = p.bldgSource && BLDG_SOURCES.includes(p.bldgSource) ? p.bldgSource : BLDG_SOURCES[0];
+  const bldgOutline = !!p.bldgOutline;
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    for (const src of BLDG_SOURCES) {
+      m.setLayoutProperty(`bldg-${src}-3d`, "visibility", bldgOn && src === bldgSource ? "visible" : "none");
+      m.setLayoutProperty(`bldg-${src}-line`, "visibility", bldgOn && bldgOutline && src !== bldgSource ? "visible" : "none");
+    }
+  }, [ready, bldgOn, bldgSource, bldgOutline]);
+  // loading state for the legend (tiles are loaded by MapLibre itself)
   useEffect(() => {
     const m = map.current;
     if (!ready || !m || !bldgOn) return;
-    if (!bldgLoader.current)
-      bldgLoader.current = new BuildingLoader(
-        (fc) => (m.getSource("ov-bldg3d") as GeoJSONSource | undefined)?.setData(fc),
-        (s) => latest.current.onBldgStatus?.(s),
-      );
-    const update = () => {
+    const st: BuildingStatus = { zoomOk: m.getZoom() >= BLDG_MIN_ZOOM, loading: false, failed: false };
+    const emit = () => latest.current.onBldgStatus?.({ ...st });
+    const id = `bldg-${bldgSource}`;
+    // ask the building source itself (the map's "idle" event also waits for the base map, which may be failing)
+    const check = () => {
       const zoomOk = m.getZoom() >= BLDG_MIN_ZOOM;
-      const b = m.getBounds();
-      const c = m.getCenter();
-      bldgLoader.current!.show(zoomOk ? tilesFor({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }, [c.lng, c.lat]) : [], zoomOk);
+      const loading = zoomOk && !m.isSourceLoaded(id);
+      if (zoomOk !== st.zoomOk || loading !== st.loading) { st.zoomOk = zoomOk; st.loading = loading; emit(); }
     };
-    update();
-    m.on("moveend", update);
-    return () => { m.off("moveend", update); };
-  }, [ready, bldgOn]);
+    const onData = (e: unknown) => { if ((e as { sourceId?: string }).sourceId === id) check(); };
+    // only the live GISTDA tiles count as failures; a missing Overture tile is just sea with no buildings
+    const onError = (e: unknown) => { if ((e as { sourceId?: string }).sourceId === "bldg-gistda" && !st.failed) { st.failed = true; emit(); } };
+    emit();
+    m.on("zoomend", check);
+    m.on("moveend", check);
+    m.on("sourcedata", onData);
+    m.on("sourcedataloading", onData);
+    m.on("error", onError);
+    return () => { m.off("zoomend", check); m.off("moveend", check); m.off("sourcedata", onData); m.off("sourcedataloading", onData); m.off("error", onError); };
+  }, [ready, bldgOn, bldgSource]);
 
   // travel layer: colour by the chosen destination
   useEffect(() => {

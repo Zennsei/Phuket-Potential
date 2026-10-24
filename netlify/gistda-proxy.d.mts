@@ -2,7 +2,8 @@
 export declare const GISTDA_BASE: string;
 export declare const AREA: { west: number; south: number; east: number; north: number };
 export declare const IMAGERY_LAYERS: string[];
-export declare const BUILDING_TILE_Z: number;
+export declare const BUILDING_TILE_ZOOMS: number[];
+export declare const BUILDING_LOD: { minAreaM2: number; minHeightM: number };
 export declare function checkGistdaRequest(
   path: string,
   q: URLSearchParams,
