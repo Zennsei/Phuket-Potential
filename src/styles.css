@@ -98,6 +98,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 2px; border: 1px solid currentColor; white-space: nowrap; line-height: 1.6; }
 .pill.gistda { color: var(--sea); }
+/* status pills in a narrow table column may wrap on phones, so the text column keeps its width */
+@media (max-width: 720px) { .pill.wrap { white-space: normal; } }
 .tbl { overflow-x: auto; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }

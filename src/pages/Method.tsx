@@ -22,6 +22,8 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
       { th: "ขอบเขต 17 ตำบล", en: "17 sub-district boundaries" },
       { th: "ประชากรและบ้านตามทะเบียนราษฎร์รายตำบล 2559, 2565, 2568", en: "Registered population and houses by sub-district 2016, 2022, 2025" },
       { th: "อาคารพร้อมความสูง GISTDA 2567 (239,992 หลัง)", en: "GISTDA buildings with height 2024 (239,992)" },
+      { th: "ความสูงและความชันของพื้นที่ Copernicus DEM", en: "Copernicus DEM land height and slope" },
+      { th: "อาคาร Overture 2569 (ชั้น 3 มิติรายหลัง และเทียบตำแหน่ง)", en: "Overture buildings 2026 (per-building 3D and position check)" },
     ],
   },
   {
@@ -29,14 +31,26 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
     items: [
       { th: "การใช้ที่ดินปี 2552 และ 2559 จากกรมพัฒนาที่ดิน (ยื่นขอ 22 ต.ค. 2569)", en: "LDD land use 2009 and 2016 (requested 22 Oct 2026)" },
       { th: "ผังเมืองรวมจังหวัดภูเก็ต (โซนสี) แบบแผนที่ (ขอไฟล์จากกรมโยธาฯ หรือวาดตามแผนที่ประกาศ)", en: "Phuket comprehensive plan zones as a map (requesting the file or tracing the official map)" },
+      { th: "สิทธิ์เผยแพร่ภาพดาวเทียมรายปี GI Basemap และอาคาร 3 มิติรายหลังจาก GISTDA API Gateway (ทำในเว็บแล้ว ใช้ภายในทีม)", en: "Permission to publish GISTDA API Gateway yearly imagery, GI Basemap and per-building 3D (built, team-only)" },
+      { th: "วิธีเข้าถึงภาพ THEOS-1 และภาพ THEOS-2 ของภูเก็ต", en: "Access to THEOS-1 images and THEOS-2 images of Phuket" },
     ],
   },
   {
     th: "ได้แล้ว ยังไม่ใส่ในเว็บ", en: "Received, not yet used",
     items: [
-      { th: "อาคาร Overture 2569 ใช้ตรวจความครบของข้อมูลอาคาร", en: "Overture buildings 2026, to check building-data coverage" },
+      { th: "พื้นที่เปลี่ยนแปลงรายปี Landtrendr (GISTDA) ต้องหาคำอธิบายสีก่อน", en: "Landtrendr year of land change (GISTDA), colour key still needed" },
+      { th: "Land feature collections (GISTDA) มีชุดความชัน ขอบเขตตำบล และประชากร แต่ยังเปิดรายการข้างในไม่ได้", en: "GISTDA land feature collections: slope, sub-district and population sets found, but their items do not open yet" },
       { th: "ประชากรและจำนวนบ้านตามทะเบียนรายอำเภอ 2558–2562", en: "Registered population and houses by district 2015–2019" },
       { th: "วันที่ประกาศผังเมืองรวม (ภูเก็ต: 2554, แก้ไข 2556)", en: "Comprehensive-plan announcement dates (Phuket: 2011, amended 2013)" },
+    ],
+  },
+  {
+    th: "ทดสอบแล้ว ไม่มีข้อมูลภูเก็ต", en: "Tested: no Phuket data",
+    items: [
+      { th: "พื้นที่น้ำท่วมซ้ำซาก GISTDA: ทดสอบ 33 จุด ไม่พบข้อมูลบนเกาะ", en: "GISTDA recurrent flood areas: 33 points tested, no records on the island" },
+      { th: "ภาพ PLEIADES: 21 ชุด ไม่มีชุดไหนครอบคลุมภูเก็ต", en: "PLEIADES imagery: 21 collections, none over Phuket" },
+      { th: "เกาะความร้อน UHI: ไม่มีข้อมูลที่ภูเก็ต", en: "Urban heat islands (UHI): no data for Phuket" },
+      { th: "น้ำท่วม 1 วันย้อนหลัง: เรียกบริการไม่ได้", en: "Last-day flood extent: service not reachable" },
     ],
   },
 ];
@@ -55,7 +69,7 @@ export default function Method({ data }: { data: AppData }) {
     { th: "ถนนและสถานที่บริการ", en: "Roads & services", src: "OpenStreetMap (Geofabrik)", date: t("20 ต.ค. 2569", "20 Oct 2026"), use: t("ระยะถึงถนนสายหลัก, จำนวนสถานที่บริการต่อ ตร.กม. และชั้นถนนและซอยทุกประเภทเมื่อซูมใกล้", "Distance to main roads, services per km², and the all-roads & alleys layer when zoomed in"), note: n.roads_pois },
     { th: "การใช้ที่ดิน", en: "Land use", src: t("กรมพัฒนาที่ดิน (LDD)", "Land Development Dept. (LDD)"), date: "2563 (2020)", use: t("สัดส่วนพื้นที่เมือง เกษตร ป่า และที่ดินที่ยังพัฒนาได้ ต่อตำบล + ชั้นข้อมูลบนแผนที่", "Share of built-up, farm, forest and developable land per sub-district + a map layer"), note: "LU_PKT_2563 จาก lddcatalog.ldd.go.th" },
     { th: "สำมะโนประชากร", en: "Population census", src: t("สำนักงานสถิติแห่งชาติ (data.go.th)", "National Statistical Office (data.go.th)"), date: "2533, 2543, 2553", use: t("บริบทการเติบโตของประชากรรายอำเภอในหน้าวิสัยทัศน์", "District population growth on the vision page"), note: "data.go.th/dataset/0703_01_14" },
-    { th: "อาคารรายหลัง (3 มิติ ซูมใกล้)", en: "Building footprints (3D when zoomed in)", src: "Overture Maps Foundation", date: t("release 2026-09-23", "release 2026-09-23"), use: t("ชั้นอาคาร 3 มิติรายหลังเมื่อซูมใกล้ (ดูเท่านั้น) และเทียบตำแหน่งกับอาคาร GISTDA", "Per-building 3D layer when zoomed in (viewing only) and a position check against the GISTDA buildings"), note: t("223,218 หลัง · มีความสูงแค่ 0.2% ที่เหลือแสดงเป็น 1 ชั้น · © OpenStreetMap contributors (ODbL), Google Open Buildings, Microsoft ML Buildings", "223,218 buildings · heights for only 0.2 %, the rest drawn as 1 storey · © OpenStreetMap contributors (ODbL), Google Open Buildings, Microsoft ML Buildings") },
+    { th: "อาคารรายหลัง (3 มิติ ซูมใกล้)", en: "Building footprints (3D when zoomed in)", src: "Overture Maps Foundation", date: t("release 2026-09-23", "release 2026-09-23"), use: t("ชั้นอาคาร 3 มิติรายหลังเมื่อซูมใกล้ (ดูเท่านั้น) และเทียบตำแหน่งกับอาคาร GISTDA", "Per-building 3D layer when zoomed in (viewing only) and a position check against the GISTDA buildings"), note: t("223,218 หลัง · มีความสูงแค่ 0.2% ที่เหลือแสดงเป็น 1 ชั้น · อาคาร GISTDA 2567 ราว 90% มีอาคาร Overture ห่างไม่เกิน 10 ม. และไม่มีการเลื่อนทั้งชุด · © OpenStreetMap contributors (ODbL), Google Open Buildings, Microsoft ML Buildings", "223,218 buildings · heights for only 0.2 %, the rest drawn as 1 storey · about 90 % of GISTDA 2024 buildings have an Overture building within 10 m, with no overall shift · © OpenStreetMap contributors (ODbL), Google Open Buildings, Microsoft ML Buildings") },
     { th: "อาคารพร้อมความสูงและจำนวนชั้น", en: "Buildings with height & storeys", src: "GISTDA API Gateway", date: t("2567 (อัปเดต ส.ค. 2569)", "2024 (updated Aug 2026)"), use: t("ตัวเลือก \"พื้นที่ใช้สอยต่อพื้นที่ดิน\" ของปัจจัยอาคาร + ชั้นอาคาร 3 มิติ", "\"Floor area per land area\" option of the building factor + 3D building layer"), note: t("239,992 หลังในภูเก็ต · รูปอาคารจาก Global Building Atlas (OSM/Google) · ความสูงจากแบบจำลอง (GEE_Height) · ดึงผ่าน features/thailand-buildings-footprint", "239,992 buildings in Phuket · footprints from Global Building Atlas (OSM/Google) · modelled heights (GEE_Height) · via features/thailand-buildings-footprint"), gistda: true },
     { th: "ความสูงและความชันของพื้นที่", en: "Land height & slope", src: "Copernicus DEM GLO-30 (ESA / EU)", date: t("ข้อมูลปี 2554–2558", "acquired 2011–2015"), use: t("ตัดที่สูง 80 ม. ขึ้นไปและที่ชันเกิน 20% ออกจากที่ดินที่ยังพัฒนาได้ + ชั้นภูเขาและที่ลาดชัน", "Removes land at 80 m+ or steeper than 20 % from developable land + hills & steep land layer"), note: "© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA" },
     { th: "เวลาเดินทางตามถนน", en: "Road travel time", src: t("คำนวณจากโครงข่ายถนน OpenStreetMap + จุดกึ่งกลางอาคาร GISTDA", "Computed on the OpenStreetMap road network + GISTDA building centroids"), date: t("ถนน 20 ต.ค. 2569, อาคาร 2565", "roads 20 Oct 2026, buildings 2022"), use: t("ปัจจัยเวลาเดินทางถึงปลายทางที่เลือก + ชั้นช่อง 500 ม.", "Travel-time factor to the chosen destination + 500 m layer"), note: t("ความเร็วตามประเภทถนน (สายหลัก 60, สายรอง 50, ท้องถิ่น 40, ในหมู่บ้าน 25, ซอย/ทางเข้า 15 กม./ชม.) ไม่คิดรถติด", "Speed by road class (primary 60, secondary 50, tertiary 40, residential 25, service 15 km/h), no traffic") },
@@ -157,7 +171,10 @@ export default function Method({ data }: { data: AppData }) {
 
       <section>
         <h2>{t("สถานะข้อมูล", "Data status")}</h2>
-        <p className="small muted" style={{ marginBottom: 12 }}>{t("ข้อมูล ณ 23 ต.ค. 2569", "As of 23 Oct 2026")}</p>
+        <p className="small muted" style={{ marginBottom: 12 }}>
+          {t("ข้อมูล ณ 24 ต.ค. 2569 · บริการของ GISTDA API Gateway ทดสอบ 3 รอบ (23–24 ต.ค. รวมประมาณ 120 คำขอ)",
+             "As of 24 Oct 2026 · GISTDA API Gateway services tested in 3 rounds (23–24 Oct, about 120 requests)")}
+        </p>
         <div className="grid4">
           {status.map((g) => (
             <div className="card" key={g.en}>
@@ -184,6 +201,8 @@ export default function Method({ data }: { data: AppData }) {
         <p>• {t("ข้อมูลอาคารเป็นของปี 2565 อาคารที่สร้างหลังจากนั้นยังไม่ถูกนับ ภาพจากดาวเทียม THEOS-2 ใช้ปรับปรุงชั้นข้อมูลนี้ได้ในอนาคต",
                "Building data dates from 2022, so newer buildings are missing. THEOS-2 imagery could be used to update this layer in future.")}</p>
         <p>• {t("ถนนและสถานที่จาก OpenStreetMap มาจากอาสาสมัคร บางพื้นที่อาจไม่ครบ", "OpenStreetMap roads and places are volunteer-mapped and may be incomplete in places.")}</p>
+        <p>• {t("คะแนนยังไม่รวมความเสี่ยงภัยพิบัติ เพราะบริการพื้นที่น้ำท่วมซ้ำซากของ GISTDA ไม่พบข้อมูลในภูเก็ต Stress Test \"ถนนสายหลักถูกตัด\" ใช้ดูผลของน้ำท่วมหรือดินสไลด์ต่อการเข้าถึงได้บางส่วน",
+               "Scores do not include disaster risk yet, because GISTDA's recurrent-flood service has no records for Phuket. The \"Main road cut off\" stress test partly covers floods or landslides cutting access.")}</p>
         <p>• {t("แปลงราคาประเมินที่ตัดออก (ระวาง 1:5000) ส่วนใหญ่ราคาถูกและอยู่ทางเหนือของเกาะมากกว่า ราคากลางของตำบลใน อ.ถลาง จึงน่าจะสูงกว่าความจริงเล็กน้อย",
                "The appraisal records left out (1:5000 sheets) are mostly cheaper and more common in the north, so the median price of Thalang sub-districts is probably a little too high.")}</p>
         <p>• {t("ข้อมูลอาคารปี 2565 และ 2567 มาจากคนละวิธี ปี 2567 แบ่งอาคารเป็นชิ้นเล็กกว่า จึงมีจำนวนมากกว่า 1.5–2.4 เท่า แต่พื้นที่ฐานมากกว่าเพียง 1.1–1.8 เท่า ห้ามนำจำนวนมาลบกัน ความสูงและจำนวนชั้นปี 2567 เป็นค่าประมาณจากแบบจำลอง เมื่อเทียบกับจำนวนชั้นที่บันทึกใน OpenStreetMap ต่างไม่เกิน 1 ชั้นราว 79% แต่มักนับมากไป 1 ชั้น โดยเฉพาะบ้านชั้นเดียว",
