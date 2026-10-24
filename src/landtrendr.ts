@@ -5,25 +5,89 @@
  * Team only, like the other GISTDA API Gateway pictures (VITE_GISTDA_IMAGERY=1, see src/gistda.ts): tiles go through
  * our proxy (/gistda/maps/coverage/landtrendr-all/{z}/{x}/{y}), which adds the key.
  *
- * The API gives no legend. Over Phuket the tiles use exactly the 35 colours below (round-3 sample tiles, 24 Oct 2026).
- * Their years are being worked out (data-prep/gistda_api_probe6.py); until then `year` is null and the page says so.
+ * The API gives no legend (legend/style/metadata addresses: 404). Over Phuket the tiles use exactly the 35 colours
+ * below. Their years were worked out by the team (data-prep/landtrendr_legend.py on the probe 6 pictures, 25 Oct
+ * 2026; result in data-prep/checks/landtrendr_legend.txt): colours of the same hue cover one stretch of years, from
+ * red (oldest) to yellow (newest). `year` is filled only where one year clearly stands out; elsewhere null.
+ * These are estimates, not GISTDA's legend: the page says "about" and says the team worked them out.
  */
 import { AREA, LANDTRENDR_ZOOMS } from "../netlify/gistda-proxy.mjs";
 
+export type LtGroupId = "red" | "orange" | "blue" | "pinkPurple" | "green" | "yellow";
+
+export interface LtGroup {
+  id: LtGroupId;
+  th: string;
+  en: string;
+  /** about which years (Christian era); from = null: this year or earlier */
+  from: number | null;
+  to: number;
+}
+
+/** hue groups, oldest first (years from data-prep/checks/landtrendr_legend.txt) */
+export const LT_GROUPS: LtGroup[] = [
+  { id: "red", th: "แดง", en: "Red", from: null, to: 1990 },
+  { id: "orange", th: "ส้ม-น้ำตาล", en: "Orange-brown", from: 1992, to: 1999 },
+  { id: "blue", th: "ฟ้า-น้ำเงิน", en: "Blue", from: 1996, to: 2004 },
+  { id: "pinkPurple", th: "ชมพู-ม่วง", en: "Pink-purple", from: 2008, to: 2013 },
+  { id: "green", th: "เขียว", en: "Green", from: 2014, to: 2018 },
+  { id: "yellow", th: "เหลือง", en: "Yellow", from: 2022, to: 2024 },
+];
+
 export interface LtColour {
   rgb: [number, number, number];
-  /** year of change (Christian era) once known */
+  group: LtGroupId;
+  /** year of change (Christian era) when one year clearly stands out, else null (use the group's years) */
   year: number | null;
 }
 
-/** the 35 colours seen over Phuket, most common first */
-export const LT_COLOURS: LtColour[] = ([
-  [255, 118, 115], [255, 220, 168], [255, 194, 114], [110, 188, 242], [73, 126, 242], [150, 78, 237], [150, 86, 30],
-  [112, 134, 253], [201, 96, 6], [65, 111, 217], [145, 174, 242], [241, 178, 245], [255, 168, 166], [253, 121, 7],
-  [154, 251, 198], [118, 61, 186], [235, 141, 239], [241, 162, 212], [176, 126, 237], [157, 207, 242], [0, 94, 217],
-  [146, 237, 119], [253, 192, 3], [111, 209, 149], [202, 173, 237], [197, 235, 185], [85, 45, 135], [49, 177, 136],
-  [0, 114, 191], [254, 157, 57], [255, 251, 197], [255, 174, 76], [83, 135, 68], [248, 228, 168], [6, 146, 241],
-] as [number, number, number][]).map((rgb) => ({ rgb, year: null }));
+/** the 35 colours seen over Phuket, by group, lightest first */
+export const LT_COLOURS: LtColour[] = [
+  { rgb: [255, 168, 166], group: "red", year: 1990 },
+  { rgb: [255, 118, 115], group: "red", year: null },
+  { rgb: [255, 220, 168], group: "orange", year: null },
+  { rgb: [255, 194, 114], group: "orange", year: null },
+  { rgb: [255, 174, 76], group: "orange", year: null },
+  { rgb: [254, 157, 57], group: "orange", year: null },
+  { rgb: [253, 121, 7], group: "orange", year: null },
+  { rgb: [201, 96, 6], group: "orange", year: null },
+  { rgb: [150, 86, 30], group: "orange", year: 1997 },
+  { rgb: [157, 207, 242], group: "blue", year: 1996 },
+  { rgb: [145, 174, 242], group: "blue", year: null },
+  { rgb: [112, 134, 253], group: "blue", year: null },
+  { rgb: [110, 188, 242], group: "blue", year: null },
+  { rgb: [73, 126, 242], group: "blue", year: null },
+  { rgb: [65, 111, 217], group: "blue", year: null },
+  { rgb: [6, 146, 241], group: "blue", year: null },
+  { rgb: [0, 94, 217], group: "blue", year: 1999 },
+  { rgb: [0, 114, 191], group: "blue", year: 1999 },
+  { rgb: [241, 178, 245], group: "pinkPurple", year: null },
+  { rgb: [202, 173, 237], group: "pinkPurple", year: null },
+  { rgb: [241, 162, 212], group: "pinkPurple", year: null },
+  { rgb: [235, 141, 239], group: "pinkPurple", year: null },
+  { rgb: [176, 126, 237], group: "pinkPurple", year: null },
+  { rgb: [150, 78, 237], group: "pinkPurple", year: null },
+  { rgb: [118, 61, 186], group: "pinkPurple", year: null },
+  { rgb: [85, 45, 135], group: "pinkPurple", year: 2009 },
+  { rgb: [197, 235, 185], group: "green", year: null },
+  { rgb: [154, 251, 198], group: "green", year: 2014 },
+  { rgb: [146, 237, 119], group: "green", year: 2018 },
+  { rgb: [111, 209, 149], group: "green", year: 2017 },
+  { rgb: [49, 177, 136], group: "green", year: null },
+  { rgb: [83, 135, 68], group: "green", year: 2017 },
+  { rgb: [255, 251, 197], group: "yellow", year: 2022 },
+  { rgb: [248, 228, 168], group: "yellow", year: 2023 },
+  { rgb: [253, 192, 3], group: "yellow", year: null },
+];
+
+export const ltGroup = (id: LtGroupId) => LT_GROUPS.find((g) => g.id === id)!;
+
+/** "about 1992-1999" in the page language (Thai: Buddhist era) */
+export function ltYears(g: LtGroup, th: boolean): string {
+  const y = (v: number) => (th ? v + 543 : v);
+  if (g.from === null) return th ? `ราว ${y(g.to)} หรือก่อนนั้น` : `about ${g.to} or earlier`;
+  return th ? `ราว ${y(g.from)}–${y(g.to)}` : `about ${g.from}–${g.to}`;
+}
 
 export const LT_ATTR = "Landtrendr: GISTDA API Gateway · ใช้ภายในทีม (team evaluation only)";
 export const LT_OPACITY = 0.85;

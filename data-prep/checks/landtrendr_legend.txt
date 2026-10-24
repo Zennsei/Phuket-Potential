@@ -1,0 +1,59 @@
+Landtrendr mosaic 512 x 512 px · pictures 1987-2025 (38 years; none for 2012)
+land with no colour: 93,954 px, chance clearings 14.8 per 100 px (most in 1993, 1999, 1992)
+
+group        colour (R,G,B)     pixels  best years (excess clearings per 100 px)       share  year
+red          (255, 168, 166)     1,201  1990: 14.6  1992:  3.8  1991:  2.1             69%  1990
+red          (255, 118, 115)    23,829  1989:  1.1  1990:  0.6  1997:  0.5             23%  -
+orange       (255, 220, 168)     9,254  1992:  1.8  1999:  1.5  1991:  0.9             24%  -
+orange       (255, 194, 114)     3,574  1992:  1.6  2017:  0.3  1994:  0.3             43%  -
+orange       (255, 174, 76)        364  1999:  3.8  1987:  0.0  1988:  0.0            100%  -
+orange       (254, 157, 57)        223  2008:  9.1  1997:  6.4  1994:  2.4             42%  -
+orange       (253, 121, 7)         983  1997:  4.0  1994:  2.5  1995:  2.4             24%  -
+orange       (201, 96, 6)        1,461  1995:  4.0  1997:  2.5  2003:  1.8             26%  -
+orange       (150, 86, 30)       1,299  1997:  6.1  1996:  2.0  1998:  1.5             46%  1997
+blue         (157, 207, 242)       719  1996:  5.2  1998:  2.3  1991:  0.8             41%  1996
+blue         (145, 174, 242)     1,260  2013:  3.8  2019:  3.3  2010:  2.9             25%  -
+blue         (112, 134, 253)     1,521  2004:  2.7  2008:  2.2  2009:  1.9             26%  -
+blue         (110, 188, 242)     1,755  1990:  2.8  1989:  2.2  2013:  1.8             22%  -
+blue         (73, 126, 242)      2,199  2009:  3.4  2003:  2.9  1999:  2.2             28%  -
+blue         (65, 111, 217)      1,197  2002:  3.9  1999:  3.3  2004:  2.7             24%  -
+blue         (6, 146, 241)          49  2009:  2.4  1987:  0.0  1988:  0.0            100%  -
+blue         (0, 94, 217)          485  1999:  4.5  2009:  1.2  2014:  0.3             67%  1999
+blue         (0, 114, 191)         557  1999:  7.2  2002:  0.9  2021:  0.6             73%  1999
+pink-purple  (241, 178, 245)     1,013  2013:  3.5  2011:  2.2  2008:  1.4             27%  -
+pink-purple  (202, 173, 237)       251  2013:  6.3  1994:  3.0  1990:  1.7             39%  -
+pink-purple  (241, 162, 212)       934  2008:  3.3  2009:  2.5  2010:  1.8             27%  -
+pink-purple  (235, 141, 239)       802  2013:  5.1  2009:  3.6  2020:  3.0             24%  -
+pink-purple  (176, 126, 237)       452  2003:  1.8  2011:  1.6  2013:  1.5             16%  -
+pink-purple  (150, 78, 237)      1,707  2013:  3.3  2008:  1.5  2017:  1.2             37%  -
+pink-purple  (118, 61, 186)      1,074  2013:  4.2  1993:  3.9  2021:  1.8             30%  -
+pink-purple  (85, 45, 135)         645  2009: 10.3  2008:  3.0  2011:  1.1             67%  2009
+green        (197, 235, 185)       331  1998:  4.5  2006:  4.2  2021:  2.9             22%  -
+green        (154, 251, 198)       688  2014: 12.1  2017:  4.0  2018:  1.8             52%  2014
+green        (146, 237, 119)       815  2018:  4.7  1999:  2.0  2019:  1.2             50%  2018
+green        (111, 209, 149)       409  2017: 13.3  2016:  0.7  1994:  0.7             85%  2017
+green        (49, 177, 136)        478  2017:  7.7  1999:  3.3  2016:  2.5             37%  -
+green        (83, 135, 68)         293  2017: 18.1  2014:  6.5  2006:  2.3             58%  2017
+yellow       (255, 251, 197)       163  2022: 30.4  2021:  5.9  1999:  3.3             67%  2022
+yellow       (248, 228, 168)       172  2023: 11.9  2004:  3.5  2024:  1.9             69%  2023
+yellow       (253, 192, 3)         354  2024:  3.7  2023:  2.7  1994:  0.6             52%  -
+
+colours with a strong year (excess >= 4, share >= 40%, runner-up <= 0.5 x best): 12 of 35
+groups (hue): best years of the group's colours with excess >= 1.5; years more than 6 from the median left out
+  red           2 colours · best years [1990] -> about 1990
+  orange        7 colours · best years [1992, 1992, 1995, 1997, 1997, 1999, 2008] (left out [2008]) -> about 1992-1999
+  blue          9 colours · best years [1990, 1996, 1999, 1999, 2002, 2004, 2009, 2009, 2013] (left out [1990, 2009, 2009, 2013]) -> about 1996-2004
+  pink-purple   8 colours · best years [2003, 2008, 2009, 2013, 2013, 2013, 2013, 2013] (left out [2003]) -> about 2008-2013
+  green         6 colours · best years [1998, 2014, 2017, 2017, 2017, 2018] (left out [1998]) -> about 2014-2018
+  yellow        3 colours · best years [2022, 2023, 2024] -> about 2022-2024
+
+check: spread of best years inside the groups 994 (sum of squares); with the group names shuffled over the colours, median 2827, as small as ours 0 of 20,000 times
+       group order (red, orange, blue, pink-purple, green, yellow) against best year: rank correlation 0.80 (1 = perfect order)
+
+Read: if the colours were not years, best years would scatter at random. Instead each hue group sits in its own
+stretch of years, from red (oldest) through orange, blue, pink-purple and green to yellow (newest). Colours of the
+same group sometimes share a best year, so a single colour's year is a guess (+/- 1-2 years).
+
+for src/landtrendr.ts (group: years; rgb: group, year or null):
+  red: 1990-1990, orange: 1992-1999, blue: 1996-2004, pink-purple: 2008-2013, green: 2014-2018, yellow: 2022-2024
+  [255, 118, 115]: red null, [255, 220, 168]: orange null, [255, 194, 114]: orange null, [73, 126, 242]: blue null, [110, 188, 242]: blue null, [150, 78, 237]: pink-purple null, [112, 134, 253]: blue null, [201, 96, 6]: orange null, [150, 86, 30]: orange 1997, [145, 174, 242]: blue null, [255, 168, 166]: red 1990, [65, 111, 217]: blue null, [118, 61, 186]: pink-purple null, [241, 178, 245]: pink-purple null, [253, 121, 7]: orange null, [241, 162, 212]: pink-purple null, [146, 237, 119]: green 2018, [235, 141, 239]: pink-purple null, [157, 207, 242]: blue 1996, [154, 251, 198]: green 2014, [85, 45, 135]: pink-purple 2009, [0, 114, 191]: blue 1999, [0, 94, 217]: blue 1999, [49, 177, 136]: green null, [176, 126, 237]: pink-purple null, [111, 209, 149]: green 2017, [255, 174, 76]: orange null, [253, 192, 3]: yellow null, [197, 235, 185]: green null, [83, 135, 68]: green 2017, [202, 173, 237]: pink-purple null, [254, 157, 57]: orange null, [248, 228, 168]: yellow 2023, [255, 251, 197]: yellow 2022, [6, 146, 241]: blue null
