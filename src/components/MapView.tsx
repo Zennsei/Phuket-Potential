@@ -9,6 +9,7 @@ import { resolveBasemap } from "../gistda";
 import { registerSphereFix } from "../sphereFix";
 import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OUTLINE_COLOR, bldgSourceSpec, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
+import { LT_OPACITY, landtrendrAt, landtrendrSourceSpec } from "../landtrendr";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
 import { TRAVEL_DESTS } from "../factors";
@@ -153,7 +154,7 @@ export default function MapView(p: Props) {
     // so a slow or failing Sphere server would otherwise hide all analysis layers.
     m.once("style.load", async () => {
       // overlay files are fetched only when a layer is first switched on (see the effect below)
-      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "bldg3d" && o.id !== "streets").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
+      OVERLAYS.filter((o) => o.id !== "terrain" && o.id !== "landtrendr" && o.id !== "bldg3d" && o.id !== "streets").forEach((o) => m.addSource(`ov-${o.id}`, { type: "geojson", data: EMPTY, attribution: o.attr }));
       m.addLayer({ id: "overlay-landuse", type: "fill", source: "ov-landuse", layout: { visibility: "none" },
         paint: {
           "fill-color": ["match", ["get", "cls"], ...Object.entries(LANDUSE_COLORS).flatMap(([k, v]) => [k, v.c]), "#cccccc"] as unknown as maplibregl.ExpressionSpecification,
@@ -306,7 +307,34 @@ export default function MapView(p: Props) {
         const lu = first("overlay-landuse");
         if (lu) row(label("landuse"), `<b>${escapeHtml(String(th ? lu.th : lu.en))}</b>`);
 
-        if (html.length) new maplibregl.Popup({ closeButton: true, maxWidth: "300px" }).setLngLat(e.lngLat).setHTML(html.join("")).addTo(m);
+        // Landtrendr: read the colour of the tile pixel under the click (the tile is normally in the browser cache already)
+        const ltOn = m.getLayer("overlay-landtrendr") && m.getLayoutProperty("overlay-landtrendr", "visibility") !== "none";
+        let popup: maplibregl.Popup | undefined;
+        const show = () => {
+          if (!html.length) return;
+          if (popup) popup.setHTML(html.join(""));
+          else popup = new maplibregl.Popup({ closeButton: true, maxWidth: "300px" }).setLngLat(e.lngLat).setHTML(html.join("")).addTo(m);
+        };
+        if (ltOn) {
+          const at = html.length;
+          row(label("landtrendr"), th ? "กำลังอ่านสี…" : "reading the colour…");
+          landtrendrAt(e.lngLat.lng, e.lngLat.lat, m.getZoom())
+            .then((r) => {
+              const sw = (rgb: number[]) => `<i style="display:inline-block;width:10px;height:10px;background:rgb(${rgb.join(",")});vertical-align:-1px"></i> `;
+              const body = !r
+                ? (th ? "ไม่พบการเปลี่ยนแปลงที่จุดนี้" : "no change found here")
+                : r.colour?.year != null
+                  ? `${sw(r.rgb)}${th ? `เปลี่ยนในปี <b>${r.colour.year + 543}</b>` : `changed in <b>${r.colour.year}</b>`}`
+                  : `${sw(r.rgb)}${th ? "มีการเปลี่ยนแปลง (ยังไม่ทราบว่าสีนี้คือปีไหน)" : "changed (the year of this colour is not known yet)"}`;
+              html[at] = `<div class="pp-row"><div class="pp-title">${escapeHtml(label("landtrendr"))}</div><div>${body}</div></div>`;
+              show();
+            })
+            .catch(() => {
+              html[at] = `<div class="pp-row"><div class="pp-title">${escapeHtml(label("landtrendr"))}</div><div>${th ? "อ่านสีไม่ได้" : "could not read the colour"}</div></div>`;
+              show();
+            });
+        }
+        show();
 
         const f = m.queryRenderedFeatures(e.point, { layers: ["tambon-fill"] })[0];
         latest.current.onMapClick({
@@ -376,6 +404,15 @@ export default function MapView(p: Props) {
       if (o.id === "bldg3d") continue; // its layers are set by the building effect below
       if (o.id === "streets") {
         for (const l of ["streets-track", "streets-casing", "streets-fill"]) m.setLayoutProperty(l, "visibility", on ? "visible" : "none");
+        continue;
+      }
+      if (o.id === "landtrendr") {
+        // raster tiles from the GISTDA proxy, added the first time the layer is switched on (team only)
+        if (on && !m.getSource("landtrendr")) {
+          m.addSource("landtrendr", landtrendrSourceSpec());
+          m.addLayer({ id: "overlay-landtrendr", type: "raster", source: "landtrendr", paint: { "raster-opacity": LT_OPACITY, "raster-resampling": "nearest" } }, "tambon-fill");
+        }
+        if (m.getLayer("overlay-landtrendr")) m.setLayoutProperty("overlay-landtrendr", "visibility", on ? "visible" : "none");
         continue;
       }
       if (o.id === "terrain") {

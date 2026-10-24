@@ -6,12 +6,13 @@
  *   - `npm run dev` / `npm run preview`  ->  middleware ใน vite.config.ts (อ่าน key จาก .env)
  *   - Netlify                              ->  netlify/functions/gistda.mjs (อ่าน key จาก Environment variables ของ Netlify)
  *
- * ยอมให้ผ่านเฉพาะ 3 อย่าง และต้องอยู่ในกรอบภูเก็ตเท่านั้น เพื่อไม่ให้คนอื่นใช้เครดิตของ key ทีมไปขอข้อมูลที่อื่น:
+ * ยอมให้ผ่านเฉพาะ 4 อย่าง และต้องอยู่ในกรอบภูเก็ตเท่านั้น เพื่อไม่ให้คนอื่นใช้เครดิตของ key ทีมไปขอข้อมูลที่อื่น:
  *   1. ภาพถ่ายดาวเทียมรายปี  /gfms/service/?SERVICE=WMS&REQUEST=GetMap&LAYERS=<ชั้นในรายการ>&CRS=EPSG:3857&BBOX=...
  *   2. GI Basemap            /tiles/basemap_latest/{z}/{x}/{y}.png
  *   3. อาคารรายหลัง 3 มิติ    /buildings/{15|16}/{x}/{y}.pbf  -> features/thailand-buildings-footprint/items?bbox=<แผ่นนั้น>
  *      ตัวกลางสร้างแผ่นเวกเตอร์ (MVT) ใหม่ที่มีแค่รูปอาคาร ความสูง จำนวนชั้น (ไม่ส่งผลดิบต่อ เพราะผลดิบมี key อยู่ใน "links")
  *      ซูม 16 = ทุกหลัง · ซูม 15 = เฉพาะหลังใหญ่หรือสูง (ลดรายละเอียดตอนซูมออก)
+ *   4. Landtrendr (พื้นที่ที่เปลี่ยนแปลง สีตามปี) /maps/coverage/landtrendr-all/{z}/{x}/{y}  ภาพ PNG ซูม 8–14
  *
  * ผลที่ไม่ใช่ภาพ (เช่น ข้อความ error) จะไม่ถูกส่งต่อ เพราะ GISTDA เคยใส่ key ไว้ในผลลัพธ์ (ดู PROJECT_REPORT.md หัวข้อ 7)
  * ไม่ต้องติดตั้ง package เพิ่ม ใช้ fetch / Request / Response ของ Node 22
@@ -50,7 +51,7 @@ function tileBounds(z, x, y) {
  * ตรวจคำขอจากเบราว์เซอร์ แล้วสร้าง URL ปลายทางที่ GISTDA ขึ้นมาใหม่ (ไม่ส่งพารามิเตอร์อื่นของผู้ใช้ต่อไป)
  * @param {string} path  ส่วนหลัง /gistda เช่น "/gfms/service/" หรือ "/tiles/basemap_latest/13/6574/3955.png"
  * @param {URLSearchParams} q
- * @returns {{ ok: true, upstreamPath: string, kind: "imagery" | "basemap" } | { ok: false, status: number, reason: string }}
+ * @returns {{ ok: true, upstreamPath: string, kind: "imagery" | "basemap" | "landtrendr" } | { ok: false, status: number, reason: string }}
  */
 /**
  * แผ่นอาคาร 3 มิติ: ซูม 16 (ประมาณ 600 × 600 ม.) มีทุกหลัง ส่วนใหญ่ไม่เกิน 1,000 หลัง = 1 คำขอ
@@ -64,6 +65,9 @@ const BUILDING_MAX_AREA_M2 = 50_000;
 const BUILDINGS_PATH = "/features/thailand-buildings-footprint/items";
 const BUILDING_PAGE = 1000;
 const BUILDING_MAX_PAGES = { 15: 10, 16: 5 };
+
+/** Landtrendr tiles: zoom 8–14 (Landsat pixels are 30 m, so closer zooms only enlarge zoom-14 tiles) */
+export const LANDTRENDR_ZOOMS = { min: 8, max: 14 };
 
 export function checkGistdaRequest(path, q) {
   if (path === "/gfms/service" || path === "/gfms/service/") {
@@ -103,6 +107,14 @@ export function checkGistdaRequest(path, q) {
     if (!overlaps(b.west, b.south, b.east, b.north, AREA)) return { ok: false, status: 403, reason: "outside Phuket" };
     const bbox = [b.west, b.south, b.east, b.north].map((v) => v.toFixed(6)).join(",");
     return { ok: true, kind: "buildings", tile: { z, x, y, ...b }, upstreamPath: `${BUILDINGS_PATH}?bbox=${bbox}&limit=${BUILDING_PAGE}` };
+  }
+  const lt = /^\/maps\/coverage\/landtrendr-all\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})$/.exec(path);
+  if (lt) {
+    const [z, x, y] = lt.slice(1).map(Number);
+    if (z < LANDTRENDR_ZOOMS.min || z > LANDTRENDR_ZOOMS.max || x >= 2 ** z || y >= 2 ** z) return { ok: false, status: 400, reason: "bad tile" };
+    const b = tileBounds(z, x, y);
+    if (!overlaps(b.west, b.south, b.east, b.north, AREA)) return { ok: false, status: 403, reason: "outside Phuket" };
+    return { ok: true, kind: "landtrendr", upstreamPath: `/maps/coverage/landtrendr-all/${z}/${x}/${y}` };
   }
   return { ok: false, status: 403, reason: "path not allowed" };
 }

@@ -4,10 +4,11 @@ export declare const AREA: { west: number; south: number; east: number; north: n
 export declare const IMAGERY_LAYERS: string[];
 export declare const BUILDING_TILE_ZOOMS: number[];
 export declare const BUILDING_LOD: { minAreaM2: number; minHeightM: number };
+export declare const LANDTRENDR_ZOOMS: { min: number; max: number };
 export declare function checkGistdaRequest(
   path: string,
   q: URLSearchParams,
-): { ok: true; upstreamPath: string; kind: "imagery" | "basemap" | "buildings" } | { ok: false; status: number; reason: string };
+): { ok: true; upstreamPath: string; kind: "imagery" | "basemap" | "buildings" | "landtrendr" } | { ok: false; status: number; reason: string };
 export declare function proxyGistda(o: {
   path: string;
   search: string;

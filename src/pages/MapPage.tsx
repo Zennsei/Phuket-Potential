@@ -10,6 +10,7 @@ import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
+import { LT_COLOURS, ltCss } from "../landtrendr";
 import { BLDG_INFO, BLDG_SOURCES, BUILDING_LOD, OUTLINE_COLOR, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
@@ -23,7 +24,8 @@ type ColorBy = "score" | FactorKey | "reg_pop" | "reg_house";
 
 const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
   // "bldg3d": Overture for everyone, GISTDA (live API) only for the team (VITE_GISTDA_IMAGERY=1), see src/buildings3d.ts
-  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", "buildings", "height3d", "bldg3d"] },
+  // "landtrendr": GISTDA API Gateway, team only (VITE_GISTDA_IMAGERY=1)
+  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", ...(GISTDA_IMAGERY ? ["landtrendr" as const] : []), "buildings", "height3d", "bldg3d"] },
   { th: "ประชากร", en: "People", ids: ["population"] },
   { th: "การเดินทาง", en: "Getting around", ids: ["travel", "streets", "roads", "pois"] },
   { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
@@ -34,7 +36,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, streets: true, roads: true, pois: false });
+  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, landtrendr: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, streets: true, roads: true, pois: false });
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   // GISTDA yearly imagery: the slider moves `imgIdx` at once, the picture follows when the slider rests (each new picture costs credits)
   const [imgLayer, setImgLayer] = useState(DEFAULT_IMAGERY);
@@ -135,7 +137,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     };
   }, [colorBy, scored, t, num, weights, year]);
 
-  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d || overlays.terrain;
+  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d || overlays.terrain || overlays.landtrendr;
   const layersOn = OVERLAYS.filter((o) => overlays[o.id]).length;
   const travelDest = weights.travel.dest ?? "oldtown";
   const selected = scored.find((s) => s.props.id === selectedId);
@@ -346,6 +348,18 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}
             </div>
           ))}
+          {overlays.landtrendr && (
+            <div>
+              <b>{t("พื้นที่ที่เปลี่ยนแปลง (Landtrendr)", "Changed land (Landtrendr)")}</b>
+              <div className="ramp many" title={t("35 สีที่พบในภูเก็ต", "The 35 colours found over Phuket")}>{LT_COLOURS.map((c) => <i key={c.rgb.join()} style={{ background: ltCss(c) }} />)}</div>
+              <div className="small muted">{LT_COLOURS.some((c) => c.year !== null)
+                ? t("สี = ปีที่พื้นที่เปลี่ยน คลิกจุดบนแผนที่เพื่อดูปี", "Colour = year the land changed; click a spot to see the year")
+                : t("มีสี = จุดที่ Landtrendr พบว่าพื้นที่เปลี่ยน (ดูจากภาพ Landsat ทุกปี) · สีต่างกัน = คนละปี แต่ GISTDA ยังไม่ให้คำอธิบายสี กำลังหาว่าสีไหนคือปีไหน · ไม่มีสี = ไม่พบการเปลี่ยนแปลง",
+                    "Coloured = spots where Landtrendr found the land changed (from the yearly Landsat pictures) · different colours = different years, but GISTDA gives no legend yet and we are working out which colour is which year · no colour = no change found")}
+                <br /><span style={{ color: "var(--warn)" }}>{t("ภาพจาก GISTDA API Gateway ใช้ภายในทีม · Landsat 30 ม. ซูมใกล้กว่าระดับ 14 จะขยายภาพเดิม", "GISTDA API Gateway picture, team only · Landsat 30 m: beyond zoom 14 the same tiles are enlarged")}</span>
+              </div>
+            </div>
+          )}
           {overlays.terrain && (
             <div>
               <b>{t("ภูเขาและที่ลาดชัน", "Hills & steep land")}</b>
