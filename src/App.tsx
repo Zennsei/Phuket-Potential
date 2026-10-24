@@ -7,6 +7,7 @@ import { DEFAULT_WEIGHTS } from "./factors";
 import type { Weights } from "./types";
 import Home from "./pages/Home";
 import Ranking from "./pages/Ranking";
+import Compare from "./pages/Compare";
 import Mission from "./pages/Mission";
 import Method from "./pages/Method";
 import Vision from "./pages/Vision";
@@ -27,6 +28,7 @@ export default function App() {
     { r: "home", th: "หน้าแรก", en: "Home" },
     { r: "map", th: "แผนที่วิเคราะห์", en: "Map" },
     { r: "ranking", th: "จัดอันดับ", en: "Ranking" },
+    { r: "compare", th: "เทียบข้อมูล", en: "Compare" },
     { r: "mission", th: "ภารกิจ", en: "Mission" },
     { r: "vision", th: "วิสัยทัศน์", en: "Vision" },
     { r: "method", th: "วิธีคิดและแหล่งข้อมูล", en: "Method & data" },
@@ -50,6 +52,7 @@ export default function App() {
         </Suspense>
       ) :
       route === "ranking" ? <Ranking {...common} /> :
+      route === "compare" ? <Compare {...common} param={param} /> :
       route === "mission" ? <Mission {...common} /> :
       route === "method" ? <Method data={data} /> :
       route === "vision" ? <Vision /> :

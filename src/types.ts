@@ -28,6 +28,8 @@ export interface TambonProps {
   land_parcels: number;
   land_median: number | null;
   land_mean: number | null;
+  /** cross-check: median when every parcel sits at the centre of its 2 km map sheet (null = no sheet centre falls inside) */
+  land_median_sheetcentre: number | null;
   /** LDD land use 2563 (2020), % of land area (water excluded) */
   lu_urban_pct: number;
   lu_agri_pct: number;

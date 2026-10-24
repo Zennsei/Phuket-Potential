@@ -3,6 +3,7 @@ import { CATEGORIES, DEFAULT_THRESHOLDS, UNREG_FLAG } from "../decision";
 import { SCENARIOS } from "../scenarios";
 import { scoreTambons } from "../scoring";
 import { useI18n } from "../i18n";
+import { href } from "../router";
 import { GISTDA_IMAGERY } from "../gistda";
 import type { AppData } from "../data";
 import type { TambonProps } from "../types";
@@ -119,6 +120,11 @@ export default function Method({ data }: { data: AppData }) {
         <pre className="card mono small" style={{ whiteSpace: "pre-wrap" }}>
           {"sᵢ = 100 × (xᵢ − min) ÷ (max − min)      score = Σ ( wᵢ × sᵢ ) ÷ Σ wᵢ"}
         </pre>
+        <p>
+          {t("อยากรู้ว่าคำตอบเปลี่ยนแค่ไหนถ้าคิดอีกวิธี (เช่น ใช้อันดับแทน Min-Max หรือค่าเฉลี่ยแทนค่ากลาง) ดูหน้า",
+             "To see how much the answer moves under another method (rank instead of min-max, mean instead of median, and more), open")}{" "}
+          <a href={href("compare")}>{t("เทียบข้อมูล", "Compare")}</a>
+        </p>
         <p className="small muted">
           {t("x = ค่าของตำบล · min, max = ค่าต่ำสุดและสูงสุดใน 17 ตำบล · s = คะแนน 0–100 ของปัจจัย · w = น้ำหนักที่ตั้ง",
              "x = the sub-district's value · min, max = lowest and highest of the 17 · s = the factor's 0–100 score · w = its weight")}

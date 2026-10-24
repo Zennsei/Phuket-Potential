@@ -279,3 +279,59 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .imgyears .yr { font-family: var(--font-display); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (max-width: 720px) { .mapbox .compare-wrap { inset: 18px 10px; } }
 .subopts { display: grid; gap: 6px; margin: 2px 0 8px 30px; padding-left: 10px; border-left: 2px solid var(--rule); }
+
+/* ---------- compare page (same data, two methods) ---------- */
+/* A = the site's method, B = the alternative: one hue, two shades (validated as an ordinal pair in both modes); B is also drawn as a ring */
+:root { --cmp-a: #1565a8; --cmp-b: #4f9fd8; }
+@media (prefers-color-scheme: dark) { :root { --cmp-a: #6ab3ea; --cmp-b: #2e78b8; } }
+.page.compare { gap: 36px; }
+.cmp-controls { display: grid; gap: 14px; }
+.cmp-pairs { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.cmp-pairs button { display: grid; gap: 4px; align-content: start; }
+.cmp-pairs b { font-weight: 600; line-height: 1.35; }
+.cmp-rule { gap: 8px 12px; }
+.cmp-rule .seg { flex-wrap: wrap; }
+.cmp-ab { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px 28px; }
+.cmp-side { border-top: 2px solid var(--ink); padding-top: 10px; display: grid; gap: 6px; align-content: start; }
+.cmp-side h2 { font-size: 20px; margin: 0; }
+.cmp-side p { max-width: 60ch; }
+.cmp-side-head { display: flex; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); }
+.cmp-side-head b { font-weight: 600; }
+.cmp-result { display: grid; gap: 10px; max-width: 78ch; }
+.cmp-rule-note { font-size: 14px; color: var(--muted); }
+.cmp-lead { font-family: var(--font-display); font-size: 19px; line-height: 1.45; }
+.cmp-changes { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.cmp-sw { display: inline-block; width: 10px; height: 10px; margin: 0 5px 0 3px; border-radius: 1px; }
+.cmp-sw.round { border-radius: 50%; }
+.cmp-key { flex: none; margin-right: 6px; vertical-align: -2px; }
+.cmp-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 28px 36px; align-items: start; }
+.cmp-fig { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.cmp-fig h2 { font-size: 18px; margin: 0; }
+.cmp-chart { width: 100%; min-width: 0; }
+.cmp-chart svg { display: block; overflow: visible; }
+.cmp-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; align-items: center; }
+.cmp-legend span { display: inline-flex; align-items: center; }
+.cmp-thr-key { display: inline-block; width: 2px; height: 14px; background: var(--ink); margin-right: 7px; }
+.cmp-readout { grid-column: 1 / -1; min-height: 2.8em; border-top: 1px solid var(--rule); padding-top: 8px; }
+.cv-head { font-family: var(--font-display); font-size: 12px; font-weight: 600; fill: var(--muted); }
+.cv-name { font-size: 12.5px; fill: var(--ink); }
+.cv-name.strong { font-weight: 700; }
+.cv-rank, .cv-tick { font-family: var(--font-display); font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.cv-row { outline: none; }
+.cv-row.on .cv-name, .cv-row:focus-visible .cv-name { fill: var(--overprint); font-weight: 700; }
+.cv-band { fill: transparent; }
+.cv-row.on .cv-band { fill: var(--sheet-2); }
+.cmp-table .cmp-sw { margin-left: 0; }
+.cmp-table tr.hl { background: var(--sheet-2); }
+.cmp-notes ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.cmp-notes h3 { font-size: 16px; }
+@media (max-width: 720px) {
+  .cmp-rule .seg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .cmp-lead { font-size: 17px; }
+}
+.cmp-table th .unit { display: block; font-weight: 400; }
+.cmp-table td:first-child { white-space: nowrap; }
+.cmp-readout { position: sticky; bottom: 0; background: var(--paper); z-index: 2; padding-bottom: 8px; }
+.cmp-table td { white-space: nowrap; }
+/* seven menu items: tighter spacing on laptop widths so the menu stays on one line */
+@media (min-width: 721px) and (max-width: 1100px) { .nav a { padding: 0 7px; } }
