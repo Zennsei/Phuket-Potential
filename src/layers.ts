@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "terrain" | "buildings" | "population" | "land" | "travel" | "height3d" | "bldg3d" | "streets" | "roads" | "pois";
+export type OverlayId = "landuse" | "terrain" | "landtrendr" | "buildings" | "population" | "land" | "travel" | "height3d" | "bldg3d" | "streets" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -35,6 +35,13 @@ export const OVERLAYS: Overlay[] = [
     sourceTh: "Copernicus DEM 30 ม.", sourceEn: "Copernicus DEM 30 m",
     swatch: "#96623c",
     attr: "ความสูง: Copernicus DEM GLO-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA",
+  },
+  {
+    // raster tiles live from the GISTDA API Gateway through our proxy (src/landtrendr.ts), team only
+    id: "landtrendr", file: "",
+    th: "พื้นที่ที่เปลี่ยนแปลง สีตามปี (Landtrendr)", en: "Changed land by year (Landtrendr)",
+    sourceTh: "GISTDA API", sourceEn: "GISTDA API", gistda: true,
+    swatch: "#ff7673", attr: "Landtrendr: GISTDA API Gateway · ใช้ภายในทีม (team evaluation only)",
   },
   {
     id: "buildings", file: "data/buildings_grid500.geojson",
