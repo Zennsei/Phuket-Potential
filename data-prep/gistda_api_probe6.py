@@ -7,7 +7,8 @@ are most likely 35 years. This round collects what is needed to work out the leg
   1. the TileJSON of landtrendr-all and of landtrendr (full text), and three likely legend/style addresses
   2. Landtrendr tiles (zoom 13, 2 x 2 tiles, about 10 x 10 km over the old town, Ratsada and Wichit),
      for both landtrendr-all and landtrendr
-  3. the yearly satellite pictures 1972-2025 of exactly the same box (one 512 x 512 picture per year, 45 layers)
+  3. the yearly satellite pictures 1972-2025 of exactly the same box (one 512 x 512 picture per year, 43 years:
+     every yearly layer except the two 2 m mosaics)
 
 Claude then compares, for each colour, how green those pixels look year by year against land that never changed,
 and finds the year the greenness drops (data-prep/landtrendr_legend.py). The pictures are GISTDA's copyright:

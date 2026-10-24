@@ -10,7 +10,7 @@ import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
-import { LT_COLOURS, ltCss } from "../landtrendr";
+import { LT_COLOURS, LT_GROUPS, ltCss, ltYears } from "../landtrendr";
 import { BLDG_INFO, BLDG_SOURCES, BUILDING_LOD, OUTLINE_COLOR, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
@@ -32,7 +32,7 @@ const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
 ];
 
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
-  const { t, num } = useI18n();
+  const { t, num, lang } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
@@ -350,13 +350,19 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           ))}
           {overlays.landtrendr && (
             <div>
-              <b>{t("พื้นที่ที่เปลี่ยนแปลง (Landtrendr)", "Changed land (Landtrendr)")}</b>
-              <div className="ramp many" title={t("35 สีที่พบในภูเก็ต", "The 35 colours found over Phuket")}>{LT_COLOURS.map((c) => <i key={c.rgb.join()} style={{ background: ltCss(c) }} />)}</div>
-              <div className="small muted">{LT_COLOURS.some((c) => c.year !== null)
-                ? t("สี = ปีที่พื้นที่เปลี่ยน คลิกจุดบนแผนที่เพื่อดูปี", "Colour = year the land changed; click a spot to see the year")
-                : t("มีสี = จุดที่ Landtrendr พบว่าพื้นที่เปลี่ยน (ดูจากภาพ Landsat ทุกปี) · สีต่างกัน = คนละปี แต่ GISTDA ยังไม่ให้คำอธิบายสี กำลังหาว่าสีไหนคือปีไหน · ไม่มีสี = ไม่พบการเปลี่ยนแปลง",
-                    "Coloured = spots where Landtrendr found the land changed (from the yearly Landsat pictures) · different colours = different years, but GISTDA gives no legend yet and we are working out which colour is which year · no colour = no change found")}
-                <br /><span style={{ color: "var(--warn)" }}>{t("ภาพจาก GISTDA API Gateway ใช้ภายในทีม · Landsat 30 ม. ซูมใกล้กว่าระดับ 14 จะขยายภาพเดิม", "GISTDA API Gateway picture, team only · Landsat 30 m: beyond zoom 14 the same tiles are enlarged")}</span>
+              <b>{t("ปีที่พื้นที่เปลี่ยน (Landtrendr)", "Year the land changed (Landtrendr)")}</b>
+              {LT_GROUPS.map((g) => (
+                <div key={g.id} className="row small" style={{ gap: 6, flexWrap: "nowrap" }}>
+                  <span className="ramp many" style={{ width: 56, flex: "none" }} title={t(`กลุ่ม${g.th}`, `${g.en} group`)}>
+                    {LT_COLOURS.filter((c) => c.group === g.id).map((c) => <i key={c.rgb.join()} style={{ background: ltCss(c) }} />)}
+                  </span>
+                  {ltYears(g, lang === "th")}
+                </div>
+              ))}
+              <div className="small muted">
+                {t("ปีโดยประมาณที่ทีมหาเอง (GISTDA ไม่มีคำอธิบายสี) · คลิกจุดเพื่อดูปี · ไม่มีสี = ไม่เปลี่ยน",
+                   "Approximate years worked out by the team (GISTDA gives no legend) · click a spot for its year · no colour = no change")}
+                <br /><span style={{ color: "var(--warn)" }}>{t("GISTDA API ใช้ภายในทีม · Landsat 30 ม. (ซูมเกิน 14 = ขยายภาพเดิม)", "GISTDA API, team only · Landsat 30 m (beyond zoom 14 = enlarged)")}</span>
               </div>
             </div>
           )}

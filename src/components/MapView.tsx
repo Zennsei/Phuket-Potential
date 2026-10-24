@@ -9,7 +9,7 @@ import { resolveBasemap } from "../gistda";
 import { registerSphereFix } from "../sphereFix";
 import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OUTLINE_COLOR, bldgSourceSpec, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
-import { LT_OPACITY, landtrendrAt, landtrendrSourceSpec } from "../landtrendr";
+import { LT_OPACITY, landtrendrAt, landtrendrSourceSpec, ltGroup, ltYears } from "../landtrendr";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
 import { TRAVEL_DESTS } from "../factors";
@@ -321,11 +321,15 @@ export default function MapView(p: Props) {
           landtrendrAt(e.lngLat.lng, e.lngLat.lat, m.getZoom())
             .then((r) => {
               const sw = (rgb: number[]) => `<i style="display:inline-block;width:10px;height:10px;background:rgb(${rgb.join(",")});vertical-align:-1px"></i> `;
+              const c = r?.colour;
+              const g = c ? ltGroup(c.group) : null;
               const body = !r
                 ? (th ? "ไม่พบการเปลี่ยนแปลงที่จุดนี้" : "no change found here")
-                : r.colour?.year != null
-                  ? `${sw(r.rgb)}${th ? `เปลี่ยนในปี <b>${r.colour.year + 543}</b>` : `changed in <b>${r.colour.year}</b>`}`
-                  : `${sw(r.rgb)}${th ? "มีการเปลี่ยนแปลง (ยังไม่ทราบว่าสีนี้คือปีไหน)" : "changed (the year of this colour is not known yet)"}`;
+                : c && g
+                  ? `${sw(r.rgb)}${th ? "เปลี่ยน" : "changed "}<b>${escapeHtml(c.year != null ? (th ? `ราวปี ${c.year + 543}` : `about ${c.year}`) : ltYears(g, th))}</b>`
+                    + (c.year != null ? ` <span class="pp-muted">(${th ? `กลุ่ม${g.th} ${ltYears(g, th)}` : `${g.en.toLowerCase()} group, ${ltYears(g, th)}`})</span>` : "")
+                    + `<br><span class="pp-muted">${th ? "ปีประมาณที่ทีมเทียบจากภาพรายปี ไม่ใช่คำอธิบายของ GISTDA" : "the team's estimate from the yearly pictures, not a GISTDA legend"}</span>`
+                  : `${sw(r.rgb)}${th ? "มีการเปลี่ยนแปลง (สีนี้ไม่อยู่ใน 35 สีที่รู้จัก)" : "changed (not one of the 35 known colours)"}`;
               html[at] = `<div class="pp-row"><div class="pp-title">${escapeHtml(label("landtrendr"))}</div><div>${body}</div></div>`;
               show();
             })
