@@ -34,6 +34,8 @@
 
 `check_heights.py` เทียบความสูงอาคาร GISTDA 2567 กับ Overture/OSM และสร้างรายการตรวจด้วยตา `checks/height_spotcheck.csv`
 
+`check_compare.py` คิดหน้า "เทียบข้อมูล" ซ้ำด้วยสูตรที่เขียนแยกจากโค้ดเว็บ (5 เรื่อง × 3 หลักเกณฑ์) เขียนผลที่ `checks/compare_methods.txt` ใช้ Python มาตรฐานอย่างเดียว: `python data-prep/check_compare.py`
+
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
 รายละเอียดของข้อมูลทุกชุด (แหล่ง ปี สถานะ) อยู่ใน `DATA.md` ที่โฟลเดอร์หลัก

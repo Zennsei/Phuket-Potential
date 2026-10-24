@@ -1,0 +1,58 @@
+# compare page check: method A (site) vs method B, 17 tambons, Logic Matrix cut 50 / 20 %
+
+developable  equal     rank changed  0/17 (max 0) · top 5 kept 5 · group changed 5
+    วิชิต: upgrade -> promote (score 52.9 -> 52.9)
+    ฉลอง: maintain -> prepare (score 47.4 -> 47.4)
+    กะทู้: maintain -> prepare (score 41.0 -> 41.0)
+    สาคู: maintain -> prepare (score 26.0 -> 26.0)
+    กมลา: maintain -> prepare (score 22.5 -> 22.5)
+developable  emerging  rank changed  8/17 (max 3) · top 5 kept 4 · group changed 7
+    สาคู: upgrade -> promote (score 60.8 -> 66.7)
+    ราไวย์: maintain -> upgrade (score 49.1 -> 50.8)
+    กะรน: maintain -> upgrade (score 49.0 -> 53.8)
+    ฉลอง: maintain -> promote (score 47.4 -> 51.7)
+    กมลา: maintain -> prepare (score 41.4 -> 48.3)
+    วิชิต: maintain -> prepare (score 40.3 -> 42.6)
+    กะทู้: maintain -> prepare (score 30.4 -> 36.7)
+developable  people    rank changed  0/17 (max 0) · top 5 kept 5 · group changed 5
+    ฉลอง: upgrade -> promote (score 57.0 -> 57.0)
+    วิชิต: upgrade -> promote (score 54.4 -> 54.4)
+    กะทู้: maintain -> prepare (score 38.6 -> 38.6)
+    กมลา: maintain -> prepare (score 37.7 -> 37.7)
+    สาคู: maintain -> prepare (score 32.1 -> 32.1)
+
+land-place   equal     rank changed  6/17 (max 1) · top 5 kept 4 · group changed 2
+    กะรน: upgrade -> maintain (score 51.6 -> 49.8)
+    ฉลอง: maintain -> upgrade (score 47.4 -> 50.2)
+land-place   emerging  rank changed 10/17 (max 2) · top 5 kept 4 · group changed 1
+    กะรน: maintain -> upgrade (score 49.0 -> 50.6)
+land-place   people    rank changed  0/17 (max 0) · top 5 kept 5 · group changed 0
+
+land-stat    equal     rank changed  6/17 (max 1) · top 5 kept 5 · group changed 1
+    วิชิต: upgrade -> maintain (score 52.9 -> 49.7)
+land-stat    emerging  rank changed  9/17 (max 2) · top 5 kept 5 · group changed 3
+    ป่าคลอก: promote -> prepare (score 51.9 -> 49.1)
+    ศรีสุนทร: promote -> prepare (score 51.0 -> 48.9)
+    ราไวย์: maintain -> upgrade (score 49.1 -> 50.3)
+land-stat    people    rank changed  0/17 (max 0) · top 5 kept 5 · group changed 0
+
+buildings    equal     rank changed  2/17 (max 1) · top 5 kept 5 · group changed 0
+buildings    emerging  rank changed  7/17 (max 2) · top 5 kept 5 · group changed 0
+buildings    people    rank changed  0/17 (max 0) · top 5 kept 5 · group changed 0
+
+scaling      equal     rank changed  4/17 (max 3) · top 5 kept 5 · group changed 5
+    ฉลอง: maintain -> upgrade (score 47.4 -> 66.2)
+    เกาะแก้ว: prepare -> promote (score 43.9 -> 50.0)
+    กะทู้: maintain -> upgrade (score 41.0 -> 51.2)
+    ราไวย์: maintain -> upgrade (score 36.6 -> 56.2)
+    รัษฎา: maintain -> upgrade (score 32.2 -> 52.5)
+scaling      emerging  rank changed 14/17 (max 6) · top 5 kept 3 · group changed 6
+    ป่าคลอก: promote -> prepare (score 51.9 -> 48.1)
+    ศรีสุนทร: promote -> prepare (score 51.0 -> 44.3)
+    ราไวย์: maintain -> upgrade (score 49.1 -> 56.2)
+    กะรน: maintain -> upgrade (score 49.0 -> 55.7)
+    ฉลอง: maintain -> upgrade (score 47.4 -> 52.2)
+    วิชิต: maintain -> upgrade (score 40.3 -> 50.5)
+scaling      people    rank changed  9/17 (max 4) · top 5 kept 4 · group changed 2
+    ราไวย์: maintain -> upgrade (score 45.7 -> 56.8)
+    รัษฎา: maintain -> upgrade (score 33.5 -> 51.3)
