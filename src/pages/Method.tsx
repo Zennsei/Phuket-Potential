@@ -2,6 +2,7 @@ import { FACTORS } from "../factors";
 import { CATEGORIES, DEFAULT_THRESHOLDS, UNREG_FLAG } from "../decision";
 import { SCENARIOS } from "../scenarios";
 import { useI18n } from "../i18n";
+import { GISTDA_IMAGERY } from "../gistda";
 import type { AppData } from "../data";
 
 const DATA_MD = "https://github.com/Zennsei/Phuket-Potential/blob/main/DATA.md";
@@ -43,7 +44,9 @@ const status: { th: string; en: string; items: StatusItem[] }[] = [
 export default function Method({ data }: { data: AppData }) {
   const { t } = useI18n();
   const n = data.sources.notes;
-  const rows = [
+  // GISTDA API Gateway pictures are listed only where the menu that shows them is switched on (see src/gistda.ts)
+  const imageryRow = { th: "ภาพถ่ายดาวเทียมรายปีและ GI Basemap", en: "Yearly satellite imagery & GI Basemap", src: "GISTDA API Gateway", date: t("2515–2568 (45 ชั้น รวมภาพ 2 ม. ปี 2563–64 และ 2567)", "1972–2025 (45 layers, incl. 2 m mosaics 2020–21 and 2024)"), use: t("แผนที่พื้นหลัง ตัวเลื่อนปี และเทียบ 2 ปีในหน้าแผนที่ (ดูเท่านั้น ไม่ใช้คำนวณคะแนน)", "Base map, year slider and two-year comparison on the map page (viewing only, not used in scores)"), note: t("Copyrighted by GISTDA, Fees: Yes · ใช้ประเมินภายในทีม ยังไม่ได้รับอนุญาตให้เผยแพร่ · /gfms/service/ (WMS), /tiles/basemap_latest/", "Copyrighted by GISTDA, Fees: Yes · team evaluation only, not yet cleared for publishing · /gfms/service/ (WMS), /tiles/basemap_latest/"), gistda: true };
+  const baseRows = [
     { th: "รูปแปลงอาคาร", en: "Building footprints", src: "GISTDA", date: t("มิ.ย. 2565", "Jun 2022"), use: t("จำนวนอาคารต่อ ตร.กม. และพื้นที่หลังคา", "Buildings per km² and roof area"), note: n.buildings, gistda: true },
     { th: "แผนที่พื้นหลังและภาพดาวเทียม", en: "Base map & satellite imagery", src: "GISTDA Sphere", date: t("ออนไลน์", "live"), use: t("แผนที่ถนนและภาพดาวเทียม (ชั้น sphere_streets, thailand_images) ในหน้าแผนที่", "Street map and satellite imagery (sphere_streets, thailand_images layers) on the map page"), note: "https://sphere.gistda.or.th/", gistda: true },
     { th: "ค้นหาสถานที่ ที่อยู่ และสถานที่ใกล้เคียง", en: "Place search, address & nearby places", src: "GISTDA Sphere API", date: t("ออนไลน์", "live"), use: t("ค้นหาสถานที่ และดูที่อยู่กับสถานที่รอบจุดที่คลิก (เรียกเมื่อผู้ใช้กดเท่านั้น)", "Search places, and look up the address and places around a clicked point (only when the user asks)"), note: "api.sphere.gistda.or.th/services/search, /poi, /geo/address", gistda: true },
@@ -58,6 +61,7 @@ export default function Method({ data }: { data: AppData }) {
     { th: "ประชากรและบ้านตามทะเบียนราษฎร์", en: "Registered population & houses", src: t("กรมการปกครอง", "Dept. of Provincial Administration"), date: "2559, 2565, 2568", use: t("ปัจจัยการเติบโตของบ้าน, Stress Test เปลี่ยนแหล่งข้อมูลประชากร, เทียบคนอยู่จริงกับทะเบียน", "House-growth factor, population-source stress test, residents vs registered"), note: "stat.bora.dopa.go.th (ระดับตำบล, ข้อมูล ณ ธ.ค.)" },
     { th: "ราคาประเมินที่ดิน", en: "Land appraisal", src: t("กรมธนารักษ์ (data.go.th)", "Treasury Dept. (data.go.th)"), date: t("รอบบัญชี 2566–2569", "2023–2026 round"), use: t("ค่ากลางราคาบาท/ตร.ว. ต่อตำบล", "Median THB/sq.wah per sub-district"), note: n.land_value },
   ];
+  const rows: (typeof baseRows)[number][] = GISTDA_IMAGERY ? [imageryRow, ...baseRows] : baseRows;
   return (
     <div className="page">
       <header style={{ display: "grid", gap: 8 }}>

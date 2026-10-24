@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, StyleSpecification } from "maplibre-gl";
 // MapLibre builds its worker path at runtime, which the bundler cannot see; bundle the worker explicitly.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
-import { BASEMAPS } from "../sphere";
+import type { Basemap } from "../sphere";
+import { resolveBasemap } from "../gistda";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { useI18n } from "../i18n";
 import type { TambonCollection, TambonProps, TravelDest } from "../types";
@@ -34,6 +35,8 @@ interface Props {
   onView?: (v: MapViewport) => void;
   /** destination shown by the travel-time layer */
   travelDest?: TravelDest;
+  /** swipe comparison: this base map is shown right of the divider, `basemap` left of it */
+  compare?: { basemap: string; leftLabel: string; rightLabel: string };
 }
 
 export interface MapViewport {
@@ -70,6 +73,10 @@ function labelPoint(f: Feature<Polygon | MultiPolygon>): [number, number] {
   return best;
 }
 
+function baseSource(b: Basemap): maplibregl.RasterSourceSpecification {
+  return { type: "raster", tiles: b.tiles, tileSize: 256, attribution: b.attribution, maxzoom: b.maxzoom ?? 19, ...(b.bounds ? { bounds: b.bounds } : {}) };
+}
+
 function step(prop: string, breaks: number[], ramp: string[]): maplibregl.ExpressionSpecification {
   const e: unknown[] = ["step", ["get", prop], ramp[0]];
   breaks.forEach((b, i) => e.push(b, ramp[i + 1]));
@@ -84,16 +91,16 @@ export default function MapView(p: Props) {
   const [ready, setReady] = useState(false);
   const latest = useRef(p);
   const terrainPixels = useRef<TerrainPixels | null>(null);
+  const baseErrors = useRef(0);
   latest.current = p;
   const langRef = useRef(lang);
   langRef.current = lang;
 
   // create the map once
   useEffect(() => {
-    const base = BASEMAPS.find((b) => b.id === p.basemap) ?? BASEMAPS[0];
     const style: StyleSpecification = {
       version: 8,
-      sources: { base: { type: "raster", tiles: base.tiles, tileSize: 256, attribution: base.attribution, maxzoom: 19 } },
+      sources: { base: baseSource(resolveBasemap(p.basemap)) },
       layers: [
         { id: "bg", type: "background", paint: { "background-color": "#dfe7e5" } },
         { id: "base", type: "raster", source: "base" },
@@ -104,10 +111,9 @@ export default function MapView(p: Props) {
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
 
-    let baseErrors = 0;
     m.on("error", (e) => {
       const src = (e as unknown as { sourceId?: string }).sourceId;
-      if (src === "base" && ++baseErrors >= 3) latest.current.onBaseError(true);
+      if (src === "base" && ++baseErrors.current >= 3) latest.current.onBaseError(true);
     });
 
     // "style.load" fires as soon as the style is parsed; "load" would wait for base-map tiles,
@@ -380,16 +386,101 @@ export default function MapView(p: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const base = BASEMAPS.find((b) => b.id === p.basemap) ?? BASEMAPS[0];
+    baseErrors.current = 0;
     p.onBaseError(false);
     m.removeLayer("base");
     m.removeSource("base");
-    m.addSource("base", { type: "raster", tiles: base.tiles, tileSize: 256, attribution: base.attribution, maxzoom: 19 });
+    m.addSource("base", baseSource(resolveBasemap(p.basemap)));
     m.addLayer({ id: "base", type: "raster", source: "base" }, BEFORE_BASE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, p.basemap]);
 
-  return <div ref={box} className="maplibre-host" aria-label={t("แผนที่ภูเก็ต", "Map of Phuket")} />;
+  // swipe comparison: a second, non-interactive map on top, clipped to the right of the divider, following the main map
+  const cmpBox = useRef<HTMLDivElement>(null);
+  const cmpMap = useRef<maplibregl.Map | null>(null);
+  const [swipe, setSwipe] = useState(50);
+  const cmpOn = !!p.compare;
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m || !cmpOn || !cmpBox.current) return;
+    const c = new maplibregl.Map({
+      container: cmpBox.current,
+      style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#dfe7e5" } }] },
+      interactive: false,
+      attributionControl: false,
+      center: m.getCenter(), zoom: m.getZoom(), bearing: m.getBearing(), pitch: m.getPitch(),
+    });
+    cmpMap.current = c;
+    c.once("style.load", () => {
+      c.addSource("tambons", { type: "geojson", data: latest.current.tambons });
+      c.addLayer({ id: "tambon-line", type: "line", source: "tambons", paint: { "line-color": "#ffffff", "line-width": 1 } });
+    });
+    const sync = () => c.jumpTo({ center: m.getCenter(), zoom: m.getZoom(), bearing: m.getBearing(), pitch: m.getPitch() });
+    const resize = () => c.resize();
+    m.on("move", sync);
+    m.on("resize", resize);
+    return () => {
+      m.off("move", sync);
+      m.off("resize", resize);
+      c.remove();
+      cmpMap.current = null;
+    };
+  }, [ready, cmpOn]);
+  // the compared picture
+  useEffect(() => {
+    const c = cmpMap.current;
+    if (!c || !p.compare) return;
+    const put = () => {
+      if (c.getLayer("base")) c.removeLayer("base");
+      if (c.getSource("base")) c.removeSource("base");
+      c.addSource("base", baseSource(resolveBasemap(p.compare!.basemap)));
+      c.addLayer({ id: "base", type: "raster", source: "base" }, c.getLayer("tambon-line") ? "tambon-line" : undefined);
+    };
+    if (c.isStyleLoaded()) put();
+    else c.once("style.load", put);
+  }, [ready, cmpOn, p.compare?.basemap]);
+
+  const dragSwipe = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const wrap = e.currentTarget.parentElement!;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const r = wrap.getBoundingClientRect();
+      setSwipe(Math.min(95, Math.max(5, ((ev.clientX - r.left) / r.width) * 100)));
+    };
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  return (
+    <>
+      <div ref={box} className="maplibre-host" aria-label={t("แผนที่ภูเก็ต", "Map of Phuket")} />
+      {p.compare && (
+        <div className="compare-wrap">
+          <div ref={cmpBox} className="compare-host" style={{ clipPath: `inset(0 0 0 ${swipe}%)` }} />
+          <span className="cmp-tag left">{p.compare.leftLabel}</span>
+          <span className="cmp-tag right">{p.compare.rightLabel}</span>
+          <div
+            className="swipe"
+            style={{ left: `${swipe}%` }}
+            role="slider"
+            tabIndex={0}
+            aria-label={t("เส้นแบ่งเทียบภาพ", "Comparison divider")}
+            aria-valuemin={5}
+            aria-valuemax={95}
+            aria-valuenow={Math.round(swipe)}
+            onPointerDown={dragSwipe}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") setSwipe((v) => Math.max(5, v - 5));
+              if (e.key === "ArrowRight") setSwipe((v) => Math.min(95, v + 5));
+            }}
+          >
+            <i />
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 function escapeHtml(s: string) {

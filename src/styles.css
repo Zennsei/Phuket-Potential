@@ -252,3 +252,19 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .fold > summary > span:first-child { min-width: 0; }
 .fold > summary .hint { text-align: right; max-width: 55%; }
 .searchrow input { width: 100%; }
+
+/* swipe comparison of two satellite pictures (map page) */
+.mapbox .compare-wrap { position: absolute; inset: 26px; pointer-events: none; z-index: 1; }
+.mapbox .maplibregl-popup { z-index: 3; }
+.compare-host { position: absolute; inset: 0; }
+.cmp-tag { position: absolute; top: 8px; background: var(--sheet); color: var(--ink); border: 1px solid var(--ink); padding: 1px 8px; font-family: var(--font-display); font-size: 12px; }
+.cmp-tag.left { left: 8px; }
+.cmp-tag.right { right: 48px; }
+.swipe { position: absolute; top: 0; bottom: 0; width: 28px; margin-left: -14px; cursor: ew-resize; pointer-events: auto; touch-action: none; display: grid; place-items: center; }
+.swipe::before { content: ""; position: absolute; top: 0; bottom: 0; left: 13px; width: 2px; background: var(--overprint); }
+.swipe i { position: relative; width: 18px; height: 34px; background: var(--sheet); border: 2px solid var(--overprint); }
+.swipe:focus-visible i { outline: 2px solid var(--ink); outline-offset: 2px; }
+.imgyears { display: grid; gap: 6px; }
+.imgyears input[type="range"] { width: 100%; accent-color: var(--ink); }
+.imgyears .yr { font-family: var(--font-display); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) { .mapbox .compare-wrap { inset: 18px 10px; } }
