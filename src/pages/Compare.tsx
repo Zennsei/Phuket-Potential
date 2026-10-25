@@ -1,13 +1,16 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { FACTOR_BY_KEY, PRESETS } from "../factors";
 import { CATEGORIES, CATEGORY_ORDER, type Category } from "../decision";
-import { chartValue, comparePair, METHOD_PAIRS, summarise, type MethodPair, type PairRow } from "../methods";
+import { chartValue, comparePair, METHOD_PAIRS, summarise, type PairRow } from "../methods";
+import { KINDS, SOURCE_PAIRS, type SourceKind } from "../sources";
 import { effectiveShare } from "../scoring";
 import { downloadText } from "../download";
 import { useI18n } from "../i18n";
 import { href } from "../router";
+import { DotChart, Key, useWidth } from "../components/CompareCharts";
+import SourceCompare from "../components/SourceCompare";
 import type { PageProps } from "../pageProps";
-import type { Weights } from "../types";
+import type { TambonProps, Weights } from "../types";
 
 /** short names for the four decision groups (the full names are long for a table cell) */
 const CAT_SHORT: Record<Category, [string, string]> = {
@@ -19,36 +22,88 @@ const CAT_SHORT: Record<Category, [string, string]> = {
 
 const RULES = [{ id: "current", th: "ที่ตั้งไว้ในหน้าแผนที่", en: "As set on the map page" }, ...PRESETS];
 
-type Fmt = (n: number, digits?: number) => string;
+type Kind = SourceKind | "method";
 
-function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [w, setW] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setW(Math.floor(el.getBoundingClientRect().width));
-    const ro = new ResizeObserver(([e]) => setW(Math.floor(e.contentRect.width)));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, w] as const;
+interface Topic {
+  id: string;
+  kind: Kind;
+  th: string;
+  en: string;
+  subTh: string;
+  subEn: string;
 }
 
-/** 0 … a round number at or above max, about `count` steps */
-function niceTicks(max: number, count: number): number[] {
-  if (!(max > 0)) return [0, 1];
-  const raw = max / count;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw)!;
-  const out: number[] = [];
-  for (let v = 0; v < max + step * 0.999; v += step) out.push(Number(v.toPrecision(10)));
-  return out;
-}
+const TOPICS: Topic[] = [
+  ...METHOD_PAIRS.map((p) => ({ id: p.id, kind: "method" as const, th: p.th, en: p.en, subTh: `${p.a.th} ↔ ${p.b.th}`, subEn: `${p.a.en} ↔ ${p.b.en}` })),
+  ...SOURCE_PAIRS.map((p) => {
+    const [ath, aen] = p.a.label({ measure: "footprint", from: 2559, to: 2568 });
+    const [bth, ben] = p.b.label({ measure: "footprint", from: 2559, to: 2568 });
+    return { id: p.id, kind: p.kind, th: p.th, en: p.en, subTh: p.option === "years" ? "เลือกปีได้" : `${ath} ↔ ${bth}`, subEn: p.option === "years" ? "pick the years" : `${aen} ↔ ${ben}` };
+  }),
+];
+
+const setAddress = (id: string) => {
+  // keep the choice in the address without firing hashchange (which scrolls the page to the top)
+  try {
+    history.replaceState(null, "", href("compare", id));
+  } catch {
+    /* history unavailable */
+  }
+};
 
 export default function Compare({ data, weights, param }: PageProps & { param?: string }) {
+  const { t } = useI18n();
+  const [topicId, setTopicId] = useState(() => (TOPICS.some((p) => p.id === param) ? param! : TOPICS[0].id));
+  const topic = TOPICS.find((p) => p.id === topicId)!;
+  const kind = KINDS.find((k) => k.id === topic.kind)!;
+  const tambons = useMemo(() => data.tambons.features.map((f) => f.properties), [data]);
+
+  const pick = (id: string) => {
+    setTopicId(id);
+    setAddress(id);
+  };
+
+  return (
+    <div className="page compare">
+      <header style={{ display: "grid", gap: 8 }}>
+        <h1>{t("เรื่องเดียวกัน ข้อมูลต่างกัน เทียบอย่างไร", "Same topic, different numbers: how to compare")}</h1>
+        <p className="lede">
+          {t("บางเรื่องมีข้อมูลมากกว่า 1 แหล่ง คิดได้หลายวิธี หรือมีหลายปี แต่ละแบบต้องคิดผลต่างคนละแบบ เพราะความหมายของส่วนต่างไม่เหมือนกัน",
+             "Some topics have more than one source, more than one method, or several years. Each needs its own way of working out the gap, because the gap means something different each time.")}
+        </p>
+      </header>
+
+      <section className="cmp-controls" aria-label={t("ตัวเลือก", "Options")}>
+        <nav className="mission-nav cmp-kinds" aria-label={t("แบบการเทียบ", "Kind of comparison")}>
+          {KINDS.map((k) => (
+            <button key={k.id} aria-current={k.id === topic.kind ? "step" : undefined} onClick={() => pick(TOPICS.find((p) => p.kind === k.id)!.id)}>
+              {t(k.th, k.en)}
+            </button>
+          ))}
+        </nav>
+        <p className="cmp-kind-lead">{t(kind.leadTh, kind.leadEn)}</p>
+        <div className="choice cmp-pairs" role="group" aria-label={t("เรื่องที่เทียบ", "Topic")}>
+          {TOPICS.filter((p) => p.kind === topic.kind).map((p) => (
+            <button key={p.id} aria-pressed={p.id === topicId} onClick={() => pick(p.id)}>
+              <b>{t(p.th, p.en)}</b>
+              <span className="small muted">{t(p.subTh, p.subEn)}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {topic.kind === "method" ? (
+        <MethodView key={topic.id} pairId={topic.id} tambons={tambons} weights={weights} />
+      ) : (
+        <SourceCompare key={topic.id} pair={SOURCE_PAIRS.find((p) => p.id === topic.id)!} tambons={tambons} />
+      )}
+    </div>
+  );
+}
+
+/** "Different method": the same data worked out two ways, scored with the same rule. */
+function MethodView({ pairId, tambons, weights }: { pairId: string; tambons: TambonProps[]; weights: Weights }) {
   const { t, num, lang } = useI18n();
-  const [pairId, setPairId] = useState(() => (METHOD_PAIRS.some((p) => p.id === param) ? param! : METHOD_PAIRS[0].id));
   const [ruleId, setRuleId] = useState("current");
   const [hover, setHover] = useState<string | null>(null);
 
@@ -56,19 +111,8 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
   const rule = RULES.find((r) => r.id === ruleId)!;
   const w: Weights = ruleId === "current" ? weights : PRESETS.find((p) => p.id === ruleId)!.weights;
 
-  const tambons = useMemo(() => data.tambons.features.map((f) => f.properties), [data]);
   const rows = useMemo(() => comparePair(tambons, w, pair), [tambons, w, pair]);
   const sum = useMemo(() => summarise(pair, rows), [pair, rows]);
-
-  const pickPair = (id: string) => {
-    setPairId(id);
-    // keep the choice in the address without firing hashchange (which scrolls the page to the top)
-    try {
-      history.replaceState(null, "", href("compare", id));
-    } catch {
-      /* history unavailable */
-    }
-  };
 
   const name = (r: PairRow) => t(r.props.tambon_th, r.props.tambon_en);
   const cat = (c: Category) => t(...CAT_SHORT[c]);
@@ -81,10 +125,14 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
     v == null ? t("ไม่มีค่า", "no value") : `${num(v, pair.digits)} ${t(pair[side].unitTh, pair[side].unitEn)}`;
   const diffUnit = pair.diff === "points" ? t("จุด", "pts") : pair.diff === "score" ? t("คะแนน", "pts") : pair.diff === "unit" ? t(pair.a.unitTh, pair.a.unitEn) : "";
   const signed = (v: number, d: number) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${num(Math.abs(v), d)}`;
+  /** % difference against the midpoint of A and B; only for same-unit values that are not already percentages */
+  const pctOf = (a: number | null, b: number | null) => (pair.diff !== "unit" || a == null || b == null || a + b <= 0 ? null : ((b - a) / ((a + b) / 2)) * 100);
 
   const readout = (r: PairRow) => {
     const parts: string[] = [];
     if (pair.chart !== "score") parts.push(`${t("แบบ A", "A")} ${fmtRaw(r.a.raw, "a")} → ${t("แบบ B", "B")} ${fmtRaw(r.b.raw, "b")}`);
+    const p = pctOf(r.a.raw, r.b.raw);
+    if (p != null) parts.push(t(`ต่าง ${signed(p, 1)}% ของค่ากลาง`, `${signed(p, 1)} % of the midpoint`));
     if (pair.chart === "part" && !factorOff && r.a.part != null && r.b.part != null) parts.push(`${t("คะแนนปัจจัย", "factor score")} ${num(r.a.part, 1)} → ${num(r.b.part, 1)}`);
     parts.push(`${t("คะแนนรวม", "score")} ${num(r.a.score, 1)} → ${num(r.b.score, 1)}`);
     parts.push(`${t("อันดับ", "rank")} ${r.a.rank} → ${r.b.rank}`);
@@ -92,11 +140,14 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
     return parts.join(" · ");
   };
   const hovered = rows.find((r) => r.props.id === hover) ?? null;
+  const dotItems = [...rows]
+    .sort((p, q) => (chartValue(pair, q.a) ?? -1) - (chartValue(pair, p.a) ?? -1))
+    .map((r) => ({ id: r.props.id, name: name(r), a: chartValue(pair, r.a), b: chartValue(pair, r.b), aria: `${name(r)}: ${readout(r)}` }));
 
   const exportCsv = () => {
-    const cols = ["method", "rule", "tambon_th", "tambon_en", "value_a", "value_b", "factor_score_a", "factor_score_b", "score_a", "score_b", "rank_a", "rank_b", "group_a", "group_b"];
+    const cols = ["method", "rule", "tambon_th", "tambon_en", "value_a", "value_b", "pct_of_midpoint", "factor_score_a", "factor_score_b", "score_a", "score_b", "rank_a", "rank_b", "group_a", "group_b"];
     const lines = rows.map((r) =>
-      [pair.id, rule.id, r.props.tambon_th, r.props.tambon_en, r.a.raw, r.b.raw, r.a.part, r.b.part, r.a.score, r.b.score, r.a.rank, r.b.rank, r.a.cat, r.b.cat]
+      [pair.id, rule.id, r.props.tambon_th, r.props.tambon_en, r.a.raw, r.b.raw, pctOf(r.a.raw, r.b.raw), r.a.part, r.b.part, r.a.score, r.b.score, r.a.rank, r.b.rank, r.a.cat, r.b.cat]
         .map((v) => (typeof v === "number" ? String(Number(v.toFixed(2))) : JSON.stringify(v ?? "")))
         .join(","),
     );
@@ -104,33 +155,15 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
   };
 
   return (
-    <div className="page compare">
-      <header style={{ display: "grid", gap: 8 }}>
-        <h1>{t("ข้อมูลชุดเดิม คิดคนละวิธี คำตอบเปลี่ยนไหม", "Same data, a different method: does the answer change?")}</h1>
-        <p className="lede">
-          {t("เลือกเรื่อง แล้วดูว่าถ้าเปลี่ยนจากวิธีที่เว็บใช้ (แบบ A) เป็นอีกวิธี (แบบ B) อันดับและกลุ่มการตัดสินใจของ 17 ตำบลเปลี่ยนแค่ไหน ข้อมูลทุกตัวมาจากชุดเดียวกัน ต่างแค่วิธีคิด",
-             "Pick a topic and see how far the ranks and decision groups of the 17 sub-districts move when the site's method (A) is swapped for another (B). Both use exactly the same data; only the method differs.")}
-        </p>
-      </header>
-
-      <section className="cmp-controls" aria-label={t("ตัวเลือก", "Options")}>
-        <div className="choice cmp-pairs" role="group" aria-label={t("เรื่องที่เทียบ", "Topic")}>
-          {METHOD_PAIRS.map((p) => (
-            <button key={p.id} aria-pressed={p.id === pairId} onClick={() => pickPair(p.id)}>
-              <b>{t(p.th, p.en)}</b>
-              <span className="small muted">{t(p.a.th, p.a.en)} ↔ {t(p.b.th, p.b.en)}</span>
-            </button>
+    <>
+      <div className="row cmp-rule">
+        <span className="small muted">{t("หลักเกณฑ์ที่ใช้คิดคะแนน", "Rule used for the scores")}</span>
+        <div className="seg" role="group" aria-label={t("หลักเกณฑ์", "Rule")}>
+          {RULES.map((r) => (
+            <button key={r.id} aria-pressed={r.id === ruleId} onClick={() => setRuleId(r.id)}>{t(r.th, r.en)}</button>
           ))}
         </div>
-        <div className="row cmp-rule">
-          <span className="small muted">{t("หลักเกณฑ์ที่ใช้คิดคะแนน", "Rule used for the scores")}</span>
-          <div className="seg" role="group" aria-label={t("หลักเกณฑ์", "Rule")}>
-            {RULES.map((r) => (
-              <button key={r.id} aria-pressed={r.id === ruleId} onClick={() => setRuleId(r.id)}>{t(r.th, r.en)}</button>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
 
       <section className="cmp-ab" aria-label={t("สองวิธีที่เทียบ", "The two methods")}>
         {(["a", "b"] as const).map((k) => (
@@ -182,8 +215,10 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
             {sum.biggest && pair.diff && (() => {
               const r = sum.biggest!;
               const a = chartValue(pair, r.a)!, b = chartValue(pair, r.b)!;
-              return t(`ต่างกันมากที่สุด: ${name(r)} ${num(a, pair.digits)} → ${num(b, pair.digits)} (${signed(b - a, pair.digits)} ${diffUnit})`,
-                       `Largest gap: ${name(r)} ${num(a, pair.digits)} → ${num(b, pair.digits)} (${signed(b - a, pair.digits)} ${diffUnit})`);
+              const p = pctOf(a, b);
+              const pct = p == null ? "" : t(`, ${signed(p, 1)}% ของค่ากลาง`, `, ${signed(p, 1)} % of the midpoint`);
+              return t(`ต่างกันมากที่สุด: ${name(r)} ${num(a, pair.digits)} → ${num(b, pair.digits)} (${signed(b - a, pair.digits)} ${diffUnit}${pct})`,
+                       `Largest gap: ${name(r)} ${num(a, pair.digits)} → ${num(b, pair.digits)} (${signed(b - a, pair.digits)} ${diffUnit}${pct})`);
             })()}
             {sum.biggest && pair.diff && sum.missingB.length > 0 && " · "}
             {sum.missingB.length > 0 &&
@@ -212,7 +247,10 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
                 ? t("คะแนนปัจจัย 0–100 (หน่วยดิบต่างกัน)", "Factor score 0–100 (raw units differ)")
                 : t("คะแนนรวม 0–100", "Overall score 0–100")}
           </h2>
-          <DotChart pair={pair} rows={rows} hover={hover} setHover={setHover} name={name} t={t} num={num} readout={readout} />
+          <DotChart items={dotItems} hover={hover} setHover={setHover} t={t} num={num}
+                    threshold={pair.threshold?.value} ticks={pair.chart === "raw" ? undefined : [0, 25, 50, 75, 100]}
+                    missingB={t("ไม่มีค่าแบบ B", "no B value")}
+                    ariaLabel={t("กราฟจุดคู่ แบบ A กับแบบ B ของแต่ละตำบล", "Paired dots, A and B, for each sub-district")} />
           <figcaption className="cmp-legend">
             <span><Key side="a" />{t(`แบบ A ${pair.a.th}`, `A ${pair.a.en}`)}</span>
             <span><Key side="b" />{t(`แบบ B ${pair.b.th}`, `B ${pair.b.en}`)}</span>
@@ -237,6 +275,7 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
                 {pair.chart !== "score" && <th className="num">{t("แบบ A", "A")}<span className="unit">{t(pair.a.unitTh, pair.a.unitEn)}</span></th>}
                 {pair.chart !== "score" && <th className="num">{t("แบบ B", "B")}<span className="unit">{t(pair.b.unitTh, pair.b.unitEn)}</span></th>}
                 {pair.diff && pair.chart !== "score" && <th className="num">B − A<span className="unit">{diffUnit}</span></th>}
+                {pair.diff === "unit" && <th className="num">{t("% ต่าง", "% difference")}<span className="unit">{t("เทียบค่ากลาง", "of the midpoint")}</span></th>}
                 {pair.factor && !factorOff && <th className="num">{t("คะแนนปัจจัย A → B", "Factor score A → B")}</th>}
                 <th className="num">{t("คะแนนรวม A → B", "Score A → B")}</th>
                 {pair.chart === "score" && <th className="num">B − A<span className="unit">{t("คะแนน", "pts")}</span></th>}
@@ -248,6 +287,7 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
               {rows.map((r) => {
                 const moved = r.b.rank - r.a.rank;
                 const catChange = r.a.cat !== r.b.cat;
+                const p = pctOf(r.a.raw, r.b.raw);
                 return (
                   <tr key={r.props.id} className={`${hover === r.props.id ? "hl" : ""} ${catChange ? "changed" : ""}`}
                       onMouseEnter={() => setHover(r.props.id)} onMouseLeave={() => setHover(null)}>
@@ -260,6 +300,7 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
                     {pair.diff && pair.chart !== "score" && (
                       <td className="num">{r.a.raw == null || r.b.raw == null ? "–" : signed(r.b.raw - r.a.raw, pair.digits)}</td>
                     )}
+                    {pair.diff === "unit" && <td className="num">{p == null ? "–" : `${signed(p, 1)}%`}</td>}
                     {pair.factor && !factorOff && <td className="num">{num(r.a.part ?? 50, 1)} → {num(r.b.part ?? 50, 1)}</td>}
                     <td className="num">{num(r.a.score, 1)} → {num(r.b.score, 1)}</td>
                     {pair.chart === "score" && <td className="num">{signed(r.b.score - r.a.score, 1)}</td>}
@@ -298,11 +339,11 @@ export default function Compare({ data, weights, param }: PageProps & { param?: 
 
       <p className="small muted">
         {t("ข้อมูล", "Data")}: {t(pair.sourceTh, pair.sourceEn)} ·{" "}
-        {t("คะแนนคิดในเบราว์เซอร์ด้วยสูตรเดียวกับหน้าแผนที่ แบบ A คือค่าตั้งต้นของเว็บ เกณฑ์กลุ่ม = คะแนน 50 × ที่ดินพัฒนาได้ 20%",
-           "Scores are worked out in the browser with the same formula as the map page; A is the site's default. Group cut-offs: score 50 × developable land 20 %.")}{" "}
+        {t("คะแนนคิดในเบราว์เซอร์ด้วยสูตรเดียวกับหน้าแผนที่ แบบ A คือค่าตั้งต้นของเว็บ เกณฑ์กลุ่ม = คะแนน 50 × ที่ดินพัฒนาได้ 20% · % ต่างเทียบกับค่ากลางของสองแบบ ค่าที่เป็น % อยู่แล้วบอกผลต่างเป็นจุด",
+           "Scores are worked out in the browser with the same formula as the map page; A is the site's default. Group cut-offs: score 50 × developable land 20 %. % difference is against the midpoint of the two; values that are already percentages show the gap in points.")}{" "}
         <a href={href("method")}>{t("วิธีคิดและแหล่งข้อมูล", "Method & data")}</a>
       </p>
-    </div>
+    </>
   );
 }
 
@@ -310,15 +351,7 @@ function Swatch({ c, round }: { c: Category; round?: boolean }) {
   return <i className={`cmp-sw${round ? " round" : ""}`} style={{ background: CATEGORIES[c].color }} aria-hidden="true" />;
 }
 
-function Key({ side }: { side: "a" | "b" }) {
-  return (
-    <svg className="cmp-key" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      {side === "a" ? <circle cx="7" cy="7" r="4" fill="var(--cmp-a)" /> : <circle cx="7" cy="7" r="5.5" fill="var(--sheet)" stroke="var(--cmp-b)" strokeWidth="2.5" />}
-    </svg>
-  );
-}
-
-interface ChartProps {
+interface SlopeProps {
   rows: PairRow[];
   hover: string | null;
   setHover: (id: string | null) => void;
@@ -328,7 +361,7 @@ interface ChartProps {
 }
 
 /** Rank under A (left) joined to rank under B (right); end dots coloured by decision group. */
-function SlopeChart({ rows, hover, setHover, name, t, readout }: ChartProps) {
+function SlopeChart({ rows, hover, setHover, name, t, readout }: SlopeProps) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const n = rows.length;
   const rowH = 22, top = 28;
@@ -358,72 +391,13 @@ function SlopeChart({ rows, hover, setHover, name, t, readout }: ChartProps) {
                 <line x1={x0} y1={ya} x2={x1} y2={yb} stroke="transparent" strokeWidth={14} />
                 <line x1={x0} y1={ya} x2={x1} y2={yb}
                       stroke={on ? "var(--overprint)" : k === 2 ? "var(--ink)" : k === 1 ? "var(--muted)" : "var(--rule)"}
-                      strokeWidth={on ? 3 : k === 2 ? 2.25 : k === 1 ? 1.5 : 1.5} strokeLinecap="round" />
+                      strokeWidth={on ? 3 : k === 2 ? 2.25 : 1.5} strokeLinecap="round" />
                 <circle cx={x0} cy={ya} r={4.5} fill={CATEGORIES[r.a.cat].color} stroke="var(--sheet)" strokeWidth={2} />
                 <circle cx={x1} cy={yb} r={4.5} fill={CATEGORIES[r.b.cat].color} stroke="var(--sheet)" strokeWidth={2} />
                 <text className="cv-rank" x={0} y={ya} dy="0.35em">{r.a.rank}</text>
                 <text className={`cv-name${k === 2 ? " strong" : ""}`} x={x0 - 10} y={ya} dy="0.35em" textAnchor="end">{name(r)}</text>
                 <text className={`cv-name${k === 2 ? " strong" : ""}`} x={x1 + 10} y={yb} dy="0.35em">{name(r)}</text>
                 <text className="cv-rank" x={width} y={yb} dy="0.35em" textAnchor="end">{r.b.rank}</text>
-              </g>
-            );
-          })}
-        </svg>
-      )}
-    </div>
-  );
-}
-
-/** A filled dot (method A) and a ring (method B) per sub-district, joined by a line, on one shared axis. */
-function DotChart({ pair, rows, hover, setHover, name, t, num, readout }: ChartProps & { pair: MethodPair; num: Fmt }) {
-  const [ref, width] = useWidth<HTMLDivElement>();
-  const sorted = useMemo(
-    () => [...rows].sort((p, q) => (chartValue(pair, q.a) ?? -1) - (chartValue(pair, p.a) ?? -1)),
-    [rows, pair],
-  );
-  const vals = sorted.flatMap((r) => [chartValue(pair, r.a), chartValue(pair, r.b)]).filter((v): v is number => v != null);
-  const ticks = pair.chart === "raw" ? niceTicks(Math.max(...vals, pair.threshold?.value ?? 0), width < 420 ? 4 : 5) : [0, 25, 50, 75, 100];
-  const max = ticks[ticks.length - 1];
-  const rowH = 22, top = 24;
-  const h = top + sorted.length * rowH + 4;
-  const labelW = Math.round(Math.min(130, Math.max(88, width * 0.26)));
-  const right = 18;
-  const x = (v: number) => labelW + (v / max) * (width - labelW - right);
-  // thousands of baht get a "k" on narrow screens so the tick labels do not touch
-  const fmtTick = (v: number) => (max >= 10000 && width < 560 ? `${num(v / 1000)}k` : num(v));
-
-  return (
-    <div ref={ref} className="cmp-chart">
-      {width > 0 && (
-        <svg width={width} height={h} role="group" aria-label={t("กราฟจุดคู่ แบบ A กับแบบ B ของแต่ละตำบล", "Paired dots, A and B, for each sub-district")}>
-          {ticks.map((v) => (
-            <g key={v}>
-              <line x1={x(v)} x2={x(v)} y1={top - 4} y2={h - 4} stroke="var(--rule)" strokeWidth={1} />
-              <text className="cv-tick" x={x(v)} y={12} textAnchor="middle">{fmtTick(v)}</text>
-            </g>
-          ))}
-          {pair.threshold && (
-            <line x1={x(pair.threshold.value)} x2={x(pair.threshold.value)} y1={top - 6} y2={h - 2} stroke="var(--ink)" strokeWidth={1.25} />
-          )}
-          {sorted.map((r, i) => {
-            const a = chartValue(pair, r.a), b = chartValue(pair, r.b);
-            const yy = top + (i + 0.5) * rowH;
-            const on = r.props.id === hover;
-            return (
-              <g key={r.props.id} className={`cv-row${on ? " on" : ""}`} tabIndex={0} aria-label={`${name(r)}: ${readout(r)}`}
-                 onMouseEnter={() => setHover(r.props.id)} onMouseLeave={() => setHover(null)}
-                 onFocus={() => setHover(r.props.id)} onBlur={() => setHover(null)}>
-                <rect x={0} y={yy - rowH / 2} width={width} height={rowH} className="cv-band" />
-                <text className="cv-name" x={labelW - 12} y={yy} dy="0.35em" textAnchor="end">{name(r)}</text>
-                {a != null && b != null && (
-                  <line x1={x(a)} x2={x(b)} y1={yy} y2={yy} stroke={on ? "var(--overprint)" : "var(--muted)"} strokeWidth={on ? 2.5 : 1.5} strokeLinecap="round" />
-                )}
-                {b != null ? (
-                  <circle cx={x(b)} cy={yy} r={6} fill="var(--sheet)" stroke="var(--cmp-b)" strokeWidth={2.5} />
-                ) : (
-                  a != null && <text className="cv-tick" x={x(a) + 10} y={yy} dy="0.35em">{t("ไม่มีค่าแบบ B", "no B value")}</text>
-                )}
-                {a != null && <circle cx={x(a)} cy={yy} r={4} fill="var(--cmp-a)" />}
               </g>
             );
           })}

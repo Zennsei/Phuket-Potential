@@ -34,7 +34,9 @@
 
 `check_heights.py` เทียบความสูงอาคาร GISTDA 2567 กับ Overture/OSM และสร้างรายการตรวจด้วยตา `checks/height_spotcheck.csv`
 
-`check_compare.py` คิดหน้า "เทียบข้อมูล" ซ้ำด้วยสูตรที่เขียนแยกจากโค้ดเว็บ (5 เรื่อง × 3 หลักเกณฑ์) เขียนผลที่ `checks/compare_methods.txt` ใช้ Python มาตรฐานอย่างเดียว: `python data-prep/check_compare.py`
+`check_compare.py` คิดหน้า "เทียบข้อมูล" ซ้ำด้วยสูตรที่เขียนแยกจากโค้ดเว็บ: แบบต่างวิธีคิด (5 เรื่อง × 3 หลักเกณฑ์) → `checks/compare_methods.txt` และแบบวัดสิ่งเดียวกัน/นิยามต่างกัน/ต่างช่วงเวลา → `checks/compare_sources.txt` ใช้ Python มาตรฐานอย่างเดียว: `python data-prep/check_compare.py`
+
+`building_sources.py` นับอาคาร 3 แหล่ง (GISTDA 2565, GISTDA 2567, Overture) รายตำบลด้วยกติกาเดียวกัน ได้ `public/data/building_sources.csv` สำหรับหน้าเทียบข้อมูล: `python data-prep/building_sources.py <ภูเก็ต.shp> <gistda_buildings_2567_phuket.csv.gz> <phuket_buildings_overture.parquet> <THA_Tambon.shp>` (ไฟล์ทั้ง 4 อยู่ใน `raw-data/` zip 03, 01, 06, 10) ต้องมี geopandas และ pyarrow
 
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
