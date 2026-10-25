@@ -1,0 +1,26 @@
+GISTDA 2565 (D1): 130,403 buildings · outside the shared box 0 · in or nearest to Phang Nga/Krabi 0 · over 3 km from any tambon 0 · coastal kept 53 · counted 130,403 · footprint 28.85 km²
+GISTDA 2567 (D13): 239,992 buildings · outside the shared box 0 · in or nearest to Phang Nga/Krabi 0 · over 3 km from any tambon 0 · coastal kept 140 · counted 239,992 · footprint 36.53 km²
+Overture 2026-09-23.1 (D9): 223,218 buildings · outside the shared box 12 · in or nearest to Phang Nga/Krabi 3,583 · over 3 km from any tambon 0 · coastal kept 132 · counted 219,623 · footprint 35.12 km²
+
+cross-check with the existing columns (they used the whole province / download, not the shared box):
+  D1 count vs tambons.geojson `buildings` (130,403): differs in 15 tambons, total +0 · largest ราไวย์ -19, วิชิต -18, ตลาดใหญ่ -13, รัษฎา -6, เทพกระษัตรี -5, สาคู -5, กมลา -3, กะทู้ -3, ศรีสุนทร +2, ไม้ขาว +3, เชิงทะเล +6, ป่าคลอก +6, ตลาดเหนือ +6, เกาะแก้ว +14, ฉลอง +35
+  D13 count vs height_tambon.csv `bldg_2567` (239,992): differs in 6 tambons, total +0
+
+per tambon (count / footprint km²):  GISTDA 2565 | GISTDA 2567 | Overture
+  กมลา           4,311   0.72 |   7,945   1.00 |   7,031   0.97
+  กะทู้          7,965   1.82 |  13,069   2.08 |  12,519   2.04
+  ป่าตอง         5,969   1.74 |   9,731   1.87 |   9,474   1.86
+  ป่าคลอก        7,392   1.23 |  14,352   1.74 |  12,318   1.55
+  ศรีสุนทร       8,421   1.88 |  20,029   2.80 |  17,214   2.65
+  สาคู           3,158   0.55 |   5,795   0.86 |   5,934   0.85
+  เชิงทะเล       8,569   1.57 |  18,761   2.26 |  15,717   2.07
+  เทพกระษัตรี    7,849   1.51 |  18,786   2.47 |  15,859   2.23
+  ไม้ขาว         4,843   0.87 |  10,979   1.55 |   9,988   1.46
+  กะรน           5,128   1.08 |   8,314   1.34 |   8,553   1.36
+  ฉลอง          13,003   2.56 |  19,186   2.92 |  19,821   2.94
+  ตลาดเหนือ      3,070   0.78 |   5,100   0.88 |   4,190   0.81
+  ตลาดใหญ่       4,907   1.36 |   7,907   1.48 |   6,618   1.41
+  รัษฎา         13,557   3.52 |  23,488   4.07 |  19,451   3.77
+  ราไวย์        11,606   1.93 |  19,301   2.47 |  19,559   2.51
+  วิชิต         15,048   4.45 |  24,640   4.96 |  23,926   4.93
+  เกาะแก้ว       5,607   1.27 |  12,609   1.80 |  11,451   1.68
