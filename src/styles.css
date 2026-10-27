@@ -179,6 +179,7 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .pp-row + .pp-row { border-top: 1px solid #dfe6e4; margin-top: 6px; padding-top: 6px; }
 .pp-title { font-size: 11px; color: #5a6b76; margin-bottom: 1px; }
 .pp-muted { color: #5a6b76; }
+.pp-warn { color: #a8550b; font-weight: 600; }
 
 /* ---------- home sheet ---------- */
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: center; }
@@ -346,3 +347,26 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .cmp-table tfoot td { border-top: 2px solid var(--ink); border-bottom: 0; font-weight: 600; white-space: nowrap; }
 .cmp-select { width: auto; }
 @media (max-width: 720px) { .cmp-kinds { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; } .cmp-kinds button { text-align: left; } }
+
+/* map: layer categories (one row per category, click the name for its choices) */
+.pill.warn { color: var(--warn); }
+.cats { display: grid; border-top: 1px solid var(--rule); }
+.cat { border-bottom: 1px solid var(--rule); }
+.cat-head { display: flex; align-items: center; gap: 6px; }
+.cat-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 8px 2px; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.cat-toggle:hover .cat-name { text-decoration: underline; text-decoration-color: var(--overprint); text-underline-offset: 3px; }
+.cat-toggle .chev { width: 10px; flex: none; color: var(--muted); font-size: 11px; }
+.cat-toggle .sw { width: 10px; height: 10px; flex: none; }
+.cat-name { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.cat-sum { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cat.off .cat-name { color: var(--muted); }
+.cat-body { display: grid; gap: 6px; padding: 0 0 10px 17px; }
+.cat-body .check { margin: 0; }
+.radios { display: grid; gap: 2px; }
+.switch { position: relative; flex: none; width: 34px; height: 20px; cursor: pointer; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 10px; background: var(--rule); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); transition: transform .15s; }
+.switch input:checked + span { background: var(--ink); }
+.switch input:checked + span::after { transform: translateX(14px); }
+.switch input:focus-visible + span { outline: 2px solid var(--overprint); outline-offset: 2px; }

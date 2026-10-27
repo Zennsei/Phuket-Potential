@@ -58,7 +58,6 @@ export default function Ranking({ scored, weights }: PageProps) {
       road_dist_m: s.props.road_dist_m,
       services_per_km2: s.props.services_per_km2,
       pop_per_km2: s.props.pop_per_km2,
-      land_median: s.props.land_median,
       developable_pct: s.props.developable_pct,
       developable_flat_pct: s.props.developable_flat_pct,
       elev_80_pct: s.props.elev_80_pct,
@@ -67,8 +66,6 @@ export default function Ranking({ scored, weights }: PageProps) {
       reg_pop_2568: s.props.reg_pop_2568,
       reg_pop_growth_pct: s.props.reg_pop_growth_pct,
       unreg_ratio: s.props.unreg_ratio,
-      travel_dest: weights.travel.dest ?? "oldtown",
-      travel_min: FACTORS.find((f) => f.key === "travel")!.value(s.props, weights.travel),
     }));
 
   const exportCsv = () => {
@@ -154,7 +151,7 @@ export default function Ranking({ scored, weights }: PageProps) {
                     const v = f.value(s.props, weights[f.key]);
                     return (
                       <td key={f.key} className="num">
-                        {v == null ? "–" : num(v, f.key === "services" || f.key === "travel" || (f.key === "buildings" && weights.buildings.measure === "floor") ? 1 : 0)}
+                        {v == null ? "–" : num(v, f.key === "services" || (f.key === "buildings" && weights.buildings.measure === "floor") ? 1 : 0)}
                         <div className="small muted">{num(s.parts[f.key])}/100</div>
                       </td>
                     );

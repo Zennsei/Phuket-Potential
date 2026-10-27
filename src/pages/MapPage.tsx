@@ -6,7 +6,7 @@ import WeightPanel from "../components/WeightPanel";
 import TambonDetail from "../components/TambonDetail";
 import SphereSearch from "../components/SphereSearch";
 import SphereNearby from "../components/SphereNearby";
-import { FACTORS, TRAVEL_DESTS, unitOf } from "../factors";
+import { FACTORS, unitOf } from "../factors";
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { BASEMAPS, type SpherePlace } from "../sphere";
 import { DEFAULT_IMAGERY, GISTDA_BASEMAPS, GISTDA_IMAGERY, IMAGERY_YEARS } from "../gistda";
@@ -22,21 +22,62 @@ import type { FactorKey } from "../types";
 /** "reg_pop" / "reg_house": registered people / houses per km² in the chosen year */
 type ColorBy = "score" | FactorKey | "reg_pop" | "reg_house";
 
-const LAYER_GROUPS: { th: string; en: string; ids: OverlayId[] }[] = [
-  // "bldg3d": Overture for everyone, GISTDA (live API) only for the team (VITE_GISTDA_IMAGERY=1), see src/buildings3d.ts
-  // "landtrendr": GISTDA API Gateway, team only (VITE_GISTDA_IMAGERY=1)
-  { th: "พื้นที่และอาคาร", en: "Land & buildings", ids: ["landuse", "terrain", ...(GISTDA_IMAGERY ? ["landtrendr" as const] : []), "buildings", "height3d", "bldg3d"] },
-  { th: "ประชากร", en: "People", ids: ["population"] },
-  { th: "การเดินทาง", en: "Getting around", ids: ["travel", "streets", "roads", "pois"] },
-  { th: "ราคาที่ดิน", en: "Land price", ids: ["land"] },
-];
+type CatId = "tambon" | "buildings" | "roads" | "land" | "people" | "places" | "base";
+
+/**
+ * One layer category in the left panel: a row with the name, what is showing now and an on/off switch;
+ * clicking the name opens the category's own choices (view, data source, notes). One category is open at a time.
+ */
+function Cat({ id, open, setOpen, title, summary, on, setOn, swatch, children }: {
+  id: CatId; open: CatId | null; setOpen: (c: CatId | null) => void; title: string; summary: string;
+  on?: boolean; setOn?: (v: boolean) => void; swatch?: string; children: React.ReactNode;
+}) {
+  const isOpen = open === id;
+  return (
+    <div className={`cat${isOpen ? " open" : ""}${on === false ? " off" : ""}`}>
+      <div className="cat-head">
+        <button type="button" className="cat-toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : id)}>
+          <span className="chev" aria-hidden>{isOpen ? "▾" : "▸"}</span>
+          {swatch && <span className="sw" style={{ background: swatch }} />}
+          <span className="cat-name">{title}</span>
+          <span className="cat-sum">{summary}</span>
+        </button>
+        {setOn && (
+          <label className="switch" title={title}>
+            <input type="checkbox" checked={!!on} onChange={(e) => setOn(e.target.checked)} aria-label={title} />
+            <span aria-hidden />
+          </label>
+        )}
+      </div>
+      {isOpen && <div className="cat-body">{children}</div>}
+    </div>
+  );
+}
 
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
   const { t, num, lang } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
-  const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>({ landuse: false, terrain: false, landtrendr: false, buildings: false, population: false, land: false, travel: false, height3d: false, bldg3d: false, streets: true, roads: true, pois: false });
+  // layer categories (left panel); `overlays` below is worked out from them
+  const [openCat, setOpenCat] = useState<CatId | null>(null);
+  const [bldgOn, setBldgOn] = useState(false);
+  const [bldgView, setBldgView] = useState<"bldg3d" | "height3d">("bldg3d");
+  const [roadsOn, setRoadsOn] = useState(true);
+  const [roadsAll, setRoadsAll] = useState(true);
+  const [landOn, setLandOn] = useState<Record<"landuse" | "terrain" | "landtrendr" | "land", boolean>>({ landuse: false, terrain: false, landtrendr: false, land: false });
+  const [popOn, setPopOn] = useState(false);
+  const [poisOn, setPoisOn] = useState(false);
+  const overlays: Record<OverlayId, boolean> = {
+    ...landOn,
+    landtrendr: GISTDA_IMAGERY && landOn.landtrendr,
+    population: popOn,
+    height3d: bldgOn && bldgView === "height3d",
+    bldg3d: bldgOn && bldgView === "bldg3d",
+    roads: roadsOn,
+    streets: roadsOn && roadsAll,
+    pois: poisOn,
+  };
   const [basemap, setBasemap] = useState(BASEMAPS[0].id);
   // GISTDA yearly imagery: the slider moves `imgIdx` at once, the picture follows when the slider rests (each new picture costs credits)
   const [imgLayer, setImgLayer] = useState(DEFAULT_IMAGERY);
@@ -137,9 +178,16 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     };
   }, [colorBy, scored, t, num, weights, year]);
 
-  const anyFillOverlay = overlays.landuse || overlays.buildings || overlays.population || overlays.land || overlays.travel || overlays.height3d || overlays.terrain || overlays.landtrendr;
-  const layersOn = OVERLAYS.filter((o) => overlays[o.id]).length;
-  const travelDest = weights.travel.dest ?? "oldtown";
+  const anyFillOverlay = overlays.landuse || overlays.population || overlays.land || overlays.height3d || overlays.terrain || overlays.landtrendr;
+  const layersOn = [tambonFill, bldgOn, roadsOn, ...Object.values(landOn), popOn, poisOn].filter(Boolean).length;
+  const ov = (id: OverlayId) => OVERLAYS.find((o) => o.id === id)!;
+  const pill = (id: OverlayId, label?: string) => {
+    const o = ov(id);
+    return <span className={`pill ${o.gistda ? "gistda" : id === "land" ? "warn" : "muted"}`} style={{ fontSize: 10, padding: "0 6px" }}>{label ?? t(o.sourceTh, o.sourceEn)}</span>;
+  };
+  const landItems: ("landuse" | "terrain" | "landtrendr" | "land")[] = ["landuse", "terrain", ...(GISTDA_IMAGERY ? ["landtrendr" as const] : []), "land"];
+  const baseName = onYears ? t(`ภาพดาวเทียม ${yearName(imgLayer)}`, `Imagery ${yearName(imgLayer)}`) : (() => { const b = baseChoices.find((x) => x.id === basemap)!; return t(b.th, b.en); })();
+  const otherSrc = BLDG_SOURCES.find((x) => x !== bldgSource);
   const selected = scored.find((s) => s.props.id === selectedId);
   const onMapClick = (hit: { id?: string; lon: number; lat: number }) => {
     setClickPoint({ lon: hit.lon, lat: hit.lat });
@@ -165,118 +213,151 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           <WeightPanel weights={weights} setWeights={setWeights} />
         </Fold>
         <Fold title={t("ชั้นข้อมูล", "Layers")} hint={t(`เปิด ${layersOn}`, `${layersOn} on`)} open>
-          {LAYER_GROUPS.map((g) => (
-            <div key={g.en}>
-              <p className="group-label">{t(g.th, g.en)}</p>
-              {g.ids.map((id) => {
-                const o = OVERLAYS.find((x) => x.id === id)!;
-                const other = BLDG_SOURCES.find((x) => x !== bldgSource);
-                return (
-                  <div key={o.id}>
-                    <label className="check">
-                      <input type="checkbox" checked={overlays[o.id]} onChange={(e) => setOverlays({ ...overlays, [o.id]: e.target.checked })} />
-                      <span className="sw" style={{ background: o.swatch }} />
-                      <span>
-                        {t(o.th, o.en)} <span className={`pill ${o.gistda && (o.id !== "bldg3d" || bldgSource === "gistda") ? "gistda" : "muted"}`} style={{ fontSize: 10, padding: "0 6px" }}>{o.id === "bldg3d" ? (bldgSource === "gistda" ? "GISTDA API 2567" : "Overture") : t(o.sourceTh, o.sourceEn)}</span>
-                      </span>
-                    </label>
-                    {o.id === "bldg3d" && overlays.bldg3d && (
-                      <div className="subopts">
-                        {BLDG_SOURCES.length > 1 && (
-                          <label className="small" style={{ display: "grid", gap: 2 }}>
-                            {t("ข้อมูลอาคาร", "Building data")}
-                            <select value={bldgSource} onChange={(e) => setBldgSource(e.target.value as BldgSource)}>
-                              {BLDG_SOURCES.map((src) => <option key={src} value={src}>{t(BLDG_INFO[src].th, BLDG_INFO[src].en)}</option>)}
-                            </select>
-                          </label>
-                        )}
-                        {other && (
-                          <label className="check small">
-                            <input type="checkbox" checked={bldgOutline} onChange={(e) => setBldgOutline(e.target.checked)} />
-                            <span className="sw" style={{ background: "transparent", border: `2px solid ${OUTLINE_COLOR[other]}` }} />
-                            <span>{t(`ขอบอาคาร ${other === "overture" ? "Overture" : "GISTDA"} ซ้อน (เทียบตำแหน่ง)`, `${other === "overture" ? "Overture" : "GISTDA"} outlines on top (compare positions)`)}</span>
-                          </label>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          <p className="group-label">{t("การแสดงผล", "Display")}</p>
-          <label className="check">
-            <input type="checkbox" checked={tambonFill} onChange={(e) => setTambonFill(e.target.checked)} />
-            <span className="sw" style={{ background: "#2c7a98" }} />
-            <span>{t("สีตำบล", "Sub-district colours")}</span>
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} />
-            <span>{t("ชื่อตำบล", "Sub-district names")}</span>
-          </label>
-        </Fold>
-        <Fold title={t("สีตำบลตาม", "Colour by")} hint={colourName(colorBy)}>
-          <select value={colorBy} onChange={(e) => { setColorBy(e.target.value as ColorBy); setPlaying(false); }} aria-label={t("ระบายสีตำบลตาม", "Colour sub-districts by")}>
-            <option value="score">{t("คะแนนศักยภาพรวม", "Overall potential score")}</option>
-            <optgroup label={t("ปัจจัย", "Factors")}>
-              {FACTORS.map((f) => <option key={f.key} value={f.key}>{t(f.th, f.en)}</option>)}
-            </optgroup>
-            <optgroup label={t("ข้อมูลรายปี (เลือกปีได้)", "Yearly data (pick a year)")}>
-              <option value="reg_pop">{t("ประชากรตามทะเบียน", "Registered population")}</option>
-              <option value="reg_house">{t("บ้านตามทะเบียน", "Registered houses")}</option>
-            </optgroup>
-          </select>
-          {yearly && (
-            <>
-              <div className="yearbtns" role="group" aria-label={t("ปี", "Year")}>
-                {REG_YEARS.map((y) => (
-                  <button key={y} aria-pressed={y === year} onClick={() => { setYear(y); setPlaying(false); }}>{y}</button>
-                ))}
-                <button aria-pressed={playing} onClick={() => setPlaying(!playing)}>{playing ? t("หยุด", "Stop") : t("เล่นทุกปี", "Play")}</button>
-              </div>
-              <span className="small muted">{t("กรมการปกครอง ข้อมูล ณ ธ.ค. ของแต่ละปี สีใช้เกณฑ์เดียวกันทุกปีจึงเทียบกันได้", "DOPA, December of each year. Colours use the same classes for every year, so years can be compared.")}</span>
-            </>
-          )}
-          {!tambonFill && <span className="small" style={{ color: "var(--warn)" }}>{t("เปิด \"สีตำบล\" ในชั้นข้อมูลเพื่อดูสี", "Turn on \"Sub-district colours\" under layers to see this")}</span>}
-        </Fold>
-        <Fold title={t("แผนที่พื้นหลัง", "Base map")} hint={onYears ? t(`ภาพดาวเทียม ${yearName(imgLayer)}`, `Imagery ${yearName(imgLayer)}`) : (() => { const b = baseChoices.find((x) => x.id === basemap)!; return t(b.th, b.en); })()} open={GISTDA_IMAGERY}>
-          <select value={basemap} onChange={(e) => setBasemap(e.target.value)} aria-label={t("แผนที่พื้นหลัง", "Base map")}>
-            {baseChoices.map((b) => (
-              <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? (b.gistdaApi ? " (GISTDA API)" : " (GISTDA)") : ""}</option>
-            ))}
-          </select>
-          {onYears && (
-            <div className="imgyears">
-              <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-                <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(-1)} disabled={imgIdx === 0} aria-label={t("ปีก่อนหน้า", "Previous year")}>◀</button>
-                <span className="yr" aria-live="polite">{t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)}</span>
-                <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(1)} disabled={imgIdx === IMAGERY_YEARS.length - 1} aria-label={t("ปีถัดไป", "Next year")}>▶</button>
-              </div>
-              <input type="range" min={0} max={IMAGERY_YEARS.length - 1} step={1} value={imgIdx} onChange={(e) => setImgIdx(Number(e.target.value))}
-                aria-label={t("ปีของภาพดาวเทียม", "Imagery year")} aria-valuetext={t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)} />
-              <div className="row small muted" style={{ justifyContent: "space-between" }}><span>{t("2515", "1972")}</span><span>{t("2568 + ภาพ 2 ม.", "2025 + 2 m mosaics")}</span></div>
-              <label className="row small" style={{ gap: 6 }}>
-                <input type="checkbox" checked={compareOn} onChange={(e) => toggleCompare(e.target.checked)} />
-                {t("เทียบ 2 ปี (เลื่อนเส้นแบ่งบนแผนที่)", "Compare 2 years (drag the divider on the map)")}
+          <p className="small muted" style={{ margin: "0 0 4px" }}>{t("กดชื่อหมวดเพื่อเลือกรูปแบบและที่มาของข้อมูล · สวิตช์ขวา = เปิด/ปิด", "Click a category for its views and data sources · switch on the right = on/off")}</p>
+          <div className="cats">
+            <Cat id="tambon" open={openCat} setOpen={setOpenCat} title={t("สีตำบล", "Sub-district colours")} summary={colourName(colorBy)} on={tambonFill} setOn={setTambonFill} swatch="#2c7a98">
+              <label className="small" style={{ display: "grid", gap: 2 }}>
+                {t("ระบายสีตำบลตาม", "Colour sub-districts by")}
+                <select value={colorBy} onChange={(e) => { setColorBy(e.target.value as ColorBy); setPlaying(false); setTambonFill(true); }}>
+                  <option value="score">{t("คะแนนศักยภาพรวม", "Overall potential score")}</option>
+                  <optgroup label={t("ปัจจัย", "Factors")}>
+                    {FACTORS.map((f) => <option key={f.key} value={f.key}>{t(f.th, f.en)}</option>)}
+                  </optgroup>
+                  <optgroup label={t("ข้อมูลรายปี (เลือกปีได้)", "Yearly data (pick a year)")}>
+                    <option value="reg_pop">{t("ประชากรตามทะเบียน", "Registered population")}</option>
+                    <option value="reg_house">{t("บ้านตามทะเบียน", "Registered houses")}</option>
+                  </optgroup>
+                </select>
               </label>
-              {compareOn && (
-                <label className="small" style={{ display: "grid", gap: 2 }}>
-                  {t("ภาพด้านขวาของเส้นแบ่ง", "Picture right of the divider")}
-                  <select value={cmpLayer} onChange={(e) => setCmpLayer(e.target.value)}>
-                    {IMAGERY_YEARS.map((y) => <option key={y.layer} value={y.layer}>{t(y.th, y.en)}</option>)}
-                  </select>
-                </label>
+              {yearly && (
+                <>
+                  <div className="yearbtns" role="group" aria-label={t("ปี", "Year")}>
+                    {REG_YEARS.map((y) => (
+                      <button key={y} aria-pressed={y === year} onClick={() => { setYear(y); setPlaying(false); }}>{y}</button>
+                    ))}
+                    <button aria-pressed={playing} onClick={() => setPlaying(!playing)}>{playing ? t("หยุด", "Stop") : t("เล่นทุกปี", "Play")}</button>
+                  </div>
+                  <span className="small muted">{t("กรมการปกครอง ข้อมูล ณ ธ.ค. ของแต่ละปี สีใช้เกณฑ์เดียวกันทุกปีจึงเทียบกันได้", "DOPA, December of each year. Colours use the same classes for every year, so years can be compared.")}</span>
+                </>
               )}
-              <span className="small muted">{t(
-                "ปี 2515–2522 มีเมฆและริ้ว ตั้งแต่ 2533 ชัดเจน ภาพปีเก่าซูมใกล้จะเบลอ ซูมดูเมืองใช้ภาพ 2 ม. (2563–64, 2567)",
-                "1972–1979 have clouds and stripes; from 1990 they are clear. Older years blur when zoomed in; use the 2 m mosaics (2020–21, 2024) for close-ups.")}</span>
-            </div>
-          )}
-          {GISTDA_IMAGERY && (
-            <span className="small" style={{ color: "var(--warn)" }}>{t(
-              "ภาพจาก GISTDA API Gateway (Copyrighted by GISTDA) ใช้ประเมินภายในทีม ยังไม่ได้รับอนุญาตให้เผยแพร่ · ภาพแต่ละช่องที่เปิดครั้งแรกใช้เครดิต key ทีม 1 ครั้ง",
-              "Pictures from the GISTDA API Gateway (Copyrighted by GISTDA) are for team evaluation, not yet cleared for publishing · each tile seen for the first time uses 1 credit of the team key")}</span>
-          )}
+              <label className="check small">
+                <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} />
+                <span>{t("แสดงชื่อตำบล", "Show sub-district names")}</span>
+              </label>
+            </Cat>
+
+            <Cat id="buildings" open={openCat} setOpen={setOpenCat} title={t("อาคาร", "Buildings")}
+              summary={bldgView === "bldg3d" ? t(`3 มิติรายหลัง · ${bldgSource === "gistda" ? "GISTDA" : "Overture"}`, `3D each · ${bldgSource === "gistda" ? "GISTDA" : "Overture"}`) : t("3 มิติ ช่อง 500 ม. · GISTDA", "3D 500 m cells · GISTDA")}
+              on={bldgOn} setOn={setBldgOn} swatch="#c4512e">
+              <div className="radios" role="radiogroup" aria-label={t("รูปแบบ", "View")}>
+                <label className="check small"><input type="radio" name="bldgview" checked={bldgView === "bldg3d"} onChange={() => { setBldgView("bldg3d"); setBldgOn(true); }} /><span>{t("3 มิติรายหลัง (ซูมใกล้)", "3D, one by one (zoom in)")}</span></label>
+                <label className="check small"><input type="radio" name="bldgview" checked={bldgView === "height3d"} onChange={() => { setBldgView("height3d"); setBldgOn(true); }} /><span>{t("3 มิติ ช่อง 500 ม. (ทั้งเกาะ)", "3D, 500 m cells (whole island)")}</span></label>
+              </div>
+              {bldgView === "bldg3d" ? (
+                <>
+                  {BLDG_SOURCES.length > 1 ? (
+                    <label className="small" style={{ display: "grid", gap: 2 }}>
+                      {t("ที่มาของข้อมูล", "Data source")}
+                      <select value={bldgSource} onChange={(e) => setBldgSource(e.target.value as BldgSource)}>
+                        {BLDG_SOURCES.map((src) => <option key={src} value={src}>{t(BLDG_INFO[src].th, BLDG_INFO[src].en)}</option>)}
+                      </select>
+                    </label>
+                  ) : <span className="small">{t("ที่มา:", "Source:")} {pill("bldg3d", "Overture")}</span>}
+                  {otherSrc && (
+                    <label className="check small">
+                      <input type="checkbox" checked={bldgOutline} onChange={(e) => setBldgOutline(e.target.checked)} />
+                      <span className="sw" style={{ background: "transparent", border: `2px solid ${OUTLINE_COLOR[otherSrc]}` }} />
+                      <span>{t(`ซ้อนขอบอาคาร ${otherSrc === "overture" ? "Overture" : "GISTDA"} (เทียบตำแหน่ง)`, `${otherSrc === "overture" ? "Overture" : "GISTDA"} outlines on top (compare positions)`)}</span>
+                    </label>
+                  )}
+                </>
+              ) : (
+                <span className="small">{t("ที่มา:", "Source:")} {pill("height3d")} <span className="muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอย", "colour = mean height · bar = floor area")}</span></span>
+              )}
+            </Cat>
+
+            <Cat id="roads" open={openCat} setOpen={setOpenCat} title={t("ถนน", "Roads")} summary={roadsAll ? t("ทุกประเภทรวมซอย", "all, incl. alleys") : t("สายหลัก", "main roads")} on={roadsOn} setOn={setRoadsOn} swatch="#c4511c">
+              <div className="radios" role="radiogroup" aria-label={t("แสดง", "Show")}>
+                <label className="check small"><input type="radio" name="roads" checked={!roadsAll} onChange={() => { setRoadsAll(false); setRoadsOn(true); }} /><span>{t("ถนนสายหลัก", "Main roads")}</span></label>
+                <label className="check small"><input type="radio" name="roads" checked={roadsAll} onChange={() => { setRoadsAll(true); setRoadsOn(true); }} /><span>{t("ทุกประเภทรวมซอย (ซอยขึ้นเมื่อซูมใกล้)", "All, incl. alleys (alleys appear when zoomed in)")}</span></label>
+              </div>
+              <span className="small">{t("ที่มา:", "Source:")} {pill("roads")}</span>
+            </Cat>
+
+            <Cat id="land" open={openCat} setOpen={setOpenCat} title={t("ที่ดิน", "Land")}
+              summary={(() => { const n = landItems.filter((k) => landOn[k]).length; return n ? t(`เปิด ${n}`, `${n} on`) : t("ปิด", "off"); })()}
+              on={landItems.some((k) => landOn[k])} setOn={(v) => setLandOn(v ? { ...landOn, landuse: true } : { landuse: false, terrain: false, landtrendr: false, land: false })} swatch="#5c8a3a">
+              {landItems.map((k) => (
+                <div key={k}>
+                  <label className="check small">
+                    <input type="checkbox" checked={landOn[k]} onChange={(e) => setLandOn({ ...landOn, [k]: e.target.checked })} />
+                    <span className="sw" style={{ background: ov(k).swatch }} />
+                    <span>{t(ov(k).th, ov(k).en)} {pill(k)}</span>
+                  </label>
+                  {k === "land" && landOn.land && (
+                    <div className="small" style={{ color: "var(--warn)", margin: "0 0 4px 26px" }}>{t(
+                      "ข้อมูลจำลอง ไม่ใช่ราคาจริง (ราคาประเมินกรมธนารักษ์ × 2) ใช้แสดงหน้าตาของชั้นนี้จนกว่าจะได้ราคาตลาดจริง · ไม่ได้ใช้คิดคะแนน",
+                      "Simulated, not real prices (Treasury appraisal × 2), shown until real market prices are available · not used in any score")}</div>
+                  )}
+                  {k === "landtrendr" && landOn.landtrendr && (
+                    <div className="small muted" style={{ margin: "0 0 4px 26px" }}>{t(
+                      "ที่ที่เคยมีต้นไม้หรือพืชคลุม แล้วกลายเป็นพื้นโล่งหรือสิ่งปลูกสร้าง สีบอกปีโดยประมาณ บอกไม่ได้ว่ากลายเป็นอะไร (ดูภาพดาวเทียมรายปีประกอบ)",
+                      "Places once covered by trees or plants that became bare ground or buildings; colour = approximate year. It cannot say what they became (check the yearly imagery).")}</div>
+                  )}
+                </div>
+              ))}
+            </Cat>
+
+            <Cat id="people" open={openCat} setOpen={setOpenCat} title={t("ประชากร", "People")} summary={t("หกเหลี่ยม 400 ม.", "400 m hexagons")} on={popOn} setOn={setPopOn} swatch="#2b8a80">
+              <span className="small">{t("ที่มา:", "Source:")} {pill("population")}</span>
+              <span className="small muted">{t("ค่าประมาณจากแบบจำลอง รวมคนที่ไม่ได้ย้ายทะเบียน ใช้ดูว่าที่ไหนหนาแน่นกว่า ไม่ใช่จำนวนคนจริง", "Model estimate that includes people not registered there: shows where it is denser, not exact counts")}</span>
+            </Cat>
+
+            <Cat id="places" open={openCat} setOpen={setOpenCat} title={t("สถานที่", "Places")} summary={t("บริการและท่องเที่ยว", "services & tourism")} on={poisOn} setOn={setPoisOn} swatch="#7a5aa6">
+              <span className="small">{t("ที่มา:", "Source:")} {pill("pois")}</span>
+              <span className="small muted">{t("โรงเรียน สถานพยาบาล ตลาด ร้านค้า ธนาคาร หน่วยงานรัฐ คมนาคม ที่พัก แหล่งท่องเที่ยว · คลิกจุดบนแผนที่เพื่อถาม GISTDA Sphere ว่ารอบจุดมีอะไรเพิ่ม", "Schools, health, markets, shops, banks, public offices, transport, lodging, attractions · click the map to ask GISTDA Sphere what else is nearby")}</span>
+            </Cat>
+
+            <Cat id="base" open={openCat} setOpen={setOpenCat} title={t("แผนที่พื้นหลัง", "Base map")} summary={baseName}>
+              <select value={basemap} onChange={(e) => setBasemap(e.target.value)} aria-label={t("แผนที่พื้นหลัง", "Base map")}>
+                {baseChoices.map((b) => (
+                  <option key={b.id} value={b.id}>{t(b.th, b.en)}{b.gistda ? (b.gistdaApi ? " (GISTDA API)" : " (GISTDA)") : ""}</option>
+                ))}
+              </select>
+              {onYears && (
+                <div className="imgyears">
+                  <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+                    <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(-1)} disabled={imgIdx === 0} aria-label={t("ปีก่อนหน้า", "Previous year")}>◀</button>
+                    <span className="yr" aria-live="polite">{t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)}</span>
+                    <button className="btn ghost" style={{ padding: "1px 10px" }} onClick={() => stepYear(1)} disabled={imgIdx === IMAGERY_YEARS.length - 1} aria-label={t("ปีถัดไป", "Next year")}>▶</button>
+                  </div>
+                  <input type="range" min={0} max={IMAGERY_YEARS.length - 1} step={1} value={imgIdx} onChange={(e) => setImgIdx(Number(e.target.value))}
+                    aria-label={t("ปีของภาพดาวเทียม", "Imagery year")} aria-valuetext={t(IMAGERY_YEARS[imgIdx].th, IMAGERY_YEARS[imgIdx].en)} />
+                  <div className="row small muted" style={{ justifyContent: "space-between" }}><span>{t("2515", "1972")}</span><span>{t("2568 + ภาพ 2 ม.", "2025 + 2 m mosaics")}</span></div>
+                  <label className="row small" style={{ gap: 6 }}>
+                    <input type="checkbox" checked={compareOn} onChange={(e) => toggleCompare(e.target.checked)} />
+                    {t("เทียบ 2 ปี (เลื่อนเส้นแบ่งบนแผนที่)", "Compare 2 years (drag the divider on the map)")}
+                  </label>
+                  {compareOn && (
+                    <label className="small" style={{ display: "grid", gap: 2 }}>
+                      {t("ภาพด้านขวาของเส้นแบ่ง", "Picture right of the divider")}
+                      <select value={cmpLayer} onChange={(e) => setCmpLayer(e.target.value)}>
+                        {IMAGERY_YEARS.map((y) => <option key={y.layer} value={y.layer}>{t(y.th, y.en)}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <span className="small muted">{t(
+                    "ปี 2515–2522 มีเมฆและริ้ว ตั้งแต่ 2533 ชัดเจน ภาพปีเก่าซูมใกล้จะเบลอ ซูมดูเมืองใช้ภาพ 2 ม. (2563–64, 2567)",
+                    "1972–1979 have clouds and stripes; from 1990 they are clear. Older years blur when zoomed in; use the 2 m mosaics (2020–21, 2024) for close-ups.")}</span>
+                </div>
+              )}
+              {GISTDA_IMAGERY && baseIsGistdaApi && (
+                <span className="small muted">{t(
+                  "ภาพจาก GISTDA API Gateway (Copyrighted by GISTDA) · ภาพแต่ละช่องที่เปิดครั้งแรกใช้เครดิต key ทีม 1 ครั้ง",
+                  "Pictures from the GISTDA API Gateway (Copyrighted by GISTDA) · each tile seen for the first time uses 1 credit of the team key")}</span>
+              )}
+            </Cat>
+          </div>
         </Fold>
       </aside>
 
@@ -297,7 +378,6 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           focus={focus}
           clickPoint={clickPoint}
           onView={setView}
-          travelDest={travelDest}
           onBldgStatus={setBldg}
           bldgSource={bldgSource}
           bldgOutline={bldgOutline}
@@ -328,7 +408,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           )}
           {OVERLAYS.filter((o) => overlays[o.id] && o.ramp).map((o) => (
             <div key={o.id}>
-              <b>{t(o.th, o.en)}{o.id === "travel" && `: ${(() => { const d = TRAVEL_DESTS.find((x) => x.id === travelDest)!; return t(d.th, d.en); })()}`}</b>
+              <b>{t(o.th, o.en)}</b>
               <div className="ramp">{o.ramp!.map((c) => <i key={c} style={{ background: c }} />)}</div>
               <div className="ends"><span>&lt;{num(o.breaks![0])}</span><span>{num(o.breaks![3])}+ {t(o.unitTh!, o.unitEn!)}</span></div>
               {o.id === "bldg3d" && (
@@ -345,12 +425,13 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
                   {bldgOutline && <><br /><span style={{ color: OUTLINE_COLOR[BLDG_SOURCES.find((x) => x !== bldgSource) ?? "overture"] }}>{t("เส้นขอบ = อาคารจากอีกแหล่ง", "Outlines = buildings from the other source")}</span></>}
                 </div>
               )}
+              {o.id === "land" && <div className="small" style={{ color: "var(--warn)" }}>{t("ข้อมูลจำลอง ไม่ใช่ราคาจริง · ไม่ได้ใช้คิดคะแนน", "Simulated, not real prices · not used in any score")}</div>}
               {o.id === "height3d" && <div className="small muted">{t("สี = ความสูงเฉลี่ย · ความสูงแท่ง = พื้นที่ใช้สอยในช่อง (ความสูงอาคารเป็นค่าจากแบบจำลองของ GISTDA)", "Colour = mean height · bar height = floor area in the cell (heights are GISTDA model estimates)")}</div>}
             </div>
           ))}
           {overlays.landtrendr && (
             <div>
-              <b>{t("ปีที่พื้นที่เปลี่ยน (Landtrendr)", "Year the land changed (Landtrendr)")}</b>
+              <b>{t("พื้นที่สีเขียวที่หายไป: ปีโดยประมาณ (Landtrendr)", "Lost green cover: approximate year (Landtrendr)")}</b>
               {LT_GROUPS.map((g) => (
                 <div key={g.id} className="row small" style={{ gap: 6, flexWrap: "nowrap" }}>
                   <span className="ramp many" style={{ width: 56, flex: "none" }} title={t(`กลุ่ม${g.th}`, `${g.en} group`)}>
@@ -360,8 +441,8 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
                 </div>
               ))}
               <div className="small muted">
-                {t("ปีโดยประมาณที่ทีมหาเอง (GISTDA ไม่มีคำอธิบายสี) · คลิกจุดเพื่อดูปี · ไม่มีสี = ไม่เปลี่ยน",
-                   "Approximate years worked out by the team (GISTDA gives no legend) · click a spot for its year · no colour = no change")}
+                {t("ต้นไม้หรือพืชหายไป กลายเป็นพื้นโล่งหรือสิ่งปลูกสร้าง (บอกไม่ได้ว่าเป็นอะไร) · ปีโดยประมาณที่ทีมหาเอง (GISTDA ไม่มีคำอธิบายสี) · คลิกจุดเพื่อดูปี · ไม่มีสี = ไม่เปลี่ยน",
+                   "Trees or plants gone, now bare ground or buildings (it cannot say which) · approximate years worked out by the team (GISTDA gives no legend) · click a spot for its year · no colour = no change")}
                 <br /><span style={{ color: "var(--warn)" }}>{t("GISTDA API ใช้ภายในทีม · Landsat 30 ม. (ซูมเกิน 14 = ขยายภาพเดิม)", "GISTDA API, team only · Landsat 30 m (beyond zoom 14 = enlarged)")}</span>
               </div>
             </div>
