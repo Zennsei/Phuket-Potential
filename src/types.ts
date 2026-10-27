@@ -49,12 +49,12 @@ export interface TambonProps {
   house_growth_pct: number;
   /** Kontur 2566 estimate ÷ registered 2565: people living there per registered person */
   unreg_ratio: number;
-  /** road travel time, median minutes over the sub-district's buildings (OSM network) */
-  tt_airport_min: number;
-  tt_oldtown_min: number;
-  tt_hospital_min: number;
-  tt_school_min: number;
-  tt_pier_min: number;
+  /** road travel time (no longer used on the site since the travel factor was removed, 27 Oct 2569) */
+  tt_airport_min?: number;
+  tt_oldtown_min?: number;
+  tt_hospital_min?: number;
+  tt_school_min?: number;
+  tt_pier_min?: number;
   /** GISTDA API Gateway buildings with height, BL_YEAR 2567 (heights modelled) */
   bldg_2567: number;
   mean_height_m: number;
@@ -79,9 +79,7 @@ export interface TambonProps {
 
 export type TambonCollection = FeatureCollection<Polygon | MultiPolygon, TambonProps>;
 
-export type FactorKey = "buildings" | "road" | "services" | "population" | "land" | "developable" | "growth" | "travel";
-
-export type TravelDest = "airport" | "oldtown" | "hospital" | "school" | "pier";
+export type FactorKey = "buildings" | "road" | "services" | "population" | "developable" | "growth";
 
 export type BuildingMeasure = "count" | "floor";
 
@@ -94,8 +92,6 @@ export type Direction = 1 | -1 | 0;
 export interface FactorSetting {
   weight: number; // 0..100 (relative)
   direction: Direction;
-  /** travel factor only: which destination */
-  dest?: TravelDest;
   /** building factor only: count of buildings (2565) or floor area with height (2567) */
   measure?: BuildingMeasure;
   /** developable-land factor only (default "flat") */

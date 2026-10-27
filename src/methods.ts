@@ -53,7 +53,6 @@ export interface MethodPair {
 const flat = (w: Weights): Weights => ({ ...w, developable: { ...w.developable, landBasis: "flat" } });
 const count = (w: Weights): Weights => ({ ...w, buildings: { ...w.buildings, measure: "count" } });
 
-const LAND_UNIT = { unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah" };
 const SCORE_UNIT = { unitTh: "คะแนน 0–100", unitEn: "score 0–100" };
 
 export const METHOD_PAIRS: MethodPair[] = [
@@ -105,96 +104,6 @@ export const METHOD_PAIRS: MethodPair[] = [
     whyEn: "It follows the 2024 Phuket environmental protection notice, which bans building above 80 m. The 20 % slope cut comes from the 2017 notice because the 2024 one gives no number",
     sourceTh: "การใช้ที่ดิน กรมพัฒนาที่ดิน 2563 (D2) + ความสูงและความชัน Copernicus DEM (D17)",
     sourceEn: "LDD land use 2020 (D2) + height and slope from the Copernicus DEM (D17)",
-  },
-  {
-    id: "land-place",
-    th: "ราคาที่ดิน: วางแปลงไว้ตรงไหนของแผ่นระวาง",
-    en: "Land price: where on the map sheet a parcel goes",
-    factor: "land",
-    chart: "raw",
-    diff: "unit",
-    digits: 0,
-    a: {
-      th: "กลางแผ่นย่อย", en: "Centre of the sub-sheet",
-      howTh: "ถอดเลขแผ่นย่อยตามมาตราส่วน (1:500–1:2000) แล้ววางแปลงที่จุดกลางแผ่นย่อยขนาด 250 ม.–1 กม. ใช้ค่ากลางราคาของแปลงในตำบล",
-      howEn: "Decode the sub-sheet number for the scale (1:500–1:2000), place the parcel at the centre of that 250 m–1 km sub-sheet, then take the median price in the sub-district",
-      ...LAND_UNIT,
-      value: (p) => p.land_median,
-    },
-    b: {
-      th: "กลางแผ่น 2 กม.", en: "Centre of the 2 km sheet",
-      howTh: "ไม่ใช้เลขแผ่นย่อย วางทุกแปลงที่จุดกลางแผ่นระวาง 2 × 2 กม. แล้วใช้ค่ากลางราคาของแปลงในตำบลเหมือนกัน",
-      howEn: "Ignore the sub-sheet number, place every parcel at the centre of its 2 × 2 km sheet, then take the median the same way",
-      ...LAND_UNIT,
-      value: (p) => p.land_median_sheetcentre,
-      rows: (p) => ({ ...p, land_median: p.land_median_sheetcentre }),
-    },
-    readTh: [
-      "ราคาทุกแปลงเหมือนกันทั้งสองแบบ ต่างแค่ว่าแปลงถูกนับเข้าตำบลไหน",
-      "ตำบลที่ค่าต่างกันมาก คือตำบลที่แผ่น 2 กม. คร่อมหลายตำบล แปลงจึงถูกนับไปตำบลข้างเคียง",
-      "ตำบลที่เล็กกว่าแผ่น 2 กม. อาจไม่มีจุดกลางแผ่นตกในตำบลเลย จึงไม่มีค่าแบบ B และได้คะแนนปัจจัยกลาง 50 ตามกติกา \"ไม่มีข้อมูล = 50\"",
-    ],
-    readEn: [
-      "Every parcel has the same price in both; only the sub-district it is counted in changes",
-      "Large gaps appear where a 2 km sheet straddles several sub-districts, so its parcels are counted next door",
-      "A sub-district smaller than a 2 km sheet may contain no sheet centre at all, so it has no B value and gets the middle factor score of 50 under the \"no data = 50\" rule",
-    ],
-    notTh: [
-      "ห้ามสรุปว่าราคาที่ดินเปลี่ยน ข้อมูลราคาเป็นชุดเดียวกัน (กรมธนารักษ์ รอบ 2566–2569)",
-      "ห้ามใช้ผลต่างนี้เป็นความคลาดเคลื่อนของราคา มันบอกแค่ว่าคำตอบอ่อนไหวต่อการวางตำแหน่งแค่ไหน",
-    ],
-    notEn: [
-      "Do not conclude that land prices changed: the price data is the same (Treasury Dept., 2023–2026 round)",
-      "Do not read the gap as a price error; it only shows how sensitive the answer is to where parcels are placed",
-    ],
-    whyTh: "ทดสอบการเรียงเลขแผ่นย่อย 4 แบบ แบบที่ใช้ทำให้แปลงตกบนเกาะ 94.3% และห่างอาคารใกล้สุดเพียง 43 ม. (ค่ากลาง) ละเอียดกว่าวางกลางแผ่น 2 กม. ถึง 2–8 เท่า",
-    whyEn: "Four ways of numbering the sub-sheets were tested; the one used puts 94.3 % of parcels on land with a median 43 m to the nearest building, 2–8 times finer than the 2 km sheet centre",
-    sourceTh: "ราคาประเมินที่ดิน กรมธนารักษ์ รอบ 2566–2569 (D7) หาตำแหน่งได้ 199,091 แปลง",
-    sourceEn: "Treasury Dept. land appraisal, 2023–2026 round (D7), 199,091 parcels located",
-  },
-  {
-    id: "land-stat",
-    th: "ราคาที่ดิน: ค่ากลาง หรือ ค่าเฉลี่ย",
-    en: "Land price: median or mean",
-    factor: "land",
-    chart: "raw",
-    diff: "unit",
-    digits: 0,
-    a: {
-      th: "ค่ากลาง (median)", en: "Median",
-      howTh: "เรียงราคาของแปลงในตำบลจากน้อยไปมาก แล้วใช้ค่าที่อยู่ตรงกลาง",
-      howEn: "Sort the parcel prices in the sub-district and take the middle one",
-      ...LAND_UNIT,
-      value: (p) => p.land_median,
-    },
-    b: {
-      th: "ค่าเฉลี่ย (mean)", en: "Mean",
-      howTh: "รวมราคาของทุกแปลงในตำบล แล้วหารด้วยจำนวนแปลง",
-      howEn: "Add up every parcel price in the sub-district and divide by the number of parcels",
-      ...LAND_UNIT,
-      value: (p) => p.land_mean,
-      rows: (p) => ({ ...p, land_median: p.land_mean }),
-    },
-    readTh: [
-      "ค่าเฉลี่ยสูงกว่าค่ากลางในตำบลส่วนใหญ่ เพราะแปลงราคาสูงไม่กี่แปลง (ริมถนนใหญ่ ริมหาด) ดึงค่าเฉลี่ยขึ้น",
-      "ตำบลที่สองค่าห่างกันมาก คือตำบลที่ราคาที่ดินในตำบลเดียวกันต่างกันมาก",
-    ],
-    readEn: [
-      "The mean is above the median in most sub-districts, because a few expensive parcels (main roads, beachfront) pull it up",
-      "A large gap means prices inside that sub-district vary a lot",
-    ],
-    notTh: [
-      "ห้ามสรุปว่าตำบลไหนแพงขึ้น ทั้งสองค่ามาจากแปลงชุดเดียวกัน",
-      "ค่าเฉลี่ยไม่ได้ผิด แต่ตอบคนละคำถาม: ค่ากลางบอกราคาของแปลงทั่วไป ค่าเฉลี่ยบอกมูลค่าเฉลี่ยของทุกแปลง",
-    ],
-    notEn: [
-      "Do not conclude that any sub-district got more expensive: both values come from the same parcels",
-      "The mean is not wrong; it answers a different question. The median is the price of a typical parcel, the mean is the average over all parcels",
-    ],
-    whyTh: "ค่ากลางไม่ถูกแปลงราคาสูงไม่กี่แปลงดึง จึงบอกราคาของแปลงทั่วไปในตำบล ใช้หลักเดียวกับระยะถึงถนนและเวลาเดินทาง",
-    whyEn: "The median is not pulled by a few expensive parcels, so it describes a typical parcel; road distance and travel time use the median for the same reason",
-    sourceTh: "ราคาประเมินที่ดิน กรมธนารักษ์ รอบ 2566–2569 (D7) หาตำแหน่งได้ 199,091 แปลง",
-    sourceEn: "Treasury Dept. land appraisal, 2023–2026 round (D7), 199,091 parcels located",
   },
   {
     id: "buildings",

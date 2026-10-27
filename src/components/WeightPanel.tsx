@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { BUILDING_MEASURES, FACTORS, LAND_BASES, PRESETS, TRAVEL_DESTS, buildingMeasure, landBasis } from "../factors";
+import { BUILDING_MEASURES, FACTORS, LAND_BASES, PRESETS, buildingMeasure, landBasis } from "../factors";
 import { useI18n } from "../i18n";
 import { effectiveShare } from "../scoring";
-import type { BuildingMeasure, Direction, FactorKey, LandBasis, TravelDest, Weights } from "../types";
+import type { BuildingMeasure, Direction, FactorKey, LandBasis, Weights } from "../types";
 
 interface Props {
   weights: Weights;
@@ -26,10 +26,6 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
 
   const option = (key: FactorKey) => {
     const s = weights[key];
-    if (key === "travel") {
-      const d = TRAVEL_DESTS.find((x) => x.id === (s.dest ?? "oldtown"))!;
-      return t(`ปลายทาง: ${d.th}`, `to ${d.en}`);
-    }
     if (key === "buildings") {
       const m = buildingMeasure(s);
       return t(`วัดจาก: ${m.th}`, `measure: ${m.en}`);
@@ -112,16 +108,6 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
                 {LAND_BASES.map((b) => <option key={b.id} value={b.id}>{t(`นับ: ${b.th}`, `Count: ${b.en}`)}</option>)}
               </select>
             )}
-            {advanced && f.key === "travel" && (
-              <select
-                aria-label={t("ปลายทาง", "Destination")}
-                value={s.dest ?? "oldtown"}
-                onChange={(e) => set("travel", { dest: e.target.value as TravelDest })}
-                style={{ gridColumn: "1 / -1", fontSize: 13 }}
-              >
-                {TRAVEL_DESTS.map((d) => <option key={d.id} value={d.id}>{t(`ปลายทาง: ${d.th}`, `To: ${d.en}`)}</option>)}
-              </select>
-            )}
             {advanced && (
               <div className="dir" role="group" aria-label={t("ทิศทาง", "Direction")} style={{ gridColumn: "1 / -1" }}>
                 {dirs.map((d) => (
@@ -141,8 +127,8 @@ export default function WeightPanel({ weights, setWeights, compact }: Props) {
       <button className="linkbtn" aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>
         {advanced
           ? t("ซ่อนตั้งค่าขั้นสูง", "Hide advanced settings")
-          : t(`ตั้งค่าขั้นสูง: เปิด/ปิดปัจจัย กลับด้าน ปลายทาง (มีอีก ${FACTORS.length - on.length} ปัจจัยที่ปิดอยู่)`,
-              `Advanced: switch factors, reverse, destination (${FACTORS.length - on.length} more factors are off)`)}
+          : t(`ตั้งค่าขั้นสูง: เปิด/ปิดปัจจัย กลับด้าน วิธีวัด (มีอีก ${FACTORS.length - on.length} ปัจจัยที่ปิดอยู่)`,
+              `Advanced: switch factors, reverse, measures (${FACTORS.length - on.length} more factors are off)`)}
       </button>
     </div>
   );

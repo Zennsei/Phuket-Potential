@@ -19,12 +19,6 @@ export const SCENARIOS: Scenario[] = [
     apply: (w) => ({ ...w, road: { ...w.road, direction: 0 } }),
   },
   {
-    id: "no-land", th: "ข้อมูลราคาที่ดินไม่ครบ", en: "Land price data missing",
-    descTh: "ไม่มีข้อมูลราคาประเมิน ต้องตัดสินใจจากปัจจัยที่เหลือ",
-    descEn: "No appraisal data is available, so the decision uses the remaining factors",
-    apply: (w) => ({ ...w, land: { ...w.land, direction: 0 } }),
-  },
-  {
     id: "decentralise", th: "นโยบายลดความแออัด", en: "Decongestion policy",
     descTh: "จังหวัดไม่ส่งเสริมพื้นที่ที่อาคารหนาแน่นอยู่แล้ว ความหนาแน่นอาคารยิ่งน้อยยิ่งได้คะแนน",
     descEn: "The province stops promoting already dense areas: lower building density now scores higher",
