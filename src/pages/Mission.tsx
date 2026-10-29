@@ -3,7 +3,7 @@ import WeightPanel from "../components/WeightPanel";
 import DecisionMatrix from "../components/DecisionMatrix";
 import { CATEGORIES, DEFAULT_THRESHOLDS, categoryOf, type Thresholds } from "../decision";
 import { SCENARIOS, applyScenarioRows } from "../scenarios";
-import { DEFAULT_WEIGHTS, FACTORS, TRAVEL_DESTS, developableOf } from "../factors";
+import { DEFAULT_WEIGHTS, FACTORS, developableOf } from "../factors";
 import { scoreTambons } from "../scoring";
 import { scoreColor } from "../color";
 import { useI18n } from "../i18n";
@@ -15,7 +15,7 @@ type Role = "planner" | "investor" | "resident";
 
 const ROLES: { id: Role; th: string; en: string; goalTh: string; goalEn: string }[] = [
   { id: "planner", th: "เจ้าหน้าที่ผังเมือง", en: "City planner", goalTh: "กระจายความเจริญออกจากเมืองเก่าที่แออัด ไปยังพื้นที่ที่โครงสร้างพื้นฐานรองรับได้", goalEn: "Spread growth away from the crowded old town to areas whose infrastructure can support it" },
-  { id: "investor", th: "นักลงทุน / เจ้าของกิจการ", en: "Investor / business owner", goalTh: "หาทำเลที่ลูกค้าเข้าถึงง่าย แต่ต้นทุนที่ดินยังไม่สูงเกินไป", goalEn: "Find a location customers can reach easily, before land becomes too expensive" },
+  { id: "investor", th: "นักลงทุน / เจ้าของกิจการ", en: "Investor / business owner", goalTh: "หาทำเลที่ลูกค้าเข้าถึงง่าย และยังมีที่ดินให้ขยาย", goalEn: "Find a location customers can reach easily, with land left to grow into" },
   { id: "resident", th: "ประชาชนทั่วไป", en: "Resident", goalTh: "หาพื้นที่อยู่อาศัยที่ใกล้บริการพื้นฐาน เช่น โรงเรียน โรงพยาบาล และตลาด", goalEn: "Find a place to live close to schools, health care and markets" },
 ];
 
@@ -60,7 +60,7 @@ export default function Mission({ data }: PageProps) {
         `${t("ภารกิจ: เลือกพื้นที่เศรษฐกิจใหม่ จ.ภูเก็ต", "Mission: choose a new economic area in Phuket")}`,
         `${t("บทบาท", "Role")}: ${roleDef ? t(roleDef.th, roleDef.en) : "-"}`,
         `${t("หลักเกณฑ์", "Rule")}: ${FACTORS.filter((f) => weights[f.key].direction !== 0)
-          .map((f) => `${t(f.th, f.en)}${f.key === "travel" ? ` (${(() => { const d = TRAVEL_DESTS.find((x) => x.id === (weights.travel.dest ?? "oldtown"))!; return t(d.th, d.en); })()})` : ""} ${weights[f.key].weight}${weights[f.key].direction === -1 ? t(" (กลับด้าน)", " (reversed)") : ""}`)
+          .map((f) => `${t(f.th, f.en)} ${weights[f.key].weight}${weights[f.key].direction === -1 ? t(" (กลับด้าน)", " (reversed)") : ""}`)
           .join(", ")}`,
         `${t("Logic Matrix", "Logic matrix")}: ${t(`คะแนน ≥ ${th.score} และที่ดินที่ยังพัฒนาได้ ≥ ${th.land}%`, `score ≥ ${th.score} and developable land ≥ ${th.land}%`)}`,
         `${t("ตำบลที่เลือก", "Chosen")}: ${t(chosen.props.tambon_th, chosen.props.tambon_en)} (${t("อันดับ", "rank")} ${chosen.rank}, ${num(chosen.score, 1)}, ${t("ที่ดินพัฒนาได้", "developable")} ${num(developableOf(chosen.props, weights.developable), 1)}%)`,
@@ -109,11 +109,9 @@ export default function Mission({ data }: PageProps) {
           <div className="grid3">
             {[
               { th: "อาคารกระจุกตัวที่ไหน และตำบลไหนยังมีที่ว่างเยอะ", en: "Where are buildings concentrated, and which sub-districts still have open land?", l: "GISTDA" },
-              { th: "ถนนสายหลักผ่านตำบลไหนบ้าง ตำบลไหนอยู่ไกลถนน", en: "Which sub-districts do the main roads pass through, and which are far from them?", l: "OpenStreetMap" },
-              { th: "ราคาที่ดินแพงที่สุดอยู่ตรงไหน สอดคล้องกับความหนาแน่นอาคารไหม", en: "Where is land most expensive, and does it match building density?", l: t("กรมธนารักษ์", "Treasury") },
+              { th: "ตำบลไหนมีถนนสายหลักและสายรองหนาแน่น ตำบลไหนมีน้อย", en: "Which sub-districts have a dense network of main and secondary roads, and which have few?", l: "OpenStreetMap" },
               { th: "เปิดชั้นภูเขาและที่ลาดชัน ที่ดินเกษตรในตำบลไหนอยู่บนเขาจนสร้างจริงได้ยาก", en: "Turn on the hills & steep land layer: in which sub-districts is the farmland mostly on hills, where building is hard?", l: "Copernicus DEM" },
               { th: "เปิดชั้นอาคาร 3 มิติ ย่านไหนพัฒนาในแนวสูงแล้ว และย่านไหนยังเป็นอาคารเตี้ยกระจาย", en: "Turn on the 3D building layer: which areas already build upwards, and which are still low and spread out?", l: "GISTDA 2567" },
-              { th: "เปิดชั้นเวลาเดินทาง แล้วเปลี่ยนปลายทางในหลักเกณฑ์ (สนามบิน เมืองเก่า โรงพยาบาล โรงเรียน ท่าเรือ) พื้นที่ไหนไกลทุกอย่าง", en: "Turn on the travel-time layer and switch the destination in the rule (airport, old town, hospital, school, pier): which areas are far from everything?", l: "OpenStreetMap" },
               { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur, OSM" },
               { th: "เปลี่ยนแผนที่พื้นหลังเป็นภาพดาวเทียม ซูมไปที่ตำบลที่สนใจ ยังมีที่ดินว่างหรือมีการก่อสร้างใหม่ไหม", en: "Switch the base map to satellite imagery and zoom into a sub-district: is there open land or new construction?", l: "GISTDA Sphere" },
               { th: "เทียบประชากรตามทะเบียนกับแบบจำลอง ตำบลไหนคนอยู่จริงมากกว่าทะเบียนหลายเท่า และตำบลไหนบ้านเพิ่มเร็วที่สุด (ดูในรายละเอียดตำบล)", en: "Compare registered and modelled population: where do far more people live than are registered, and where are houses being added fastest? (see sub-district details)", l: t("กรมการปกครอง, Kontur", "DOPA, Kontur") },

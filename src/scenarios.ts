@@ -14,15 +14,9 @@ export interface Scenario {
 export const SCENARIOS: Scenario[] = [
   {
     id: "no-road", th: "ถนนสายหลักถูกตัด", en: "Main road cut off",
-    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ข้อมูลการเข้าถึงถนนไม่ได้ ปัจจัยถนนถูกปิด",
-    descEn: "A flood or landslide makes road access unreliable, so the road factor is switched off",
+    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ถนนไม่ได้ ปัจจัยความหนาแน่นถนนถูกปิด",
+    descEn: "A flood or landslide makes the roads unreliable, so the road density factor is switched off",
     apply: (w) => ({ ...w, road: { ...w.road, direction: 0 } }),
-  },
-  {
-    id: "no-land", th: "ข้อมูลราคาที่ดินไม่ครบ", en: "Land price data missing",
-    descTh: "ไม่มีข้อมูลราคาประเมิน ต้องตัดสินใจจากปัจจัยที่เหลือ",
-    descEn: "No appraisal data is available, so the decision uses the remaining factors",
-    apply: (w) => ({ ...w, land: { ...w.land, direction: 0 } }),
   },
   {
     id: "decentralise", th: "นโยบายลดความแออัด", en: "Decongestion policy",

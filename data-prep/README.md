@@ -38,6 +38,12 @@
 
 `building_sources.py` นับอาคาร 3 แหล่ง (GISTDA 2565, GISTDA 2567, Overture) รายตำบลด้วยกติกาเดียวกัน ได้ `public/data/building_sources.csv` สำหรับหน้าเทียบข้อมูล: `python data-prep/building_sources.py <ภูเก็ต.shp> <gistda_buildings_2567_phuket.csv.gz> <phuket_buildings_overture.parquet> <THA_Tambon.shp>` (ไฟล์ทั้ง 4 อยู่ใน `raw-data/` zip 03, 01, 06, 10) ต้องมี geopandas และ pyarrow
 
+`market_dummy.py` สร้างราคาตลาดที่ดิน**จำลอง**สำหรับแผนที่ = ราคาประเมินของช่อง 1 กม. × 2 (ตัวคูณสมมติ ไม่ใช่ข้อมูลจริง ไม่ใช้คิดคะแนน) → `public/data/market_dummy_1km.geojson`: `python data-prep/market_dummy.py`
+
+`road_density.py` วัดความยาวถนนสายหลัก (primary/secondary + ทางเชื่อม) และสายรอง (tertiary) ในแต่ละตำบลจากแผ่น `public/data/roads_all/14/` → คอลัมน์ `road_km`, `road_major_km`, `road_tert_km`, `road_km_per_km2` (ปัจจัยความหนาแน่นถนน) ใน `tambons.geojson` และ `phuket_tambon_factors.csv`: `python data-prep/road_density.py` (ต้องมี shapely, pyproj, numpy)
+
+`admin_levels.py` รวมรูปตำบลเป็นเส้นขอบอำเภอและจังหวัด → `public/data/amphoe.geojson`, `province.geojson` (ตัวเลขของอำเภอ/จังหวัดรวมในเบราว์เซอร์ที่ `src/levels.ts`): `python data-prep/admin_levels.py`
+
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
 รายละเอียดของข้อมูลทุกชุด (แหล่ง ปี สถานะ) อยู่ใน `DATA.md` ที่โฟลเดอร์หลัก

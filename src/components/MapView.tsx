@@ -11,8 +11,7 @@ import { BLDG_BREAKS, BLDG_MIN_ZOOM, BLDG_NO_HEIGHT, BLDG_RAMP, BLDG_SOURCES, OU
 import { LANDUSE_COLORS, OVERLAYS, POI_COLORS, TERRAIN_CLASSES, type OverlayId } from "../layers";
 import { LT_OPACITY, landtrendrAt, landtrendrSourceSpec, ltGroup, ltYears } from "../landtrendr";
 import { useI18n } from "../i18n";
-import type { TambonCollection, TambonProps, TravelDest } from "../types";
-import { TRAVEL_DESTS } from "../factors";
+import type { TambonCollection, TambonProps } from "../types";
 
 interface Props {
   tambons: TambonCollection;
@@ -36,8 +35,6 @@ interface Props {
   clickPoint?: { lon: number; lat: number };
   /** reports the visible area so the collar can draw coordinate ticks */
   onView?: (v: MapViewport) => void;
-  /** destination shown by the travel-time layer */
-  travelDest?: TravelDest;
   /** loading state of the building-by-building 3D layer */
   onBldgStatus?: (s: BuildingStatus) => void;
   /** which buildings are drawn as 3D boxes */
@@ -166,7 +163,6 @@ export default function MapView(p: Props) {
           paint: { "fill-color": step(o.prop!, o.breaks!, o.ramp!), "fill-opacity": 0.72 } });
       };
       fillOverlay("land");
-      fillOverlay("travel");
       {
         const o = OVERLAYS.find((x) => x.id === "height3d")!;
         // bar height follows floor area per cell (far_pct = floor area ÷ cell area × 100); colour = mean building height
@@ -178,7 +174,6 @@ export default function MapView(p: Props) {
           } });
       }
       fillOverlay("population");
-      fillOverlay("buildings");
 
       m.addSource("tambons", { type: "geojson", data: latest.current.tambons, promoteId: "id" });
       m.addLayer({ id: "tambon-fill", type: "fill", source: "tambons", paint: { "fill-color": ["coalesce", ["get", "_fill"], "#cccccc"], "fill-opacity": 0.7 } });
@@ -231,13 +226,6 @@ export default function MapView(p: Props) {
         m.addLayer({ id: `bldg-${src}-line`, type: "line", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
           paint: { "line-color": OUTLINE_COLOR[src], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18, 2] } });
 
-      // labels as HTML markers (no font server needed)
-      markers.current = latest.current.tambons.features.map((f) => {
-        const el = document.createElement("div");
-        el.className = "tlabel";
-        return new maplibregl.Marker({ element: el }).setLngLat(labelPoint(f));
-      });
-
       // fit to Phuket main island
       m.fitBounds([[98.255, 7.75], [98.47, 8.2]], { padding: 20, duration: 0 });
 
@@ -263,28 +251,21 @@ export default function MapView(p: Props) {
         }
         const road = first("overlay-roads", box);
         if (road) {
-          const cls: Record<string, [string, string]> = { primary: ["ถนนสายหลัก", "primary road"], secondary: ["ถนนสายรอง", "secondary road"], tertiary: ["ถนนท้องถิ่น", "tertiary road"] };
+          const cls: Record<string, [string, string]> = { primary: ["ถนนสายหลัก", "primary road"], secondary: ["ถนนสายรอง", "secondary road"], tertiary: ["ถนนสายรอง (tertiary)", "tertiary road"] };
           const c = cls[String(road.hw).replace("_link", "")] ?? [String(road.hw), String(road.hw)];
           const name = [road.name, road.ref ? `(${road.ref})` : ""].filter(Boolean).join(" ") || (th ? "ไม่มีชื่อ" : "unnamed");
           row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
         const st = !road ? first("streets-fill", box) ?? first("streets-track", box) : undefined;
         if (st) {
-          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนท้องถิ่น", "local road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
+          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนสายรอง (tertiary)", "tertiary road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
           const c = cls[String(st.c)] ?? [String(st.c), String(st.c)];
           row(label("streets"), `<b>${escapeHtml(String(st.n ?? (th ? "ไม่มีชื่อใน OSM" : "no name in OSM")))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
-        const b = first("overlay-buildings");
-        if (b) row(label("buildings"), th ? `<b>${nf(Number(b.n))}</b> หลัง หลังคาคลุม ${b.cover}% ของช่อง` : `<b>${nf(Number(b.n))}</b> buildings, roofs cover ${b.cover}% of the cell`);
         const pop = first("overlay-population");
         if (pop) row(label("population"), th ? `<b>${nf(Number(pop.population))}</b> คน หนาแน่น ${nf(Number(pop.density))} คน/ตร.กม.` : `<b>${nf(Number(pop.population))}</b> people, ${nf(Number(pop.density))} per km²`);
         const lv = first("overlay-land");
-        if (lv) row(label("land"), th ? `ค่ากลาง <b>${nf(Number(lv.median_price))}</b> บาท/ตร.ว. จาก ${nf(Number(lv.parcels))} แปลง` : `median <b>${nf(Number(lv.median_price))}</b> THB/sq.wah from ${nf(Number(lv.parcels))} parcels`);
-        const tv = first("overlay-travel");
-        if (tv) {
-          const d = TRAVEL_DESTS.find((x) => x.id === (latest.current.travelDest ?? "oldtown"))!;
-          row(label("travel"), th ? `ประมาณ <b>${tv[d.key]}</b> นาที ถึง${d.th}` : `about <b>${tv[d.key]}</b> min to ${d.en.toLowerCase()}`);
-        }
+        if (lv) row(label("land"), th ? `<b>${nf(Number(lv.price))}</b> บาท/ตร.ว. <span class="pp-warn">ข้อมูลจำลอง ไม่ใช่ราคาจริง</span>` : `<b>${nf(Number(lv.price))}</b> THB/sq.wah <span class="pp-warn">simulated, not a real price</span>`);
         const h3 = first("overlay-height3d");
         if (h3) row(label("height3d"), th
           ? `<b>${nf(Number(h3.n))}</b> หลัง สูงเฉลี่ย ${h3.h_mean} ม. (สูงสุด ${h3.h_max} ม.) พื้นที่ใช้สอย ${h3.far_pct}% ของช่อง`
@@ -324,12 +305,12 @@ export default function MapView(p: Props) {
               const c = r?.colour;
               const g = c ? ltGroup(c.group) : null;
               const body = !r
-                ? (th ? "ไม่พบการเปลี่ยนแปลงที่จุดนี้" : "no change found here")
+                ? (th ? "จุดนี้ไม่พบพื้นที่สีเขียวที่หายไป" : "no loss of green cover found here")
                 : c && g
-                  ? `${sw(r.rgb)}${th ? "เปลี่ยน" : "changed "}<b>${escapeHtml(c.year != null ? (th ? `ราวปี ${c.year + 543}` : `about ${c.year}`) : ltYears(g, th))}</b>`
+                  ? `${sw(r.rgb)}${th ? "สีเขียวหายไป " : "green cover lost "}<b>${escapeHtml(c.year != null ? (th ? `ราวปี ${c.year + 543}` : `about ${c.year}`) : ltYears(g, th))}</b>`
                     + (c.year != null ? ` <span class="pp-muted">(${th ? `กลุ่ม${g.th} ${ltYears(g, th)}` : `${g.en.toLowerCase()} group, ${ltYears(g, th)}`})</span>` : "")
-                    + `<br><span class="pp-muted">${th ? "ปีประมาณที่ทีมเทียบจากภาพรายปี ไม่ใช่คำอธิบายของ GISTDA" : "the team's estimate from the yearly pictures, not a GISTDA legend"}</span>`
-                  : `${sw(r.rgb)}${th ? "มีการเปลี่ยนแปลง (สีนี้ไม่อยู่ใน 35 สีที่รู้จัก)" : "changed (not one of the 35 known colours)"}`;
+                    + `<br><span class="pp-muted">${th ? "เคยมีต้นไม้หรือพืชคลุม แล้วกลายเป็นพื้นโล่งหรือสิ่งปลูกสร้าง บอกไม่ได้ว่ากลายเป็นอะไร ดูภาพดาวเทียมรายปีประกอบ · ปีเป็นค่าประมาณที่ทีมเทียบจากภาพรายปี ไม่ใช่คำอธิบายของ GISTDA" : "Once covered by trees or plants, then bare ground or buildings; it cannot say which, so check the yearly imagery · the year is the team's estimate from the yearly pictures, not a GISTDA legend"}</span>`
+                  : `${sw(r.rgb)}${th ? "สีเขียวหายไป (สีนี้ไม่อยู่ใน 35 สีที่รู้จัก บอกปีไม่ได้)" : "green cover lost (not one of the 35 known colours, year unknown)"}`;
               html[at] = `<div class="pp-row"><div class="pp-title">${escapeHtml(label("landtrendr"))}</div><div>${body}</div></div>`;
               show();
             })
@@ -488,15 +469,6 @@ export default function MapView(p: Props) {
     return () => { m.off("zoomend", check); m.off("moveend", check); m.off("sourcedata", onData); m.off("sourcedataloading", onData); m.off("error", onError); };
   }, [ready, bldgOn, bldgSource]);
 
-  // travel layer: colour by the chosen destination
-  useEffect(() => {
-    const m = map.current;
-    if (!ready || !m || !m.getLayer("overlay-travel")) return;
-    const o = OVERLAYS.find((x) => x.id === "travel")!;
-    const key = TRAVEL_DESTS.find((d) => d.id === (p.travelDest ?? "oldtown"))!.key;
-    m.setPaintProperty("overlay-travel", "fill-color", step(key, o.breaks!, o.ramp!));
-  }, [ready, p.travelDest]);
-
   // selection
   useEffect(() => {
     const m = map.current;
@@ -508,12 +480,15 @@ export default function MapView(p: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    markers.current.forEach((mk, i) => {
-      const pr = p.tambons.features[i].properties;
-      mk.getElement().textContent = lang === "th" ? pr.tambon_th : pr.tambon_en;
-      if (p.showLabels) mk.addTo(m);
-      else mk.remove();
+    // labels as HTML markers (no font server needed), rebuilt when the shapes change (sub-district / district / province)
+    markers.current.forEach((mk) => mk.remove());
+    markers.current = p.tambons.features.map((f) => {
+      const el = document.createElement("div");
+      el.className = "tlabel";
+      el.textContent = lang === "th" ? f.properties.tambon_th : f.properties.tambon_en;
+      return new maplibregl.Marker({ element: el }).setLngLat(labelPoint(f));
     });
+    if (p.showLabels) markers.current.forEach((mk) => mk.addTo(m));
   }, [ready, p.showLabels, lang, p.tambons]);
 
   // pins (Sphere search results)

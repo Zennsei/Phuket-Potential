@@ -1,4 +1,4 @@
-import type { BuildingMeasure, FactorKey, FactorSetting, LandBasis, TambonProps, TravelDest, Weights } from "./types";
+import type { BuildingMeasure, FactorKey, FactorSetting, LandBasis, TambonProps, Weights } from "./types";
 
 export const LAND_BASES: { id: LandBasis; th: string; en: string; unitTh: string; unitEn: string }[] = [
   { id: "flat", th: "เฉพาะที่ราบ (ชันไม่เกิน 20% และต่ำกว่า 80 ม.)", en: "Gentle, low land only (slope < 20 %, below 80 m)",
@@ -18,22 +18,13 @@ export const BUILDING_MEASURES: { id: BuildingMeasure; th: string; en: string; u
 ];
 export const buildingMeasure = (s?: FactorSetting) => BUILDING_MEASURES.find((m) => m.id === (s?.measure ?? "count"))!;
 
-export const TRAVEL_DESTS: { id: TravelDest; th: string; en: string; key: "a" | "o" | "h" | "s" | "p" }[] = [
-  { id: "oldtown", th: "ย่านเมืองเก่า (ถนนถลาง)", en: "Old town (Thalang Rd)", key: "o" },
-  { id: "airport", th: "สนามบินภูเก็ต", en: "Phuket airport", key: "a" },
-  { id: "hospital", th: "โรงพยาบาลที่ใกล้ที่สุด", en: "Nearest hospital", key: "h" },
-  { id: "school", th: "โรงเรียนที่ใกล้ที่สุด", en: "Nearest school", key: "s" },
-  { id: "pier", th: "ท่าเรือที่ใกล้ที่สุด", en: "Nearest pier", key: "p" },
-];
-export const travelMinutes = (p: TambonProps, dest: TravelDest = "oldtown") => p[`tt_${dest}_min`];
-
 export interface FactorDef {
   key: FactorKey;
   th: string;
   en: string;
   unitTh: string;
   unitEn: string;
-  /** raw value used for scoring (the setting matters for the travel and building factors) */
+  /** raw value used for scoring (the setting matters for the building and developable-land factors) */
   value: (p: TambonProps, s?: FactorSetting) => number | null;
   /** higher raw value is "better" when direction = +1; road distance is reversed */
   higherIsBetter: boolean;
@@ -64,14 +55,14 @@ export const FACTORS: FactorDef[] = [
   },
   {
     key: "road",
-    th: "ความใกล้ถนนสายหลัก",
-    en: "Main-road access",
-    unitTh: "ม. (ค่ากลาง จากอาคารถึงถนน)",
-    unitEn: "m (median, building → road)",
-    value: (p) => p.road_dist_m,
-    howTh: "ระยะจากอาคารทุกหลังถึงถนนสายหลักที่ใกล้สุด แล้วใช้ค่ากลางของตำบล",
-    howEn: "Distance from every building to the nearest main road, then the sub-district median",
-    higherIsBetter: false,
+    th: "ความหนาแน่นถนน",
+    en: "Road density",
+    unitTh: "กม./ตร.กม.",
+    unitEn: "km/km²",
+    value: (p) => p.road_km_per_km2,
+    howTh: "ความยาวถนนสายหลักและสายรอง (primary, secondary, tertiary) ในตำบล ÷ พื้นที่ตำบล",
+    howEn: "Length of main and secondary roads (primary, secondary, tertiary) inside the sub-district ÷ its area",
+    higherIsBetter: true,
     sourceTh: "OpenStreetMap (ต.ค. 2569)",
     sourceEn: "OpenStreetMap (Oct 2026)",
     color: "#2b6f9e",
@@ -105,20 +96,6 @@ export const FACTORS: FactorDef[] = [
     color: "#0e7c74",
   },
   {
-    key: "land",
-    th: "ราคาประเมินที่ดิน",
-    en: "Land appraisal value",
-    unitTh: "บาท/ตร.ว. (ค่ากลาง)",
-    unitEn: "THB/sq.wah (median)",
-    value: (p) => p.land_median,
-    howTh: "หาตำแหน่งแปลงจากเลขระวางแผนที่ แล้วใช้ราคากลางของแปลงในตำบล",
-    howEn: "Parcels placed by their map-sheet number, then the median price of the parcels in the sub-district",
-    higherIsBetter: true,
-    sourceTh: "กรมธนารักษ์ รอบบัญชี 2566–2569 ผ่าน data.go.th",
-    sourceEn: "Treasury Dept., 2023–2026 round, via data.go.th",
-    color: "#a3741b",
-  },
-  {
     key: "developable",
     th: "ที่ดินที่ยังพัฒนาได้",
     en: "Developable land",
@@ -146,20 +123,6 @@ export const FACTORS: FactorDef[] = [
     sourceEn: "DOPA civil registry 2016, 2025",
     color: "#8a4f7d",
   },
-  {
-    key: "travel",
-    th: "เวลาเดินทางถึงปลายทาง",
-    en: "Travel time to a destination",
-    unitTh: "นาที (ค่ากลาง จากอาคารถึงปลายทาง)",
-    unitEn: "min (median, building → destination)",
-    value: (p, s) => travelMinutes(p, s?.dest),
-    howTh: "เวลาขับรถตามถนนจากอาคารทุกหลังถึงปลายทางที่ใกล้สุด แล้วใช้ค่ากลางของตำบล",
-    howEn: "Driving time along roads from every building to the nearest destination, then the sub-district median",
-    higherIsBetter: false,
-    sourceTh: "โครงข่ายถนน OpenStreetMap (ต.ค. 2569) + อาคาร GISTDA",
-    sourceEn: "OpenStreetMap road network (Oct 2026) + GISTDA buildings",
-    color: "#4b5aa8",
-  },
 ];
 
 export const FACTOR_BY_KEY = Object.fromEntries(FACTORS.map((f) => [f.key, f])) as Record<FactorKey, FactorDef>;
@@ -173,15 +136,13 @@ export interface Preset {
   weights: Weights;
 }
 
-const w = (b: number, r: number, s: number, p: number, l: number, landDir: 1 | -1 | 0 = 1, d = 0, g = 0, t = 0, dest: TravelDest = "oldtown"): Weights => ({
+const w = (b: number, r: number, s: number, p: number, d = 0, g = 0): Weights => ({
   buildings: { weight: b, direction: b ? 1 : 0 },
   road: { weight: r, direction: r ? 1 : 0 },
   services: { weight: s, direction: s ? 1 : 0 },
   population: { weight: p, direction: p ? 1 : 0 },
-  land: { weight: l, direction: l ? landDir : 0 },
   developable: { weight: d, direction: d ? 1 : 0 },
   growth: { weight: g, direction: g ? 1 : 0 },
-  travel: { weight: t, direction: t ? 1 : 0, dest },
 });
 
 export const PRESETS: Preset[] = [
@@ -189,25 +150,25 @@ export const PRESETS: Preset[] = [
     id: "equal",
     th: "ถ่วงน้ำหนักเท่ากัน",
     en: "Equal weights",
-    descTh: "5 ปัจจัยหลัก ปัจจัยละ 20% (ปิดปัจจัยที่ดินที่ยังพัฒนาได้และการเติบโต) ผลที่ได้คือพื้นที่ที่เจริญอยู่แล้วในปัจจุบัน",
-    descEn: "The 5 core factors at 20% each (developable land and growth off): areas that are already developed",
-    weights: w(20, 20, 20, 20, 20),
+    descTh: "4 ปัจจัยหลัก ปัจจัยละ 25% (ปิดปัจจัยที่ดินที่ยังพัฒนาได้และการเติบโต) ผลที่ได้คือพื้นที่ที่เจริญอยู่แล้วในปัจจุบัน",
+    descEn: "The 4 core factors at 25% each (developable land and growth off): areas that are already developed",
+    weights: w(25, 25, 25, 25),
   },
   {
     id: "emerging",
     th: "พื้นที่เศรษฐกิจใหม่",
     en: "Emerging areas",
-    descTh: "เข้าถึงถนนและบริการได้ดี ราคาที่ดินยังไม่สูง (ราคายิ่งต่ำยิ่งได้คะแนน) ยังมีที่ดินเหลือให้พัฒนา และมีบ้านเกิดใหม่ต่อเนื่อง",
-    descEn: "Good road and service access, land still cheap (lower price scores higher), land left to develop, and steady growth in new houses",
-    weights: w(5, 25, 20, 10, 20, -1, 20, 15),
+    descTh: "มีถนนและบริการพอ ยังมีที่ดินเหลือให้พัฒนา และมีบ้านเกิดใหม่ต่อเนื่อง",
+    descEn: "Enough roads and services, land left to develop, and steady growth in new houses",
+    weights: w(5, 25, 20, 10, 20, 15),
   },
   {
     id: "people",
     th: "เน้นคุณภาพชีวิตประชาชน",
     en: "Residents first",
-    descTh: "ให้น้ำหนักกับสถานที่บริการ ประชากร และเวลาเดินทางถึงโรงพยาบาล ไม่สนราคาที่ดิน",
-    descEn: "Weights services, population and travel time to a hospital; ignores land price",
-    weights: w(15, 25, 35, 25, 0, 1, 0, 0, 20, "hospital"),
+    descTh: "ให้น้ำหนักกับสถานที่บริการ ประชากร และโครงข่ายถนน",
+    descEn: "Weights services, population and the road network",
+    weights: w(15, 25, 35, 25),
   },
 ];
 

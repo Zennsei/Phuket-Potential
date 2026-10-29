@@ -69,8 +69,8 @@ export default function App() {
             <path d="M11 7c2 1 1 3 3 4s1 3 0 5-1 3-2 3-2-2-2-4 0-3 0-5 0-3 1-3z" fill="var(--overprint)" />
           </svg>
           <span>
-          <b>{t("ศักยภาพพื้นที่ภูเก็ต", "Phuket Potential Map")}</b>
-          <span>{t("แผนที่ศักยภาพรายตำบล จากข้อมูล GISTDA", "Sub-district potential from GISTDA data")}</span>
+          <b>Geo-Smart location analysis</b>
+          <span>{t("วิเคราะห์ศักยภาพพื้นที่ภูเก็ต จากข้อมูล GISTDA", "Phuket area potential from GISTDA data")}</span>
           </span>
         </a>
         <nav className="nav" aria-label={t("เมนูหลัก", "Main menu")}>

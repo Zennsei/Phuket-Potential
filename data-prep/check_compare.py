@@ -16,21 +16,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 rows = [f["properties"] for f in json.load(open(os.path.join(ROOT, "public/data/tambons.geojson"), encoding="utf-8"))["features"]]
 
 
-def rule(b, r, s, p, l, land_dir=1, d=0, g=0, t=0, dest="oldtown"):
-    mk = lambda w, dirn=1: {"weight": w, "direction": dirn if w else 0}
-    return {"buildings": mk(b), "road": mk(r), "services": mk(s), "population": mk(p), "land": mk(l, land_dir),
-            "developable": mk(d), "growth": mk(g), "travel": {**mk(t), "dest": dest}}
+def rule(b, r, s, p, d=0, g=0):
+    mk = lambda w: {"weight": w, "direction": 1 if w else 0}
+    return {"buildings": mk(b), "road": mk(r), "services": mk(s), "population": mk(p), "developable": mk(d), "growth": mk(g)}
 
 
-# same weights as PRESETS in src/factors.ts
-RULES = {"equal": rule(20, 20, 20, 20, 20), "emerging": rule(5, 25, 20, 10, 20, -1, 20, 15),
-         "people": rule(15, 25, 35, 25, 0, 1, 0, 0, 20, "hospital")}
+# same weights as PRESETS in src/factors.ts (land price and travel time left the score on 27 Oct 2569;
+# the road factor is road density, km of main + secondary roads per km², since 29 Oct 2569)
+RULES = {"equal": rule(25, 25, 25, 25), "emerging": rule(5, 25, 20, 10, 20, 15), "people": rule(15, 25, 35, 25)}
 
 # method A = {} (site default); method B changes one column, the land basis, or the scaling
 PAIRS = {
     "developable": ({}, {"land_basis": "all"}),
-    "land-place": ({}, {"land_col": "land_median_sheetcentre"}),
-    "land-stat": ({}, {"land_col": "land_mean"}),
     "buildings": ({}, {"bldg_col": "roof_cover_pct"}),
     "scaling": ({}, {"scale": "rank"}),
 }
@@ -38,10 +35,9 @@ PAIRS = {
 
 def factor_values(p, w, opt):
     dev = p["developable_pct"] if opt.get("land_basis") == "all" else p["developable_flat_pct"]
-    return {"buildings": (p[opt.get("bldg_col", "bldg_per_km2")], True), "road": (p["road_dist_m"], False),
+    return {"buildings": (p[opt.get("bldg_col", "bldg_per_km2")], True), "road": (p["road_km_per_km2"], True),
             "services": (p["services_per_km2"], True), "population": (p["pop_per_km2"], True),
-            "land": (p.get(opt.get("land_col", "land_median")), True), "developable": (dev, True),
-            "growth": (p["house_growth_pct"], True), "travel": (p[f"tt_{w['travel']['dest']}_min"], False)}
+            "developable": (dev, True), "growth": (p["house_growth_pct"], True)}
 
 
 def minmax(vals):

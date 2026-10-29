@@ -1,5 +1,5 @@
 /** Overlay layers shown on the map, with their colour classes (used by the map and its legend). */
-export type OverlayId = "landuse" | "terrain" | "landtrendr" | "buildings" | "population" | "land" | "travel" | "height3d" | "bldg3d" | "streets" | "roads" | "pois";
+export type OverlayId = "landuse" | "terrain" | "landtrendr" | "population" | "land" | "height3d" | "bldg3d" | "streets" | "roads" | "pois";
 
 export interface Overlay {
   id: OverlayId;
@@ -39,16 +39,9 @@ export const OVERLAYS: Overlay[] = [
   {
     // raster tiles live from the GISTDA API Gateway through our proxy (src/landtrendr.ts), team only
     id: "landtrendr", file: "",
-    th: "พื้นที่ที่เปลี่ยนแปลง สีตามปี (Landtrendr)", en: "Changed land by year (Landtrendr)",
+    th: "พื้นที่สีเขียวที่หายไป (Landtrendr)", en: "Lost green cover (Landtrendr)",
     sourceTh: "GISTDA API", sourceEn: "GISTDA API", gistda: true,
     swatch: "#ff7673", attr: "Landtrendr: GISTDA API Gateway · ใช้ภายในทีม (team evaluation only)",
-  },
-  {
-    id: "buildings", file: "data/buildings_grid500.geojson",
-    th: "ความหนาแน่นอาคาร (ช่อง 500 ม.)", en: "Building density (500 m cells)",
-    sourceTh: "GISTDA", sourceEn: "GISTDA", gistda: true,
-    prop: "n", breaks: [10, 35, 100, 200], ramp: ["#f3e7c8", "#eebd78", "#e08a45", "#c4512e", "#7d2418"],
-    unitTh: "หลังต่อช่อง", unitEn: "bldgs per cell", swatch: "#c4512e", attr: "อาคาร: GISTDA",
   },
   {
     id: "population", file: "data/population_h3.geojson",
@@ -58,18 +51,12 @@ export const OVERLAYS: Overlay[] = [
     unitTh: "คน/ตร.กม.", unitEn: "people/km²", swatch: "#2b8a80", attr: "ประชากร: Kontur (CC BY 4.0)",
   },
   {
-    id: "land", file: "data/land_value_1km.geojson",
-    th: "ราคาประเมินที่ดิน (ช่อง 1 กม.)", en: "Land appraisal (1 km cells)",
-    sourceTh: "กรมธนารักษ์", sourceEn: "Treasury Dept.",
-    prop: "median_price", breaks: [4000, 8000, 16000, 32000], ramp: ["#f6edd0", "#e7cf86", "#cfa649", "#a3741b", "#6b4a0c"],
-    unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah", swatch: "#a3741b", attr: "ราคาประเมิน: กรมธนารักษ์",
-  },
-  {
-    id: "travel", file: "data/travel_grid500.geojson",
-    th: "เวลาเดินทาง (ช่อง 500 ม.)", en: "Travel time (500 m cells)",
-    sourceTh: "OSM + อาคาร GISTDA", sourceEn: "OSM + GISTDA buildings",
-    prop: "o", breaks: [5, 10, 20, 30], ramp: ["#2a2f6e", "#4b5aa8", "#8391cc", "#c3cbe8", "#eef0f8"],
-    unitTh: "นาที", unitEn: "min", swatch: "#4b5aa8", attr: `เวลาเดินทาง: คำนวณจากถนน ${OSM} และอาคาร GISTDA`,
+    // placeholder only (data-prep/market_dummy.py: appraisal x 2); not used in any score, always labelled as simulated
+    id: "land", file: "data/market_dummy_1km.geojson",
+    th: "ราคาตลาดที่ดิน (ข้อมูลจำลอง)", en: "Market land price (simulated)",
+    sourceTh: "ข้อมูลจำลอง", sourceEn: "Simulated",
+    prop: "price", breaks: [8000, 16000, 32000, 64000], ramp: ["#f6edd0", "#e7cf86", "#cfa649", "#a3741b", "#6b4a0c"],
+    unitTh: "บาท/ตร.ว.", unitEn: "THB/sq.wah", swatch: "#a3741b", attr: "ราคาตลาดที่ดิน: ข้อมูลจำลอง ไม่ใช่ข้อมูลจริง (simulated)",
   },
   {
     id: "height3d", file: "data/height_grid500.geojson",
@@ -95,7 +82,7 @@ export const OVERLAYS: Overlay[] = [
   },
   {
     id: "roads", file: "data/roads_main.geojson",
-    th: "ถนนสายหลัก", en: "Main roads",
+    th: "ถนนสายหลักและสายรอง", en: "Main & secondary roads",
     sourceTh: "OpenStreetMap", sourceEn: "OpenStreetMap", swatch: "#c4511c", attr: OSM,
   },
   {

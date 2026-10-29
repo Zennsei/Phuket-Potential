@@ -8,23 +8,24 @@ import type { Scored } from "../types";
 export default function Home({ scored, data }: { scored: Scored[]; data: AppData }) {
   const { t, num } = useI18n();
   const totalBldg = scored.reduce((s, x) => s + x.props.buildings, 0);
-  const parcels = scored.reduce((s, x) => s + x.props.land_parcels, 0);
+  const services = scored.reduce((s, x) => s + x.props.services, 0);
   const legend = [
     { c: "#c4512e", v: num(totalBldg), th: "อาคาร จากรูปแปลงอาคารของ GISTDA ปี 2565", en: "buildings, from GISTDA building footprints (2022)" },
     { c: "#2b8a80", v: "668", th: "ช่องหกเหลี่ยมประชากร Kontur ปี 2566", en: "population hexagons, Kontur (2023)" },
-    { c: "#a3741b", v: num(parcels), th: "แปลงราคาประเมิน กรมธนารักษ์ รอบ 2566–2569", en: "appraised parcels, Treasury Dept. (2023–2026 round)" },
+    { c: "#7a5aa6", v: num(services), th: "สถานที่บริการ (โรงเรียน สถานพยาบาล ตลาด ร้านค้า ธนาคาร ฯลฯ) OpenStreetMap", en: "service places (schools, health, markets, shops, banks…), OpenStreetMap" },
     { c: "#e9dc8f", v: "2563", th: "ปีของแผนที่การใช้ที่ดิน กรมพัฒนาที่ดิน", en: "year of the LDD land-use map" },
-    { c: "#c4511c", v: "1,314", th: "ช่วงถนนสายหลัก สายรอง และถนนท้องถิ่น OpenStreetMap ต.ค. 2569", en: "primary, secondary and tertiary road segments, OpenStreetMap (Oct 2026)" },
+    { c: "#c4511c", v: "1,314", th: "ช่วงถนนสายหลักและสายรอง (primary, secondary, tertiary) OpenStreetMap ต.ค. 2569", en: "primary, secondary and tertiary road segments, OpenStreetMap (Oct 2026)" },
     { c: RAMP[3], v: "17", th: "ตำบล คิดคะแนนจาก 6 ปัจจัยที่ปรับน้ำหนักได้", en: "sub-districts scored on 6 adjustable factors" },
   ];
   return (
     <div className="page">
       <section className="hero">
         <div>
+          <div className="eyebrow">Geo-Smart location analysis</div>
           <h1>{t("ภูเก็ตจะเติบโตไปทางไหนต่อ", "Where will Phuket grow next?")}</h1>
           <p className="lede">
-            {t("แผนที่นี้รวมอาคารจาก GISTDA ประชากร ถนน สถานที่บริการ ราคาประเมิน และการใช้ที่ดินไว้ในแผ่นเดียว ให้ผังเมืองใช้เลือกพื้นที่ส่งเสริม และให้นักลงทุนกับประชาชนเทียบศักยภาพของ 17 ตำบลด้วยหลักเกณฑ์ของตัวเอง",
-               "This map puts GISTDA buildings, population, roads, services, land values and land use on one sheet, so planners can choose areas to promote and investors and residents can compare Phuket's 17 sub-districts by their own rules.")}
+            {t("แผนที่นี้รวมอาคารจาก GISTDA ประชากร ถนน สถานที่บริการ และการใช้ที่ดินไว้ในแผ่นเดียว ให้ผังเมืองใช้เลือกพื้นที่ส่งเสริม และให้นักลงทุนกับประชาชนเทียบศักยภาพของ 17 ตำบลด้วยหลักเกณฑ์ของตัวเอง ดูได้ทั้งระดับจังหวัด อำเภอ และตำบล",
+               "This map puts GISTDA buildings, population, roads, services and land use on one sheet, so planners can choose areas to promote and investors and residents can compare Phuket's 17 sub-districts by their own rules, by province, district or sub-district.")}
           </p>
           <div className="row">
             <a className="btn" href={href("map")}>{t("เปิดแผนที่วิเคราะห์", "Open the analysis map")}</a>
@@ -49,7 +50,7 @@ export default function Home({ scored, data }: { scored: Scored[]; data: AppData
       <section>
         <h2>{t("อ่านแผนที่นี้อย่างไร", "How to read this map")}</h2>
         <div className="steps">
-          <div className="card"><b>{t("ดูหลักฐานทีละชั้น", "Look at the evidence, layer by layer")}</b><p className="small muted">{t("เปิดชั้นอาคาร ประชากร ราคาที่ดิน หรือการใช้ที่ดิน แล้วคลิกจุดใดก็ได้เพื่อดูค่าของจุดนั้น", "Turn on buildings, population, land value or land use and click anywhere to read the values there")}</p></div>
+          <div className="card"><b>{t("ดูหลักฐานทีละชั้น", "Look at the evidence, layer by layer")}</b><p className="small muted">{t("เปิดชั้นอาคาร ประชากร ถนน หรือการใช้ที่ดิน แล้วคลิกจุดใดก็ได้เพื่อดูค่าของจุดนั้น", "Turn on buildings, population, roads or land use and click anywhere to read the values there")}</p></div>
           <div className="card"><b>{t("ตั้งหลักเกณฑ์ของคุณ", "Set your own rule")}</b><p className="small muted">{t("เลือกว่าปัจจัยไหนสำคัญแค่ไหน และมากหรือน้อยถึงจะดี", "Decide how much each factor matters and whether more or less is better")}</p></div>
           <div className="card"><b>{t("ดูว่าอันดับเปลี่ยนอย่างไร", "See how the ranking moves")}</b><p className="small muted">{t("สีของแผนที่และอันดับเปลี่ยนทันที ลอง Stress Test ในหน้าภารกิจได้", "Colours and ranks update at once; try the stress test in the mission")}</p></div>
         </div>

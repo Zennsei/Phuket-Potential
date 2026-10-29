@@ -1,5 +1,5 @@
 import Fold from "./Fold";
-import { FACTORS, TRAVEL_DESTS, developableOf, travelMinutes, unitOf } from "../factors";
+import { FACTORS, developableOf, unitOf } from "../factors";
 import { CATEGORIES, DEFAULT_THRESHOLDS, categoryOf } from "../decision";
 import { LANDUSE_COLORS } from "../layers";
 import { REG_YEARS, regHouse, regPop } from "../years";
@@ -13,15 +13,12 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
   const p = s.props;
   const raw: Record<string, string> = {
     buildings: weights.buildings.measure === "floor" ? num(p.floor_to_land_pct, 1) : num(p.bldg_per_km2),
-    road: num(p.road_dist_m),
+    road: num(p.road_km_per_km2, 2),
     services: num(p.services_per_km2, 1),
     population: num(p.pop_per_km2),
-    land: p.land_median == null ? "–" : num(p.land_median),
     developable: num(developableOf(p, weights.developable), 1),
     growth: num(p.house_growth_pct, 1),
-    travel: num(travelMinutes(p, weights.travel.dest), 1),
   };
-  const dest = TRAVEL_DESTS.find((d) => d.id === (weights.travel.dest ?? "oldtown"))!;
   const cat = CATEGORIES[categoryOf(s.score, p, DEFAULT_THRESHOLDS, weights.developable)];
   const on = FACTORS.filter((f) => weights[f.key].direction !== 0);
   const off = FACTORS.filter((f) => weights[f.key].direction === 0);
@@ -52,7 +49,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
         <div className="tile"><div className="v">{num(p.reg_pop_2568)}</div><div className="l">{t("ประชากรตามทะเบียน 2568", "Registered people 2025")}</div></div>
         <div className="tile"><div className="v">{num(p.population)}</div><div className="l">{t(`คนอยู่จริง (ประมาณ) · ${num(p.unreg_ratio, 1)} เท่าของทะเบียน`, `Residents (est.) · ${num(p.unreg_ratio, 1)}× registered`)}</div></div>
         <div className="tile"><div className="v">{num(p.bldg_2567)}</div><div className="l">{t(`อาคาร 2567 · สูงเฉลี่ย ${num(p.mean_height_m, 1)} ม.`, `Buildings 2024 · mean ${num(p.mean_height_m, 1)} m`)}</div></div>
-        <div className="tile"><div className="v">{p.land_median == null ? "–" : num(p.land_median)}</div><div className="l">{t("ราคาประเมินกลาง บาท/ตร.ว.", "Median appraisal THB/sq.wah")}</div></div>
+        <div className="tile"><div className="v">{num(developableOf(p, weights.developable), 1)}%</div><div className="l">{t("ที่ดินที่ยังพัฒนาได้", "Developable land")}</div></div>
       </div>
 
       <div>
@@ -65,7 +62,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
               </div>
               <div className="bar"><i style={{ width: `${s.parts[f.key]}%`, background: f.color }} /></div>
               <div className="small muted">
-                {raw[f.key]} {(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()}{f.key === "travel" && ` · ${t(dest.th, dest.en)}`}
+                {raw[f.key]} {(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()}
               </div>
             </div>
           ))}
@@ -137,16 +134,6 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
           <span className="small muted">{t("ความสูงเป็นค่าจากแบบจำลองของ GISTDA ข้อมูลสองปีมาจากคนละแหล่ง จึงไม่นำมาลบกัน", "Heights are GISTDA model estimates. The two years come from different sources, so they are not subtracted.")}</span>
         </Fold>
 
-        <Fold title={t("เวลาเดินทางตามถนน", "Travel time by road")} hint={t("ค่ากลาง นาที", "median min")}>
-          <dl className="kv">
-            {TRAVEL_DESTS.map((d) => (
-              <span key={d.id} style={{ display: "contents" }}>
-                <dt>{t(d.th, d.en)}</dt><dd>{num(travelMinutes(p, d.id), 1)}</dd>
-              </span>
-            ))}
-          </dl>
-          <span className="small muted">{t("ความเร็วตามประเภทถนน ไม่คิดรถติด", "Speed by road class, no traffic")}</span>
-        </Fold>
 
         <Fold title={t("บริการและข้อมูลอื่น", "Services & other figures")}>
           <dl className="kv">
@@ -155,8 +142,8 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
             <dt>{t("สถานพยาบาล/ร้านยา", "Health")}</dt><dd>{num(p.svc_health)}</dd>
             <dt>{t("ห้าง/ตลาด/ร้านค้า", "Retail & markets")}</dt><dd>{num(p.svc_retail)}</dd>
             <dt>{t("ที่พัก", "Lodging")}</dt><dd>{num(p.lodging)}</dd>
+            <dt>{t("ถนนสายหลักและสายรอง", "Main & secondary roads")}</dt><dd>{num(p.road_km, 1)} {t("กม.", "km")}</dd>
             <dt>{t("ระยะถึงถนนสายหลัก (ค่ากลาง)", "To main road (median)")}</dt><dd>{num(p.road_dist_m)} {t("ม.", "m")}</dd>
-            <dt>{t("แปลงที่ดินที่ใช้คิดราคา", "Parcels in land price")}</dt><dd>{num(p.land_parcels)}</dd>
           </dl>
         </Fold>
       </div>
