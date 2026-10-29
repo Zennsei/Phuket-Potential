@@ -40,6 +40,10 @@
 
 `market_dummy.py` สร้างราคาตลาดที่ดิน**จำลอง**สำหรับแผนที่ = ราคาประเมินของช่อง 1 กม. × 2 (ตัวคูณสมมติ ไม่ใช่ข้อมูลจริง ไม่ใช้คิดคะแนน) → `public/data/market_dummy_1km.geojson`: `python data-prep/market_dummy.py`
 
+`road_density.py` วัดความยาวถนนสายหลัก (primary/secondary + ทางเชื่อม) และสายรอง (tertiary) ในแต่ละตำบลจากแผ่น `public/data/roads_all/14/` → คอลัมน์ `road_km`, `road_major_km`, `road_tert_km`, `road_km_per_km2` (ปัจจัยความหนาแน่นถนน) ใน `tambons.geojson` และ `phuket_tambon_factors.csv`: `python data-prep/road_density.py` (ต้องมี shapely, pyproj, numpy)
+
+`admin_levels.py` รวมรูปตำบลเป็นเส้นขอบอำเภอและจังหวัด → `public/data/amphoe.geojson`, `province.geojson` (ตัวเลขของอำเภอ/จังหวัดรวมในเบราว์เซอร์ที่ `src/levels.ts`): `python data-prep/admin_levels.py`
+
 `overture_buildings.py` ดึงอาคาร Overture (ไม่ได้ใช้ในเว็บ ใช้ตรวจความครบของข้อมูลอาคาร) ต้องติดตั้ง `pyarrow`
 
 รายละเอียดของข้อมูลทุกชุด (แหล่ง ปี สถานะ) อยู่ใน `DATA.md` ที่โฟลเดอร์หลัก

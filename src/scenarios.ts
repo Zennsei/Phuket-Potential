@@ -14,8 +14,8 @@ export interface Scenario {
 export const SCENARIOS: Scenario[] = [
   {
     id: "no-road", th: "ถนนสายหลักถูกตัด", en: "Main road cut off",
-    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ข้อมูลการเข้าถึงถนนไม่ได้ ปัจจัยถนนถูกปิด",
-    descEn: "A flood or landslide makes road access unreliable, so the road factor is switched off",
+    descTh: "น้ำท่วมหรือดินสไลด์ทำให้ใช้ถนนไม่ได้ ปัจจัยความหนาแน่นถนนถูกปิด",
+    descEn: "A flood or landslide makes the roads unreliable, so the road density factor is switched off",
     apply: (w) => ({ ...w, road: { ...w.road, direction: 0 } }),
   },
   {

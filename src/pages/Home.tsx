@@ -14,17 +14,18 @@ export default function Home({ scored, data }: { scored: Scored[]; data: AppData
     { c: "#2b8a80", v: "668", th: "ช่องหกเหลี่ยมประชากร Kontur ปี 2566", en: "population hexagons, Kontur (2023)" },
     { c: "#7a5aa6", v: num(services), th: "สถานที่บริการ (โรงเรียน สถานพยาบาล ตลาด ร้านค้า ธนาคาร ฯลฯ) OpenStreetMap", en: "service places (schools, health, markets, shops, banks…), OpenStreetMap" },
     { c: "#e9dc8f", v: "2563", th: "ปีของแผนที่การใช้ที่ดิน กรมพัฒนาที่ดิน", en: "year of the LDD land-use map" },
-    { c: "#c4511c", v: "1,314", th: "ช่วงถนนสายหลัก สายรอง และถนนท้องถิ่น OpenStreetMap ต.ค. 2569", en: "primary, secondary and tertiary road segments, OpenStreetMap (Oct 2026)" },
+    { c: "#c4511c", v: "1,314", th: "ช่วงถนนสายหลักและสายรอง (primary, secondary, tertiary) OpenStreetMap ต.ค. 2569", en: "primary, secondary and tertiary road segments, OpenStreetMap (Oct 2026)" },
     { c: RAMP[3], v: "17", th: "ตำบล คิดคะแนนจาก 6 ปัจจัยที่ปรับน้ำหนักได้", en: "sub-districts scored on 6 adjustable factors" },
   ];
   return (
     <div className="page">
       <section className="hero">
         <div>
+          <div className="eyebrow">Geo-Smart location analysis</div>
           <h1>{t("ภูเก็ตจะเติบโตไปทางไหนต่อ", "Where will Phuket grow next?")}</h1>
           <p className="lede">
-            {t("แผนที่นี้รวมอาคารจาก GISTDA ประชากร ถนน สถานที่บริการ และการใช้ที่ดินไว้ในแผ่นเดียว ให้ผังเมืองใช้เลือกพื้นที่ส่งเสริม และให้นักลงทุนกับประชาชนเทียบศักยภาพของ 17 ตำบลด้วยหลักเกณฑ์ของตัวเอง",
-               "This map puts GISTDA buildings, population, roads, services and land use on one sheet, so planners can choose areas to promote and investors and residents can compare Phuket's 17 sub-districts by their own rules.")}
+            {t("แผนที่นี้รวมอาคารจาก GISTDA ประชากร ถนน สถานที่บริการ และการใช้ที่ดินไว้ในแผ่นเดียว ให้ผังเมืองใช้เลือกพื้นที่ส่งเสริม และให้นักลงทุนกับประชาชนเทียบศักยภาพของ 17 ตำบลด้วยหลักเกณฑ์ของตัวเอง ดูได้ทั้งระดับจังหวัด อำเภอ และตำบล",
+               "This map puts GISTDA buildings, population, roads, services and land use on one sheet, so planners can choose areas to promote and investors and residents can compare Phuket's 17 sub-districts by their own rules, by province, district or sub-district.")}
           </p>
           <div className="row">
             <a className="btn" href={href("map")}>{t("เปิดแผนที่วิเคราะห์", "Open the analysis map")}</a>

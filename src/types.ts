@@ -12,8 +12,15 @@ export interface TambonProps {
   bldg_per_km2: number;
   roof_cover_pct: number;
   large_bldg: number;
+  /** median straight-line distance from buildings to a main road, m (the road factor until 29 Oct 2569) */
   road_dist_m: number;
   road_main_km: number;
+  /** primary + secondary + tertiary road length inside the tambon, km (data-prep/road_density.py, 29 Oct 2569) */
+  road_km: number;
+  road_major_km: number;
+  road_tert_km: number;
+  /** road_km ÷ area_km2: the road factor since 29 Oct 2569 (replaced road_dist_m) */
+  road_km_per_km2: number;
   services: number;
   services_per_km2: number;
   svc_education: number;

@@ -109,7 +109,7 @@ export default function Mission({ data }: PageProps) {
           <div className="grid3">
             {[
               { th: "อาคารกระจุกตัวที่ไหน และตำบลไหนยังมีที่ว่างเยอะ", en: "Where are buildings concentrated, and which sub-districts still have open land?", l: "GISTDA" },
-              { th: "ถนนสายหลักผ่านตำบลไหนบ้าง ตำบลไหนอยู่ไกลถนน", en: "Which sub-districts do the main roads pass through, and which are far from them?", l: "OpenStreetMap" },
+              { th: "ตำบลไหนมีถนนสายหลักและสายรองหนาแน่น ตำบลไหนมีน้อย", en: "Which sub-districts have a dense network of main and secondary roads, and which have few?", l: "OpenStreetMap" },
               { th: "เปิดชั้นภูเขาและที่ลาดชัน ที่ดินเกษตรในตำบลไหนอยู่บนเขาจนสร้างจริงได้ยาก", en: "Turn on the hills & steep land layer: in which sub-districts is the farmland mostly on hills, where building is hard?", l: "Copernicus DEM" },
               { th: "เปิดชั้นอาคาร 3 มิติ ย่านไหนพัฒนาในแนวสูงแล้ว และย่านไหนยังเป็นอาคารเตี้ยกระจาย", en: "Turn on the 3D building layer: which areas already build upwards, and which are still low and spread out?", l: "GISTDA 2567" },
               { th: "ประชากรอยู่หนาแน่นที่ไหน มีโรงเรียนและโรงพยาบาลพอไหม", en: "Where do people live most densely, and are there enough schools and hospitals?", l: "Kontur, OSM" },
