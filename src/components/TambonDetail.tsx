@@ -13,7 +13,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
   const p = s.props;
   const raw: Record<string, string> = {
     buildings: weights.buildings.measure === "floor" ? num(p.floor_to_land_pct, 1) : num(p.bldg_per_km2),
-    road: num(p.road_dist_m),
+    road: num(p.road_km_per_km2, 2),
     services: num(p.services_per_km2, 1),
     population: num(p.pop_per_km2),
     developable: num(developableOf(p, weights.developable), 1),
@@ -142,6 +142,7 @@ export default function TambonDetail({ s, total, weights }: { s: Scored; total: 
             <dt>{t("สถานพยาบาล/ร้านยา", "Health")}</dt><dd>{num(p.svc_health)}</dd>
             <dt>{t("ห้าง/ตลาด/ร้านค้า", "Retail & markets")}</dt><dd>{num(p.svc_retail)}</dd>
             <dt>{t("ที่พัก", "Lodging")}</dt><dd>{num(p.lodging)}</dd>
+            <dt>{t("ถนนสายหลักและสายรอง", "Main & secondary roads")}</dt><dd>{num(p.road_km, 1)} {t("กม.", "km")}</dd>
             <dt>{t("ระยะถึงถนนสายหลัก (ค่ากลาง)", "To main road (median)")}</dt><dd>{num(p.road_dist_m)} {t("ม.", "m")}</dd>
           </dl>
         </Fold>

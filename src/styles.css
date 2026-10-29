@@ -250,6 +250,16 @@ textarea { width: 100%; min-height: 90px; border: 1px solid var(--ink); border-r
 .tile { border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 10px; }
 .tile .v { font-family: var(--font-display); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tile .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.levelbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.levelbar .seg button { border-left: 1px solid var(--ink); padding: 4px 14px; color: var(--ink); font-family: inherit; }
+.levelbar .seg button:first-child { border-left: 0; }
+.levelbar .seg button[aria-pressed="true"] { color: var(--sheet); font-weight: 600; }
+.unitrank { display: grid; gap: 6px; }
+.unitrank button { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; text-align: left; border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--radius); padding: 8px 10px; cursor: pointer; color: var(--ink); font: inherit; }
+.unitrank button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 3px 0 0 var(--ink); }
+.unitrank .rk { font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1; }
+.groupchips { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.groupchips i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 2px; }
 .yearbtns { display: flex; flex-wrap: wrap; gap: 4px; }
 .yearbtns button { border: 1px solid var(--rule); background: transparent; border-radius: var(--radius); padding: 2px 8px; font-size: 12px; cursor: pointer; color: var(--ink); font-variant-numeric: tabular-nums; }
 .yearbtns button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }

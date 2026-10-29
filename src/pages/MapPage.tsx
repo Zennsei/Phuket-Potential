@@ -14,6 +14,8 @@ import { LT_COLOURS, LT_GROUPS, ltCss, ltYears } from "../landtrendr";
 import { BLDG_INFO, BLDG_SOURCES, BUILDING_LOD, OUTLINE_COLOR, type BldgSource, type BuildingStatus } from "../buildings3d";
 import { RAMP, classOf, quantileBreaks, scoreColor } from "../color";
 import { REG_YEARS, regHouse, regPop } from "../years";
+import { LEVELS, amphoeSummaries, provinceSummary, unitFeatures, type Level, type UnitSummary } from "../levels";
+import UnitDetail from "../components/UnitDetail";
 import { useI18n } from "../i18n";
 import { href } from "../router";
 import type { PageProps } from "../pageProps";
@@ -57,6 +59,8 @@ function Cat({ id, open, setOpen, title, summary, on, setOn, swatch, children }:
 export default function MapPage({ data, scored, weights, setWeights, selectedId }: PageProps & { selectedId?: string }) {
   const { t, num, lang } = useI18n();
   const [colorBy, setColorBy] = useState<ColorBy>("score");
+  const [level, setLevel] = useState<Level>("tambon");
+  const [unitSel, setUnitSel] = useState<string>();
   const [year, setYear] = useState<number>(REG_YEARS[REG_YEARS.length - 1]);
   const [playing, setPlaying] = useState(false);
   // layer categories (left panel); `overlays` below is worked out from them
@@ -134,49 +138,59 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
     return () => window.clearInterval(id);
   }, [playing, yearly]);
 
+  // province / district / sub-district: scores stay per sub-district; districts and the province add up their tambons
+  const amphoes = useMemo(() => amphoeSummaries(scored, weights), [scored, weights]);
+  const province = useMemo(() => provinceSummary(scored, weights), [scored, weights]);
+  const units: UnitSummary[] = useMemo(() => (level === "amphoe" ? amphoes : level === "province" ? [province] : []), [level, amphoes, province]);
+  const shapes = useMemo(() => unitFeatures(level, data.tambons, data.amphoe, data.province), [level, data]);
+  const selUnit = units.find((u) => u.id === unitSel) ?? (level === "province" ? province : undefined);
+
   const { fills, legend } = useMemo(() => {
+    // value of one tambon, value of a district/province, class breaks and legend for the chosen colouring
+    let tv: (s: (typeof scored)[number]) => number;
+    let uv: (u: UnitSummary) => number;
+    let br: number[] | null = null;
+    let title: string;
+    let ends: string[];
     if (colorBy === "score") {
-      const fills = Object.fromEntries(scored.map((s) => [s.props.id, scoreColor(s.score)]));
-      return { fills, legend: { title: t("คะแนนศักยภาพ (0–100)", "Potential score (0–100)"), ends: ["0", "100"] } };
-    }
-    if (colorBy === "reg_pop" || colorBy === "reg_house") {
+      tv = (s) => s.score; uv = (u) => u.score;
+      title = level === "tambon" ? t("คะแนนศักยภาพ (0–100)", "Potential score (0–100)") : t("คะแนนเฉลี่ยของตำบลในพื้นที่ ถ่วงตามพื้นที่ (0–100)", "Area-weighted mean of the sub-district scores (0–100)");
+      ends = ["0", "100"];
+    } else if (colorBy === "reg_pop" || colorBy === "reg_house") {
       const get = colorBy === "reg_pop" ? regPop : regHouse;
       // the same class breaks for every year, so colours can be compared between years
       const all = scored.flatMap((s) => REG_YEARS.map((y) => get(s.props, y) / s.props.area_km2));
-      const br = quantileBreaks(all);
-      const fills = Object.fromEntries(scored.map((s) => [s.props.id, RAMP[classOf(get(s.props, year) / s.props.area_km2, br)]]));
-      const lo = Math.min(...all), hi = Math.max(...all);
-      return {
-        fills,
-        legend: {
-          title: colorBy === "reg_pop"
-            ? t(`ประชากรตามทะเบียน ปี ${year} (คน/ตร.กม.)`, `Registered people ${year} (per km²)`)
-            : t(`บ้านตามทะเบียน ปี ${year} (หลัง/ตร.กม.)`, `Registered houses ${year} (per km²)`),
-          ends: [num(lo), num(hi)],
-        },
-      };
+      br = quantileBreaks(all);
+      tv = (s) => get(s.props, year) / s.props.area_km2;
+      uv = (u) => u.members.reduce((a, s) => a + get(s.props, year), 0) / u.area_km2;
+      title = colorBy === "reg_pop"
+        ? t(`ประชากรตามทะเบียน ปี ${year} (คน/ตร.กม.)`, `Registered people ${year} (per km²)`)
+        : t(`บ้านตามทะเบียน ปี ${year} (หลัง/ตร.กม.)`, `Registered houses ${year} (per km²)`);
+      ends = [num(Math.min(...all)), num(Math.max(...all))];
+    } else {
+      const f = FACTORS.find((x) => x.key === colorBy)!;
+      const vals = scored.map((s) => f.value(s.props, weights[f.key]) ?? NaN);
+      br = quantileBreaks(vals);
+      tv = (s) => f.value(s.props, weights[f.key]) ?? NaN;
+      uv = (u) => u.values[f.key];
+      const lo = Math.min(...vals.filter(Number.isFinite)), hi = Math.max(...vals.filter(Number.isFinite));
+      title = `${t(f.th, f.en)} (${(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()})`;
+      ends = f.higherIsBetter ? [num(lo), num(hi)] : [num(hi), num(lo)];
     }
-    const f = FACTORS.find((x) => x.key === colorBy)!;
-    const vals = scored.map((s) => f.value(s.props, weights[f.key]) ?? NaN);
-    const br = quantileBreaks(vals);
-    const fills = Object.fromEntries(
-      scored.map((s) => {
-        const v = f.value(s.props, weights[f.key]);
-        if (v == null) return [s.props.id, "#cccccc"];
-        let c = classOf(v, br);
-        if (!f.higherIsBetter) c = 4 - c; // nearer road = darker
-        return [s.props.id, RAMP[c]];
-      }),
-    );
-    const lo = Math.min(...vals.filter(Number.isFinite)), hi = Math.max(...vals.filter(Number.isFinite));
-    return {
-      fills,
-      legend: {
-        title: `${t(f.th, f.en)} (${(() => { const u = unitOf(f, weights[f.key]); return t(u.th, u.en); })()})`,
-        ends: f.higherIsBetter ? [num(lo), num(hi)] : [num(hi), num(lo)],
-      },
+    // districts and the province use the sub-district classes, so a colour means the same at every level
+    const colour = (v: number) => {
+      if (!Number.isFinite(v)) return "#cccccc";
+      if (!br) return scoreColor(v);
+      let c = classOf(v, br);
+      const f = FACTORS.find((x) => x.key === colorBy);
+      if (f && !f.higherIsBetter) c = 4 - c;
+      return RAMP[c];
     };
-  }, [colorBy, scored, t, num, weights, year]);
+    const fills = level === "tambon"
+      ? Object.fromEntries(scored.map((s) => [s.props.id, colour(tv(s))]))
+      : Object.fromEntries(units.map((u) => [u.id, colour(uv(u))]));
+    return { fills, legend: { title, ends } };
+  }, [colorBy, scored, t, num, weights, year, level, units]);
 
   const anyFillOverlay = overlays.landuse || overlays.population || overlays.land || overlays.height3d || overlays.terrain || overlays.landtrendr;
   const layersOn = [tambonFill, bldgOn, roadsOn, ...Object.values(landOn), popOn, poisOn].filter(Boolean).length;
@@ -191,7 +205,8 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   const selected = scored.find((s) => s.props.id === selectedId);
   const onMapClick = (hit: { id?: string; lon: number; lat: number }) => {
     setClickPoint({ lon: hit.lon, lat: hit.lat });
-    if (hit.id) window.location.hash = href("map", hit.id);
+    if (level !== "tambon") setUnitSel(hit.id);
+    else if (hit.id) window.location.hash = href("map", hit.id);
   };
   const pickPlace = (p: SpherePlace) => {
     setFocus({ key: `${p.id}-${Date.now()}`, lon: p.lon, lat: p.lat, zoom: 16 });
@@ -206,6 +221,14 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
   return (
     <div className="mapwrap">
       <aside className="panel left folds" aria-label={t("ตัวควบคุม", "Controls")}>
+        <div className="levelbar">
+          <span className="small muted">{t("ดูระดับ", "View by")}</span>
+          <div className="seg" role="group" aria-label={t("ระดับพื้นที่", "Area level")}>
+            {LEVELS.map((l) => (
+              <button key={l.id} aria-pressed={level === l.id} onClick={() => { setLevel(l.id); setUnitSel(undefined); }}>{t(l.th, l.en)}</button>
+            ))}
+          </div>
+        </div>
         <Fold title={t("ค้นหาสถานที่", "Find a place")} hint="GISTDA Sphere" open>
           <SphereSearch center={{ lon: 98.36, lat: 7.95 }} onResults={setPins} onPick={pickPlace} />
         </Fold>
@@ -215,7 +238,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
         <Fold title={t("ชั้นข้อมูล", "Layers")} hint={t(`เปิด ${layersOn}`, `${layersOn} on`)} open>
           <p className="small muted" style={{ margin: "0 0 4px" }}>{t("กดชื่อหมวดเพื่อเลือกรูปแบบและที่มาของข้อมูล · สวิตช์ขวา = เปิด/ปิด", "Click a category for its views and data sources · switch on the right = on/off")}</p>
           <div className="cats">
-            <Cat id="tambon" open={openCat} setOpen={setOpenCat} title={t("สีตำบล", "Sub-district colours")} summary={colourName(colorBy)} on={tambonFill} setOn={setTambonFill} swatch="#2c7a98">
+            <Cat id="tambon" open={openCat} setOpen={setOpenCat} title={level === "tambon" ? t("สีตำบล", "Sub-district colours") : level === "amphoe" ? t("สีอำเภอ", "District colours") : t("สีจังหวัด", "Province colour")} summary={colourName(colorBy)} on={tambonFill} setOn={setTambonFill} swatch="#2c7a98">
               <label className="small" style={{ display: "grid", gap: 2 }}>
                 {t("ระบายสีตำบลตาม", "Colour sub-districts by")}
                 <select value={colorBy} onChange={(e) => { setColorBy(e.target.value as ColorBy); setPlaying(false); setTambonFill(true); }}>
@@ -242,7 +265,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               )}
               <label className="check small">
                 <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} />
-                <span>{t("แสดงชื่อตำบล", "Show sub-district names")}</span>
+                <span>{t("แสดงชื่อพื้นที่", "Show names")}</span>
               </label>
             </Cat>
 
@@ -276,9 +299,9 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
               )}
             </Cat>
 
-            <Cat id="roads" open={openCat} setOpen={setOpenCat} title={t("ถนน", "Roads")} summary={roadsAll ? t("ทุกประเภทรวมซอย", "all, incl. alleys") : t("สายหลัก", "main roads")} on={roadsOn} setOn={setRoadsOn} swatch="#c4511c">
+            <Cat id="roads" open={openCat} setOpen={setOpenCat} title={t("ถนน", "Roads")} summary={roadsAll ? t("ทุกประเภทรวมซอย", "all, incl. alleys") : t("สายหลักและสายรอง", "main & secondary")} on={roadsOn} setOn={setRoadsOn} swatch="#c4511c">
               <div className="radios" role="radiogroup" aria-label={t("แสดง", "Show")}>
-                <label className="check small"><input type="radio" name="roads" checked={!roadsAll} onChange={() => { setRoadsAll(false); setRoadsOn(true); }} /><span>{t("ถนนสายหลัก", "Main roads")}</span></label>
+                <label className="check small"><input type="radio" name="roads" checked={!roadsAll} onChange={() => { setRoadsAll(false); setRoadsOn(true); }} /><span>{t("ถนนสายหลักและสายรอง", "Main & secondary roads")}</span></label>
                 <label className="check small"><input type="radio" name="roads" checked={roadsAll} onChange={() => { setRoadsAll(true); setRoadsOn(true); }} /><span>{t("ทุกประเภทรวมซอย (ซอยขึ้นเมื่อซูมใกล้)", "All, incl. alleys (alleys appear when zoomed in)")}</span></label>
               </div>
               <span className="small">{t("ที่มา:", "Source:")} {pill("roads")}</span>
@@ -363,7 +386,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
 
       <div className="mapbox">
         <MapView
-          tambons={data.tambons}
+          tambons={shapes}
           fills={fills}
           tambonOpacity={anyFillOverlay ? 0.12 : 0.72}
           showTambonFill={tambonFill}
@@ -371,7 +394,7 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
           basemap={baseId}
           compare={onYears && compareOn ? { basemap: `gistda_years:${cmpLayer}`, leftLabel: yearName(imgLayer), rightLabel: yearName(cmpLayer) } : undefined}
           showLabels={labels}
-          selectedId={selectedId}
+          selectedId={level === "tambon" ? selectedId : selUnit?.id}
           onMapClick={onMapClick}
           onBaseError={setBaseFailed}
           pins={pins.map((p) => ({ id: p.id, lon: p.lon, lat: p.lat, label: p.name }))}
@@ -476,9 +499,12 @@ export default function MapPage({ data, scored, weights, setWeights, selectedId 
         </div>
       </div>
 
-      <aside className="panel right" aria-label={t("รายละเอียดตำบล", "Sub-district details")}>
+      <aside className="panel right" aria-label={t("รายละเอียดพื้นที่", "Area details")}>
         {clickPoint && <SphereNearby point={clickPoint} />}
-        {selected ? (
+        {level !== "tambon" ? (
+          <UnitDetail level={level} unit={selUnit} amphoes={amphoes} province={province} weights={weights}
+            onPickAmphoe={setUnitSel} onPickTambon={(id) => { setLevel("tambon"); setUnitSel(undefined); window.location.hash = href("map", id); }} />
+        ) : selected ? (
           <TambonDetail s={selected} total={scored.length} weights={weights} />
         ) : (
           <div style={{ display: "grid", gap: 12 }}>

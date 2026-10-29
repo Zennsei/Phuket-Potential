@@ -21,7 +21,8 @@ def rule(b, r, s, p, d=0, g=0):
     return {"buildings": mk(b), "road": mk(r), "services": mk(s), "population": mk(p), "developable": mk(d), "growth": mk(g)}
 
 
-# same weights as PRESETS in src/factors.ts (land price and travel time left the score on 27 Oct 2569)
+# same weights as PRESETS in src/factors.ts (land price and travel time left the score on 27 Oct 2569;
+# the road factor is road density, km of main + secondary roads per km², since 29 Oct 2569)
 RULES = {"equal": rule(25, 25, 25, 25), "emerging": rule(5, 25, 20, 10, 20, 15), "people": rule(15, 25, 35, 25)}
 
 # method A = {} (site default); method B changes one column, the land basis, or the scaling
@@ -34,7 +35,7 @@ PAIRS = {
 
 def factor_values(p, w, opt):
     dev = p["developable_pct"] if opt.get("land_basis") == "all" else p["developable_flat_pct"]
-    return {"buildings": (p[opt.get("bldg_col", "bldg_per_km2")], True), "road": (p["road_dist_m"], False),
+    return {"buildings": (p[opt.get("bldg_col", "bldg_per_km2")], True), "road": (p["road_km_per_km2"], True),
             "services": (p["services_per_km2"], True), "population": (p["pop_per_km2"], True),
             "developable": (dev, True), "growth": (p["house_growth_pct"], True)}
 

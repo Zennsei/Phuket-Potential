@@ -226,13 +226,6 @@ export default function MapView(p: Props) {
         m.addLayer({ id: `bldg-${src}-line`, type: "line", source: `bldg-${src}`, "source-layer": "buildings", minzoom: BLDG_MIN_ZOOM, layout: { visibility: "none" },
           paint: { "line-color": OUTLINE_COLOR[src], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18, 2] } });
 
-      // labels as HTML markers (no font server needed)
-      markers.current = latest.current.tambons.features.map((f) => {
-        const el = document.createElement("div");
-        el.className = "tlabel";
-        return new maplibregl.Marker({ element: el }).setLngLat(labelPoint(f));
-      });
-
       // fit to Phuket main island
       m.fitBounds([[98.255, 7.75], [98.47, 8.2]], { padding: 20, duration: 0 });
 
@@ -258,14 +251,14 @@ export default function MapView(p: Props) {
         }
         const road = first("overlay-roads", box);
         if (road) {
-          const cls: Record<string, [string, string]> = { primary: ["ถนนสายหลัก", "primary road"], secondary: ["ถนนสายรอง", "secondary road"], tertiary: ["ถนนท้องถิ่น", "tertiary road"] };
+          const cls: Record<string, [string, string]> = { primary: ["ถนนสายหลัก", "primary road"], secondary: ["ถนนสายรอง", "secondary road"], tertiary: ["ถนนสายรอง (tertiary)", "tertiary road"] };
           const c = cls[String(road.hw).replace("_link", "")] ?? [String(road.hw), String(road.hw)];
           const name = [road.name, road.ref ? `(${road.ref})` : ""].filter(Boolean).join(" ") || (th ? "ไม่มีชื่อ" : "unnamed");
           row(label("roads"), `<b>${escapeHtml(String(name))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
         const st = !road ? first("streets-fill", box) ?? first("streets-track", box) : undefined;
         if (st) {
-          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนท้องถิ่น", "local road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
+          const cls: Record<string, [string, string]> = { major: ["ถนนสายหลัก", "main road"], tertiary: ["ถนนสายรอง (tertiary)", "tertiary road"], minor: ["ซอย / ถนนในหมู่บ้าน", "soi / village road"], service: ["ทางเข้า / ซอยแคบ", "driveway / service lane"], track: ["ทางดิน", "track"] };
           const c = cls[String(st.c)] ?? [String(st.c), String(st.c)];
           row(label("streets"), `<b>${escapeHtml(String(st.n ?? (th ? "ไม่มีชื่อใน OSM" : "no name in OSM")))}</b> <span class="pp-muted">${th ? c[0] : c[1]}</span>`);
         }
@@ -487,12 +480,15 @@ export default function MapView(p: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    markers.current.forEach((mk, i) => {
-      const pr = p.tambons.features[i].properties;
-      mk.getElement().textContent = lang === "th" ? pr.tambon_th : pr.tambon_en;
-      if (p.showLabels) mk.addTo(m);
-      else mk.remove();
+    // labels as HTML markers (no font server needed), rebuilt when the shapes change (sub-district / district / province)
+    markers.current.forEach((mk) => mk.remove());
+    markers.current = p.tambons.features.map((f) => {
+      const el = document.createElement("div");
+      el.className = "tlabel";
+      el.textContent = lang === "th" ? f.properties.tambon_th : f.properties.tambon_en;
+      return new maplibregl.Marker({ element: el }).setLngLat(labelPoint(f));
     });
+    if (p.showLabels) markers.current.forEach((mk) => mk.addTo(m));
   }, [ready, p.showLabels, lang, p.tambons]);
 
   // pins (Sphere search results)

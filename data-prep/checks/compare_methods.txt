@@ -1,47 +1,48 @@
 # compare page check: method A (site) vs method B, 17 tambons, Logic Matrix cut 50 / 20 %
 
 developable  equal     rank changed  0/17 (max 0) · top 5 kept 5 · group changed 5
-    ฉลอง: upgrade -> promote (score 52.1 -> 52.1)
-    วิชิต: maintain -> prepare (score 49.1 -> 49.1)
-    สาคู: maintain -> prepare (score 31.7 -> 31.7)
-    กะทู้: maintain -> prepare (score 31.6 -> 31.6)
-    กมลา: maintain -> prepare (score 26.1 -> 26.1)
-developable  emerging  rank changed 11/17 (max 3) · top 5 kept 4 · group changed 7
-    สาคู: upgrade -> promote (score 53.2 -> 60.3)
-    กะรน: maintain -> upgrade (score 48.2 -> 54.0)
-    ป่าตอง: maintain -> upgrade (score 47.2 -> 52.9)
-    ฉลอง: maintain -> prepare (score 42.4 -> 47.6)
-    วิชิต: maintain -> prepare (score 42.0 -> 44.9)
-    กะทู้: maintain -> prepare (score 32.3 -> 39.9)
-    กมลา: maintain -> prepare (score 30.8 -> 39.1)
+    วิชิต: maintain -> prepare (score 36.0 -> 36.0)
+    ฉลอง: maintain -> prepare (score 33.5 -> 33.5)
+    กะทู้: maintain -> prepare (score 10.7 -> 10.7)
+    กมลา: maintain -> prepare (score 10.5 -> 10.5)
+    สาคู: maintain -> prepare (score 7.2 -> 7.2)
+developable  emerging  rank changed 10/17 (max 5) · top 5 kept 4 · group changed 5
+    วิชิต: maintain -> prepare (score 28.3 -> 31.1)
+    สาคู: maintain -> prepare (score 27.3 -> 34.4)
+    ฉลอง: maintain -> prepare (score 22.8 -> 28.0)
+    กมลา: maintain -> prepare (score 14.3 -> 22.7)
+    กะทู้: maintain -> prepare (score 10.3 -> 17.9)
 developable  people    rank changed  0/17 (max 0) · top 5 kept 5 · group changed 5
-    ฉลอง: upgrade -> promote (score 50.4 -> 50.4)
-    วิชิต: maintain -> prepare (score 47.7 -> 47.7)
-    สาคู: maintain -> prepare (score 33.1 -> 33.1)
-    กะทู้: maintain -> prepare (score 31.2 -> 31.2)
-    กมลา: maintain -> prepare (score 25.5 -> 25.5)
+    วิชิต: maintain -> prepare (score 34.6 -> 34.6)
+    ฉลอง: maintain -> prepare (score 31.8 -> 31.8)
+    กะทู้: maintain -> prepare (score 10.3 -> 10.3)
+    กมลา: maintain -> prepare (score 9.9 -> 9.9)
+    สาคู: maintain -> prepare (score 8.5 -> 8.5)
 
-buildings    equal     rank changed  4/17 (max 1) · top 5 kept 4 · group changed 2
-    ฉลอง: upgrade -> maintain (score 52.1 -> 48.7)
-    วิชิต: maintain -> upgrade (score 49.1 -> 50.7)
-buildings    emerging  rank changed  6/17 (max 1) · top 5 kept 5 · group changed 0
-buildings    people    rank changed  2/17 (max 1) · top 5 kept 4 · group changed 1
-    ฉลอง: upgrade -> maintain (score 50.4 -> 48.4)
+buildings    equal     rank changed  2/17 (max 1) · top 5 kept 5 · group changed 0
+buildings    emerging  rank changed  5/17 (max 2) · top 5 kept 5 · group changed 0
+buildings    people    rank changed  2/17 (max 1) · top 5 kept 5 · group changed 0
 
-scaling      equal     rank changed 10/17 (max 5) · top 5 kept 4 · group changed 3
-    วิชิต: maintain -> upgrade (score 49.1 -> 73.4)
-    ราไวย์: maintain -> upgrade (score 40.0 -> 59.4)
-    เชิงทะเล: prepare -> promote (score 35.5 -> 50.0)
-scaling      emerging  rank changed 16/17 (max 7) · top 5 kept 3 · group changed 7
-    เทพกระษัตรี: promote -> prepare (score 51.5 -> 45.7)
-    ไม้ขาว: promote -> prepare (score 50.6 -> 41.1)
-    กะรน: maintain -> upgrade (score 48.2 -> 58.2)
-    ป่าตอง: maintain -> upgrade (score 47.2 -> 54.3)
-    ราไวย์: maintain -> upgrade (score 43.2 -> 56.2)
-    ฉลอง: maintain -> upgrade (score 42.4 -> 52.6)
-    วิชิต: maintain -> upgrade (score 42.0 -> 55.9)
-scaling      people    rank changed  9/17 (max 4) · top 5 kept 4 · group changed 4
-    วิชิต: maintain -> upgrade (score 47.7 -> 72.2)
-    ราไวย์: maintain -> upgrade (score 39.7 -> 58.8)
-    เชิงทะเล: prepare -> promote (score 35.2 -> 50.0)
-    สาคู: maintain -> upgrade (score 33.1 -> 50.0)
+scaling      equal     rank changed  8/17 (max 1) · top 5 kept 4 · group changed 6
+    ป่าตอง: maintain -> upgrade (score 39.0 -> 73.4)
+    วิชิต: maintain -> upgrade (score 36.0 -> 79.7)
+    ฉลอง: maintain -> upgrade (score 33.5 -> 63.3)
+    รัษฎา: maintain -> upgrade (score 28.9 -> 68.8)
+    กะรน: maintain -> upgrade (score 28.9 -> 53.1)
+    ราไวย์: maintain -> upgrade (score 21.2 -> 59.4)
+scaling      emerging  rank changed 14/17 (max 9) · top 5 kept 3 · group changed 8
+    ตลาดเหนือ: maintain -> upgrade (score 46.4 -> 57.6)
+    ไม้ขาว: prepare -> promote (score 38.3 -> 59.2)
+    เชิงทะเล: prepare -> promote (score 30.0 -> 58.6)
+    วิชิต: maintain -> upgrade (score 28.3 -> 62.5)
+    ป่าตอง: maintain -> upgrade (score 26.9 -> 54.3)
+    ราไวย์: maintain -> upgrade (score 23.4 -> 56.2)
+    รัษฎา: maintain -> upgrade (score 22.9 -> 58.2)
+    เกาะแก้ว: prepare -> promote (score 21.7 -> 53.3)
+scaling      people    rank changed  7/17 (max 3) · top 5 kept 4 · group changed 6
+    ป่าตอง: maintain -> upgrade (score 44.7 -> 76.6)
+    วิชิต: maintain -> upgrade (score 34.6 -> 78.4)
+    กะรน: maintain -> upgrade (score 34.4 -> 58.1)
+    ฉลอง: maintain -> upgrade (score 31.8 -> 62.0)
+    รัษฎา: maintain -> upgrade (score 26.8 -> 65.6)
+    ราไวย์: maintain -> upgrade (score 20.9 -> 58.8)

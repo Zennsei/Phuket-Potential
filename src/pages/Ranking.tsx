@@ -3,6 +3,7 @@ import { FACTORS, unitOf } from "../factors";
 import { CATEGORIES, DEFAULT_THRESHOLDS, decide } from "../decision";
 import { scoreColor } from "../color";
 import { downloadText } from "../download";
+import { amphoeSummaries } from "../levels";
 import { useI18n } from "../i18n";
 import { href } from "../router";
 import type { PageProps } from "../pageProps";
@@ -18,6 +19,8 @@ export default function Ranking({ scored, weights }: PageProps) {
     () => new Map(decide(scored.map((s) => s.props), weights, DEFAULT_THRESHOLDS).map((d) => [d.s.props.id, d])),
     [scored, weights],
   );
+
+  const amphoes = useMemo(() => amphoeSummaries(scored, weights), [scored, weights]);
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -55,6 +58,8 @@ export default function Ranking({ scored, weights }: PageProps) {
       decision_changes_under: decisions.get(s.props.id)?.changesUnder.join(" ") ?? "",
       ...Object.fromEntries(FACTORS.map((f) => [`score_${f.key}`, Number(s.parts[f.key].toFixed(2))])),
       bldg_per_km2: s.props.bldg_per_km2,
+      road_km: s.props.road_km,
+      road_km_per_km2: s.props.road_km_per_km2,
       road_dist_m: s.props.road_dist_m,
       services_per_km2: s.props.services_per_km2,
       pop_per_km2: s.props.pop_per_km2,
@@ -72,10 +77,10 @@ export default function Ranking({ scored, weights }: PageProps) {
     const r = exportRows();
     const cols = Object.keys(r[0]);
     const csv = [cols.join(","), ...r.map((o) => cols.map((c) => JSON.stringify((o as Record<string, unknown>)[c] ?? "")).join(","))].join("\n");
-    downloadText("phuket_potential_ranking.csv", "﻿" + csv, "text/csv;charset=utf-8");
+    downloadText("geo_smart_ranking.csv", "﻿" + csv, "text/csv;charset=utf-8");
   };
   const exportJson = () =>
-    downloadText("phuket_potential_ranking.json", JSON.stringify({ weights, rows: exportRows() }, null, 2), "application/json");
+    downloadText("geo_smart_ranking.json", JSON.stringify({ weights, rows: exportRows() }, null, 2), "application/json");
 
   return (
     <div className="page">
@@ -99,6 +104,39 @@ export default function Ranking({ scored, weights }: PageProps) {
             </a>
           ))}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>{t("อันดับอำเภอ", "District ranking")}</h2>
+        <div className="tbl">
+          <table>
+            <thead>
+              <tr>
+                <th>{t("อันดับ", "Rank")}</th>
+                <th>{t("อำเภอ", "District")}</th>
+                <th className="num">{t("คะแนนเฉลี่ย", "Mean score")}</th>
+                <th>{t("ตำบลที่ดีที่สุด", "Best sub-district")}</th>
+                <th>{t("ตำบลแยกตามกลุ่ม", "Sub-districts by group")}</th>
+                {FACTORS.map((f) => <th key={f.key} className="num">{t(f.th, f.en)}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {amphoes.map((a) => (
+                <tr key={a.id}>
+                  <td className="mono"><b>{a.rank}</b></td>
+                  <td>{t(`อ.${a.th}`, a.en)}<div className="small muted">{t(`${a.members.length} ตำบล`, `${a.members.length} sub-districts`)}</div></td>
+                  <td className="num"><b>{num(a.score, 1)}</b></td>
+                  <td><a href={href("map", a.members[0].props.id)}>{t(a.members[0].props.tambon_th, a.members[0].props.tambon_en)}</a> <span className="small muted">{num(a.members[0].score, 1)}</span></td>
+                  <td className="small" style={{ minWidth: 170 }}>{(Object.keys(CATEGORIES) as (keyof typeof CATEGORIES)[]).filter((c) => a.groups[c] > 0).map((c) => <div key={c}><b style={{ color: CATEGORIES[c].color }}>{a.groups[c]}</b> {t(CATEGORIES[c].th, CATEGORIES[c].en)}</div>)}</td>
+                  {FACTORS.map((f) => <td key={f.key} className="num">{num(a.values[f.key], f.key === "road" ? 2 : f.key === "buildings" || f.key === "population" ? 0 : 1)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="small muted">{t(
+          "คะแนนอำเภอ = ค่าเฉลี่ยคะแนนของตำบลในอำเภอ ถ่วงตามพื้นที่ · ตัวเลขปัจจัยรวมจากทุกตำบล (ผลรวม ÷ พื้นที่รวม) หน่วยเดียวกับตารางตำบลข้างล่าง · ดูบนแผนที่ได้ที่ปุ่ม \"ดูระดับ: อำเภอ\"",
+          "District score = area-weighted mean of its sub-district scores · factor figures are added up from the sub-districts (total ÷ total area), same units as the table below · on the map use \"View by: District\"")}</p>
       </section>
 
       <section style={{ display: "grid", gap: 12 }}>

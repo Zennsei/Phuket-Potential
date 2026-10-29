@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TambonCollection } from "./types";
+import type { AdminCollection } from "./levels";
 
 export interface Sources {
   generated: string;
@@ -8,6 +9,9 @@ export interface Sources {
 
 export interface AppData {
   tambons: TambonCollection;
+  /** district and province outlines (data-prep/admin_levels.py) */
+  amphoe: AdminCollection;
+  province: AdminCollection;
   sources: Sources;
 }
 
@@ -23,7 +27,9 @@ export function loadData(): Promise<AppData> {
   cache ??= Promise.all([
     getJson<TambonCollection>("data/tambons.geojson"),
     getJson<Sources>("data/sources.json"),
-  ]).then(([tambons, sources]) => ({ tambons, sources }));
+    getJson<AdminCollection>("data/amphoe.geojson"),
+    getJson<AdminCollection>("data/province.geojson"),
+  ]).then(([tambons, sources, amphoe, province]) => ({ tambons, sources, amphoe, province }));
   return cache;
 }
 
